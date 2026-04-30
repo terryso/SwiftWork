@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-01T06:40:00.000Z",
+  "repo": "swiftwork",
+  "target": {
+    "type": "story",
+    "id": "1-2",
+    "label": "首次启动引导与 Agent 配置"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "rationale": "P0 coverage is 100%, P1 coverage is 100% (target: 90%), and overall coverage is 100% (minimum: 80%). All 38 Story 1-2 tests pass. Total suite: 89 tests, 0 failures. Security NFR6 (Keychain storage) verified. No critical gaps, no flaky tests.",
+  "p0_status": "MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}

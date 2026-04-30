@@ -1,6 +1,24 @@
 import Foundation
 @testable import SwiftWork
 
+// MARK: - Mock KeychainManager
+
+final class MockKeychainManager: KeychainManaging, @unchecked Sendable {
+    private var storage: [String: Data] = [:]
+
+    func save(key: String, data: Data) throws {
+        storage[key] = data
+    }
+
+    func load(key: String) throws -> Data? {
+        storage[key]
+    }
+
+    func delete(key: String) throws {
+        storage.removeValue(forKey: key)
+    }
+}
+
 enum TestDataFactory {
 
     // MARK: - Session Factories

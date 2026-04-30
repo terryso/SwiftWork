@@ -2,6 +2,7 @@ import XCTest
 @testable import SwiftWork
 import SwiftData
 
+@MainActor
 final class AppEntryTests: XCTestCase {
 
     // MARK: - AC#5: App Entry with NavigationSplitView

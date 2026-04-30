@@ -5,6 +5,7 @@ enum ErrorDomain: String, Sendable {
     case network
     case data
     case ui
+    case security
 }
 
 struct AppError: LocalizedError, Sendable {
