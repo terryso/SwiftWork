@@ -1,0 +1,79 @@
+# generated: 2026-05-01
+# last_updated: 2026-05-01
+# project: swiftwork
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-05-01
+last_updated: 2026-05-01
+project: swiftwork
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # === Epic 1: 首次启动与基础交互（SDK→UI 闭环） ===
+  epic-1: backlog
+  1-1-project-init-data-layer: backlog
+  1-2-onboarding-agent-config: backlog
+  1-3-session-management-sidebar: backlog
+  1-4-message-input-agent-execution: backlog
+  1-5-timeline-event-stream: backlog
+  1-6-app-state-restore: backlog
+  epic-1-retrospective: optional
+
+  # === Epic 2: Agent 执行可视化（Tool Card 体验） ===
+  epic-2: backlog
+  2-1-tool-visualization-architecture: backlog
+  2-2-tool-card-experience: backlog
+  2-3-event-visual-system: backlog
+  2-4-markdown-code-highlight: backlog
+  2-5-timeline-performance: backlog
+  epic-2-retrospective: optional
+
+  # === Epic 3: 权限控制与会话管理（用户掌控力） ===
+  epic-3: backlog
+  3-1-permission-system: backlog
+  3-2-permission-config-rules: backlog
+  3-3-session-management-enhanced: backlog
+  3-4-inspector-panel: backlog
+  3-5-execution-plan-visualization: backlog
+  epic-3-retrospective: optional
+
+  # === Epic 4: 调试面板与应用外壳（开发者工具体验） ===
+  epic-4: backlog
+  4-1-debug-panel: backlog
+  4-2-app-settings: backlog
+  4-3-menubar-shortcuts: backlog
+  4-4-dock-badge-window-management: backlog
+  epic-4-retrospective: optional
