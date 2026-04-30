@@ -1,0 +1,59 @@
+name: SwiftWork
+options:
+  bundleIdPrefix: com.swiftwork
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "6.1"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    GENERATE_INFOPLIST_FILE: true
+    INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
+
+packages:
+  OpenAgentSDK:
+    url: https://github.com/terryso/open-agent-sdk-swift
+    from: "0.1.0"
+  Markdown:
+    url: https://github.com/apple/swift-markdown
+    from: "0.5.0"
+  Splash:
+    url: https://github.com/JohnSundell/Splash
+    from: "0.9.0"
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.0.0"
+
+targets:
+  SwiftWork:
+    type: application
+    platform: macOS
+    sources:
+      - SwiftWork
+    dependencies:
+      - package: OpenAgentSDK
+      - package: Markdown
+      - package: Splash
+      - package: Sparkle
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.swiftwork.app
+        INFOPLIST_KEY_CFBundleDisplayName: SwiftWork
+        CODE_SIGN_ENTITLEMENTS: SwiftWork/SwiftWork.entitlements
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: manual
+        ENABLE_PREVIEWS: true
+
+  SwiftWorkTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - SwiftWorkTests
+    dependencies:
+      - target: SwiftWork
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.swiftwork.tests

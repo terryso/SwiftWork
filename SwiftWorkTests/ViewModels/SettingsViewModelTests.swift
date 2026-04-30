@@ -232,12 +232,11 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.apiKey.isEmpty)
     }
 
-    // [P1] API Key must start with "sk-" for basic format validation
+    // [P1] Non-empty API Key passes validation
     func testAPIKeyFormatValidation() {
         let viewModel = makeViewModel()
-        viewModel.apiKey = "invalid-key-format"
-        // isValidAPIKey should return false
-        XCTAssertFalse(viewModel.isValidAPIKey, "Key not starting with 'sk-' should be invalid")
+        viewModel.apiKey = "my-custom-key-12345"
+        XCTAssertTrue(viewModel.isValidAPIKey, "Any non-empty key should be valid")
     }
 
     // [P1] Valid API Key format passes validation

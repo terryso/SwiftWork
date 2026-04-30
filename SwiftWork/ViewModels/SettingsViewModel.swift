@@ -5,13 +5,14 @@ import SwiftData
 @Observable
 final class SettingsViewModel {
     var apiKey = ""
+    var baseURL = ""
     var selectedModel: String = Constants.defaultModel
     var isAPIKeyConfigured = false
     var isFirstLaunch = true
     var errorMessage: String?
 
     var isValidAPIKey: Bool {
-        !apiKey.isEmpty && apiKey.hasPrefix("sk-")
+        !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var availableModels: [String] {
@@ -38,6 +39,16 @@ final class SettingsViewModel {
             }
         } catch {
             isAPIKeyConfigured = false
+        }
+
+        // Load saved base URL
+        do {
+            if let data = try keychainManager.load(key: KeychainConstants.baseURLAccount),
+               let saved = String(data: data, encoding: .utf8) {
+                baseURL = saved
+            }
+        } catch {
+            // Ignore — baseURL is optional
         }
 
         // 2. Check for saved model preference
@@ -76,6 +87,14 @@ final class SettingsViewModel {
 
         do {
             try keychainManager.saveAPIKey(apiKey)
+
+            // Save base URL (only if non-empty)
+            if !baseURL.isEmpty {
+                try keychainManager.save(key: KeychainConstants.baseURLAccount, data: Data(baseURL.utf8))
+            } else {
+                try? keychainManager.delete(key: KeychainConstants.baseURLAccount)
+            }
+
             isAPIKeyConfigured = true
             errorMessage = nil
         } catch {

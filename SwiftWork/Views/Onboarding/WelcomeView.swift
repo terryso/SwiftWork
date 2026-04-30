@@ -46,6 +46,19 @@ struct WelcomeView: View {
                     }
                 }
 
+                // Base URL input
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Base URL")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    TextField(Constants.defaultBaseURL, text: $viewModel.baseURL)
+                        .textFieldStyle(.roundedBorder)
+                        #if os(macOS)
+                        .onSubmit { normalizeBaseURL() }
+                        #endif
+                }
+
                 // Model picker
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Model")
@@ -81,6 +94,7 @@ struct WelcomeView: View {
     }
 
     private func performSave() {
+        normalizeBaseURL()
         do {
             try viewModel.saveAPIKey()
             viewModel.completeSetup()
@@ -88,5 +102,13 @@ struct WelcomeView: View {
         } catch {
             // errorMessage already set by saveAPIKey()
         }
+    }
+
+    private func normalizeBaseURL() {
+        var url = viewModel.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if url.hasSuffix("/") {
+            url.removeLast()
+        }
+        viewModel.baseURL = url
     }
 }

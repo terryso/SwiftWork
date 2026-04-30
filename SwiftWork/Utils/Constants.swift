@@ -3,6 +3,7 @@ import Foundation
 enum Constants {
     static let appName = "SwiftWork"
     static let defaultModel = "claude-sonnet-4-6"
+    static let defaultBaseURL = "https://api.anthropic.com"
 
     static let availableModels = [
         "claude-sonnet-4-6",
@@ -14,4 +15,5 @@ enum Constants {
 enum KeychainConstants {
     static let service = "com.swiftwork.apikeys"
     static let apiKeyAccount = "anthropic-api-key"
+    static let baseURLAccount = "anthropic-base-url"
 }
