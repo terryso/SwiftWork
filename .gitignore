@@ -37,9 +37,11 @@ Package.resolved
 *.swo
 *~
 .idea/
+.vscode/
 
 # BMAD (output artifacts are tracked, but user-specific overrides are not)
 _bmad/custom/*.user.toml
 
 # Claude Code
 .claude/settings.local.json
+
