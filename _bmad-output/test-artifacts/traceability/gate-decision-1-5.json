@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-01T16:40:00.000Z",
+  "repo": "swiftwork",
+  "target": {
+    "type": "story",
+    "id": "1.5",
+    "label": "Timeline 事件流渲染"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "rationale": "P0 coverage is 100% (5/5), P1 coverage is N/A (no P1-only criteria, 100% effective), and overall coverage is 100% (5/5). All acceptance criteria are fully covered by automated tests. 36 tests pass with 0 failures.",
+  "p0_status": "MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix-1-5.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}
