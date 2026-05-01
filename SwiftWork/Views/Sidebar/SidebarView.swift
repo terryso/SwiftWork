@@ -19,10 +19,8 @@ struct SidebarView: View {
                     List(selection: Binding(
                         get: { sessionViewModel.selectedSession?.id },
                         set: { newID in
-                            if let newID {
-                                sessionViewModel.selectedSession = sessionViewModel.sessions.first { $0.id == newID }
-                            } else {
-                                sessionViewModel.selectedSession = nil
+                            if let newID, let session = sessionViewModel.sessions.first(where: { $0.id == newID }) {
+                                sessionViewModel.selectSession(session)
                             }
                         }
                     )) {
