@@ -1,6 +1,4 @@
 # Xcode
-*.xcodeproj
-!project.yml
 *.xcworkspace/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 *.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
