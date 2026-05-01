@@ -20,7 +20,8 @@ enum MarkdownRenderer {
 // MARK: - Visitor Implementation
 
 /// Converts swift-markdown AST nodes into SwiftUI AnyView elements.
-private struct MarkdownToViewsVisitor: MarkupVisitor {
+@MainActor
+private struct MarkdownToViewsVisitor: @preconcurrency MarkupVisitor {
     typealias Result = Void
 
     /// Accumulated top-level views from the visit.
