@@ -51,10 +51,8 @@ struct ResultView: View {
                         .foregroundStyle(statusColor)
                 }
                 if !event.content.isEmpty {
-                    Text(event.content)
+                    MarkdownContentView(markdown: event.content)
                         .font(.caption)
-                        .foregroundStyle(.primary)
-                        .lineLimit(3)
                 }
                 HStack(spacing: 12) {
                     if let duration = durationMs {

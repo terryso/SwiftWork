@@ -10,11 +10,7 @@ struct AssistantMessageView: View {
                 .frame(width: 2)
                 .padding(.trailing, 8)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.content)
-                    .foregroundStyle(.primary)
-                    .textSelection(.enabled)
-            }
+            MarkdownContentView(markdown: event.content)
             Spacer()
         }
     }

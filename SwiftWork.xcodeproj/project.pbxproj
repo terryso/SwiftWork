@@ -279,6 +279,8 @@
 				D6FAFDCA54246E7640902E6B /* KeychainManagerTests.swift */,
 				CC01TS0000000001AA01TS19 /* TitleGeneratorTests.swift */,
 				CC01TS0000000001AA01TS1D /* EventStoreTests.swift */,
+				CC44MD0000000001CC44MD14 /* MarkdownRendererTests.swift */,
+				CC44MD0000000001CC44MD15 /* CodeHighlighterTests.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -376,6 +378,7 @@
 				CC01EV0000000001AA01EV33 /* UnknownEventView.swift */,
 				CC22AB0000000001CC22AB11 /* ToolCardView.swift */,
 				CC22AB0000000001CC22AB12 /* ToolResultContentView.swift */,
+				CC44MD0000000001CC44MD13 /* MarkdownContentView.swift */,
 				CC22AB0000000001CC22AB51 /* ToolRenderers */,
 			);
 			path = EventViews;
@@ -484,6 +487,8 @@
 				CC01TS0000000001AA01TS15 /* TimelineViewRefactoredTests.swift */,
 				CC33TC0000000001CC33TC12 /* ToolCardViewTests.swift */,
 				CC33TC0000000001CC33TC13 /* ToolCardTimelineIntegrationTests.swift */,
+				CC44MD0000000001CC44MD16 /* MarkdownContentViewTests.swift */,
+				CC44MD0000000001CC44MD17 /* MarkdownRenderingIntegrationTests.swift */,
 			);
 			path = Timeline;
 			sourceTree = "<group>";
@@ -548,6 +553,8 @@
 				AABB00112233445566778823 /* EventStore.swift */,
 				AABB00112233445566778832 /* TitleGenerator.swift */,
 				CC22AB0000000001CC22AB1A /* AppStateManager.swift */,
+				CC44MD0000000001CC44MD11 /* MarkdownRenderer.swift */,
+				CC44MD0000000001CC44MD12 /* CodeHighlighter.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -710,6 +717,10 @@
 				CC33TC0000000001CC33TC02 /* ToolCardViewTests.swift in Sources */,
 				CC33TC0000000001CC33TC03 /* ToolCardTimelineIntegrationTests.swift in Sources */,
 				CC33TC0000000001CC33TC04 /* ToolRendererRegistryTests.swift in Sources */,
+				CC44MD0000000001CC44MD04 /* MarkdownRendererTests.swift in Sources */,
+				CC44MD0000000001CC44MD05 /* CodeHighlighterTests.swift in Sources */,
+				CC44MD0000000001CC44MD06 /* MarkdownContentViewTests.swift in Sources */,
+				CC44MD0000000001CC44MD07 /* MarkdownRenderingIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -769,6 +780,9 @@
 				CC22AB0000000001CC22AB09 /* ToolRendererRegistry.swift in Sources */,
 				CC22AB0000000001CC22AB0A /* AppStateManager.swift in Sources */,
 				CC22AB0000000001CC22AB0B /* WindowAccessor.swift in Sources */,
+				CC44MD0000000001CC44MD01 /* MarkdownRenderer.swift in Sources */,
+				CC44MD0000000001CC44MD02 /* CodeHighlighter.swift in Sources */,
+				CC44MD0000000001CC44MD03 /* MarkdownContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
