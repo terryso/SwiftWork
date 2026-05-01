@@ -9,6 +9,11 @@ final class SessionViewModel {
     var errorMessage: String?
 
     private var modelContext: ModelContext?
+    private(set) var appStateManager: AppStateManager?
+
+    func setAppStateManager(_ manager: AppStateManager) {
+        appStateManager = manager
+    }
 
     func configure(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -41,6 +46,7 @@ final class SessionViewModel {
             try modelContext.save()
             sessions.insert(session, at: 0)
             selectedSession = session
+            appStateManager?.saveLastActiveSessionID(session.id)
             errorMessage = nil
         } catch {
             errorMessage = AppError(
@@ -54,6 +60,7 @@ final class SessionViewModel {
 
     func selectSession(_ session: Session) {
         selectedSession = session
+        appStateManager?.saveLastActiveSessionID(session.id)
     }
 
     func deleteSession(_ session: Session) {

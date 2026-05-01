@@ -17,3 +17,9 @@ enum KeychainConstants {
     static let apiKeyAccount = "anthropic-api-key"
     static let baseURLAccount = "anthropic-base-url"
 }
+
+enum AppStateKeys {
+    static let lastActiveSessionID = "appState.lastActiveSessionID"
+    static let windowFrame = "appState.windowFrame"
+    static let inspectorVisible = "appState.inspectorVisible"
+}
