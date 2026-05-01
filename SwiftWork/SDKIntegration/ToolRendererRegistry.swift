@@ -10,6 +10,8 @@ final class ToolRendererRegistry {
         register(BashToolRenderer())
         register(FileEditToolRenderer())
         register(SearchToolRenderer())
+        register(ReadToolRenderer())
+        register(WriteToolRenderer())
     }
 
     func register(_ renderer: any ToolRenderable) {

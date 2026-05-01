@@ -4,6 +4,8 @@ struct TimelineView: View {
     let agentBridge: AgentBridge
     var toolRendererRegistry: ToolRendererRegistry = ToolRendererRegistry()
 
+    @State private var selectedEventId: UUID?
+
     var body: some View {
         if agentBridge.events.isEmpty {
             emptyStateView
@@ -54,11 +56,11 @@ struct TimelineView: View {
         case .assistant:
             AssistantMessageView(event: event)
         case .toolUse:
-            toolUseView(event: event)
-        case .toolResult:
-            ToolResultView(event: event)
-        case .toolProgress:
-            ToolProgressView(event: event)
+            toolCardView(for: event)
+        case .toolResult, .toolProgress:
+            // Paired tool events are rendered inside ToolCardView (via toolContentMap)
+            // Only render as fallback if there's no corresponding toolUse in the map
+            pairedToolEventView(for: event)
         case .result:
             ResultView(event: event)
         case .system:
@@ -80,21 +82,45 @@ struct TimelineView: View {
     }
 
     @ViewBuilder
-    private func toolUseView(event: AgentEvent) -> some View {
-        let toolName = event.content
-        if let renderer = toolRendererRegistry.renderer(for: toolName) {
-            let content = ToolContent.fromToolUseEvent(event)
-            AnyView(renderer.body(content: content))
+    private func toolCardView(for event: AgentEvent) -> some View {
+        let toolUseId = event.metadata["toolUseId"] as? String ?? ""
+        if let content = agentBridge.toolContentMap[toolUseId] {
+            ToolCardView(
+                content: content,
+                registry: toolRendererRegistry,
+                isSelected: selectedEventId == event.id,
+                onSelect: { selectedEventId = event.id }
+            )
         } else {
             ToolCallView(event: event)
         }
     }
 
     @ViewBuilder
+    private func pairedToolEventView(for event: AgentEvent) -> some View {
+        let toolUseId = event.metadata["toolUseId"] as? String ?? ""
+        // If this toolResult/toolProgress has been paired with a toolUse,
+        // it's rendered inside the ToolCardView — don't render a separate card.
+        if agentBridge.toolContentMap[toolUseId] != nil {
+            EmptyView()
+        } else {
+            // Unpaired fallback: render the legacy views
+            if event.type == .toolResult {
+                ToolResultView(event: event)
+            } else {
+                ToolProgressView(event: event)
+            }
+        }
+    }
+
+    @ViewBuilder
     private func systemOrThinking(event: AgentEvent) -> some View {
         let subtype = event.metadata["subtype"] as? String ?? ""
-        if subtype == "init" || subtype == "status" {
+        let isLastEvent = agentBridge.events.last?.id == event.id
+        if (subtype == "init" || subtype == "status") && isLastEvent {
             ThinkingView()
+        } else if subtype == "init" || subtype == "status" {
+            ThinkingView(isActive: false)
         } else if let isError = event.metadata["isError"] as? Bool, isError {
             SystemEventView(event: event, isError: true)
         } else {
