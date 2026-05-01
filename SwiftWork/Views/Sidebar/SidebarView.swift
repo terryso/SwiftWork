@@ -15,22 +15,32 @@ struct SidebarView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(selection: Binding(
-                    get: { sessionViewModel.selectedSession?.id },
-                    set: { newID in
-                        if let newID {
-                            sessionViewModel.selectedSession = sessionViewModel.sessions.first { $0.id == newID }
-                        } else {
-                            sessionViewModel.selectedSession = nil
+                ScrollViewReader { proxy in
+                    List(selection: Binding(
+                        get: { sessionViewModel.selectedSession?.id },
+                        set: { newID in
+                            if let newID {
+                                sessionViewModel.selectedSession = sessionViewModel.sessions.first { $0.id == newID }
+                            } else {
+                                sessionViewModel.selectedSession = nil
+                            }
+                        }
+                    )) {
+                        ForEach(sessionViewModel.sessions) { session in
+                            SessionRowView(session: session)
+                                .tag(session.id)
+                                .id(session.id)
                         }
                     }
-                )) {
-                    ForEach(sessionViewModel.sessions) { session in
-                        SessionRowView(session: session)
-                            .tag(session.id)
+                    .listStyle(.sidebar)
+                    .onChange(of: sessionViewModel.selectedSession?.id) { _, newID in
+                        if let newID {
+                            withAnimation {
+                                proxy.scrollTo(newID, anchor: .top)
+                            }
+                        }
                     }
                 }
-                .listStyle(.sidebar)
             }
         }
         .navigationTitle("SwiftWork")

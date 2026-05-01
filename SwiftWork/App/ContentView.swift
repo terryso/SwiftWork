@@ -5,6 +5,8 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var settingsViewModel = SettingsViewModel()
     @State private var sessionViewModel = SessionViewModel()
+    @State private var agentBridge = AgentBridge()
+    @State private var eventStore: (any EventStoring)?
     @State private var hasCompletedOnboarding: Bool? = nil
 
     var body: some View {
@@ -15,7 +17,13 @@ struct ContentView: View {
                         SidebarView(sessionViewModel: sessionViewModel)
                     } detail: {
                         if let session = sessionViewModel.selectedSession {
-                            Text("Workspace: \(session.title)")
+                            WorkspaceView(
+                                agentBridge: agentBridge,
+                                eventStore: eventStore,
+                                session: session,
+                                settingsViewModel: settingsViewModel,
+                                sessionViewModel: sessionViewModel
+                            )
                         } else {
                             Text("选择或创建一个会话")
                                 .foregroundStyle(.secondary)
@@ -37,11 +45,13 @@ struct ContentView: View {
 
             if hasCompletedOnboarding == true {
                 sessionViewModel.configure(modelContext: modelContext)
+                eventStore = SwiftDataEventStore(modelContext: modelContext)
             }
         }
         .onChange(of: hasCompletedOnboarding) { _, newValue in
             if newValue == true {
                 sessionViewModel.configure(modelContext: modelContext)
+                eventStore = SwiftDataEventStore(modelContext: modelContext)
             }
         }
     }

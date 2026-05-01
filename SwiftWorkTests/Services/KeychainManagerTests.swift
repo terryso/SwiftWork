@@ -6,11 +6,13 @@ import XCTest
 
 final class KeychainManagerTests: XCTestCase {
 
+    private let testService = "com.swiftwork.apikeys.test"
+
     // MARK: - AC#2: KeychainManager CRUD — save/load round-trip
 
     // [P0] save then load returns the same data
     func testSaveAndLoadRoundTrip() throws {
-        let manager = KeychainManager()
+        let manager = KeychainManager(service: testService)
         let testData = Data("sk-test-api-key-12345".utf8)
 
         // Clean up any prior test data
@@ -29,7 +31,7 @@ final class KeychainManagerTests: XCTestCase {
 
     // [P0] saveAPIKey / getAPIKey convenience methods
     func testSaveAndGetAPIKeyConvenience() throws {
-        let manager = KeychainManager()
+        let manager = KeychainManager(service: testService)
         let expectedKey = "sk-ant-test-key-abcdef"
 
         // Clean up
@@ -47,7 +49,7 @@ final class KeychainManagerTests: XCTestCase {
 
     // [P0] saving the same key twice updates the value
     func testSaveDuplicateKeyUpdates() throws {
-        let manager = KeychainManager()
+        let manager = KeychainManager(service: testService)
         let firstData = Data("key-v1".utf8)
         let secondData = Data("key-v2".utf8)
 
@@ -68,7 +70,7 @@ final class KeychainManagerTests: XCTestCase {
 
     // [P0] delete then load returns nil
     func testDeleteThenLoadReturnsNil() throws {
-        let manager = KeychainManager()
+        let manager = KeychainManager(service: testService)
         let testData = Data("to-be-deleted".utf8)
 
         try manager.save(key: "test-del-key", data: testData)
@@ -80,7 +82,7 @@ final class KeychainManagerTests: XCTestCase {
 
     // [P1] delete non-existent key does not crash
     func testDeleteNonExistentKeyDoesNotCrash() throws {
-        let manager = KeychainManager()
+        let manager = KeychainManager(service: testService)
         // Should not throw or crash
         try manager.delete(key: "non-existent-key-\(UUID().uuidString)")
     }
@@ -89,7 +91,7 @@ final class KeychainManagerTests: XCTestCase {
 
     // [P1] load non-existent key returns nil
     func testLoadNonExistentKeyReturnsNil() throws {
-        let manager = KeychainManager()
+        let manager = KeychainManager(service: testService)
         let loaded = try manager.load(key: "non-existent-key-\(UUID().uuidString)")
         XCTAssertNil(loaded, "Loading a non-existent key should return nil")
     }
@@ -98,14 +100,14 @@ final class KeychainManagerTests: XCTestCase {
 
     // [P0] KeychainManager conforms to KeychainManaging protocol
     func testKeychainManagerConformsToProtocol() {
-        let manager = KeychainManager()
+        let manager = KeychainManager(service: testService)
         let _: any KeychainManaging = manager
         // If this compiles, KeychainManager conforms to KeychainManaging
     }
 
     // [P0] KeychainManager is Sendable
     func testKeychainManagerIsSendable() {
-        let manager = KeychainManager()
+        let manager = KeychainManager(service: testService)
         let _: any Sendable = manager
     }
 

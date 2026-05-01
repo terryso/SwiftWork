@@ -44,19 +44,17 @@ struct KeychainManager: KeychainManaging, Sendable {
             kSecAttrAccount as String: key
         ]
 
-        let attributes: [String: Any] = query.merging([
-            kSecValueData as String: data
+        let addAttributes = query.merging([
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
         ]) { _, new in new }
 
-        // Try to add first; if item exists, update it
-        let addStatus = SecItemAdd(attributes as CFDictionary, nil)
+        let addStatus = SecItemAdd(addAttributes as CFDictionary, nil)
 
         if addStatus == errSecDuplicateItem {
-            let updateAttributes: [String: Any] = [
+            let updateStatus = SecItemUpdate(query as CFDictionary, [
                 kSecValueData as String: data
-            ]
-            let updateStatus = SecItemUpdate(query as CFDictionary, updateAttributes as CFDictionary)
-
+            ] as CFDictionary)
             guard updateStatus == errSecSuccess else {
                 throw AppError(
                     domain: .security,

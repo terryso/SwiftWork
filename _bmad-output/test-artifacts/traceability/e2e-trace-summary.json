@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1.0",
-  "snapshot_at": "2026-05-01T05:46:00Z",
+  "snapshot_at": "2026-05-01T09:17:00Z",
   "repo": "swiftwork",
   "collection_mode": "contract_static",
   "collection_status": "COLLECTED",
@@ -9,8 +9,8 @@
   "source_sha": "",
   "target": {
     "type": "story",
-    "id": "1-1",
-    "label": "项目初始化与数据层搭建"
+    "id": "1-4",
+    "label": "消息输入与 Agent 执行"
   },
   "decision_mode": "deterministic",
   "evaluator": "Nick",
@@ -19,8 +19,7 @@
     "resolution_mode": "formal_requirements",
     "confidence": "high",
     "sources": [
-      "_bmad-output/implementation-artifacts/1-1-project-init-data-layer.md",
-      "_bmad-output/test-artifacts/atdd-checklist-1-1-project-init-data-layer.md",
+      "_bmad-output/implementation-artifacts/1-4-message-input-agent-execution.md",
       "_bmad-output/project-context.md"
     ],
     "external_pointer_status": "not_used",
@@ -28,13 +27,13 @@
   },
   "coverage": {
     "inventory": {
-      "covered": 15,
-      "total": 15,
+      "covered": 31,
+      "total": 31,
       "pct": 100
     },
     "priority_breakdown": {
-      "P0": {"total": 13, "covered": 13, "pct": 100},
-      "P1": {"total": 2, "covered": 2, "pct": 100},
+      "P0": {"total": 27, "covered": 27, "pct": 100},
+      "P1": {"total": 4, "covered": 4, "pct": 100},
       "P2": {"total": 0, "covered": 0, "pct": 100},
       "P3": {"total": 0, "covered": 0, "pct": 100}
     },
@@ -42,13 +41,14 @@
       "e2e": {"tests": 0, "criteria_covered": 0},
       "api": {"tests": 0, "criteria_covered": 0},
       "component": {"tests": 0, "criteria_covered": 0},
-      "unit": {"tests": 51, "criteria_covered": 15},
+      "unit": {"tests": 46, "criteria_covered": 28},
+      "integration": {"tests": 10, "criteria_covered": 14},
       "other": {"tests": 0, "criteria_covered": 0}
     }
   },
   "tests": {
-    "files": 11,
-    "cases": 51,
+    "files": 3,
+    "cases": 56,
     "skipped_cases": 0,
     "fixme_cases": 0,
     "pending_cases": 0
@@ -68,19 +68,13 @@
   },
   "blockers": [],
   "recommendations": [
-    {
-      "priority": "MEDIUM",
-      "action": "Consider adding SwiftData ModelContext integration tests for cascade delete verification",
-      "requirements": ["AC-4-Session"]
-    },
-    {
-      "priority": "LOW",
-      "action": "Run /bmad:tea:test-review to assess test quality",
-      "requirements": []
-    }
+    {"priority": "LOW", "action": "Run /bmad:tea:test-review to assess test quality and assertion depth", "requirements": []},
+    {"priority": "LOW", "action": "Consider adding tests for concurrent sendMessage calls to verify activeTaskGeneration guard", "requirements": []},
+    {"priority": "LOW", "action": "Consider adding performance tests for EventMapper throughput with large message volumes", "requirements": []},
+    {"priority": "LOW", "action": "E2E UI tests for InputBarView deferred until native macOS E2E framework established", "requirements": []}
   ],
   "links": {
-    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
+    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix-1-4.md",
     "trace_report_url": "",
     "artifact_url": "",
     "journey_evidence_url": ""
