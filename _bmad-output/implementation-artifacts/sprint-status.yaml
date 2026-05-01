@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-01
-last_updated: 2026-05-01T22:30:00
+last_updated: 2026-05-02T12:00:00
 project: swiftwork
 project_key: NOKEY
 tracking_system: file-system
@@ -56,7 +56,7 @@ development_status:
   epic-2: in-progress
   2-1-tool-visualization-architecture: done
   2-2-tool-card-experience: done
-  2-3-event-visual-system: backlog
+  2-3-event-visual-system: done
   2-4-markdown-code-highlight: backlog
   2-5-timeline-performance: backlog
   epic-2-retrospective: optional

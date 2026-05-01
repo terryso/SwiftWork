@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ReadToolRenderer: ToolRenderable {
     static let toolName = "Read"
+    static let accentColor: Color = .blue
+    static let icon: String = "doc.text"
 
     @MainActor
     func body(content: ToolContent) -> any View {

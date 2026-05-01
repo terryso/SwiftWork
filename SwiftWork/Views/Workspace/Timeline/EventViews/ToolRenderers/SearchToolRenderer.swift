@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SearchToolRenderer: ToolRenderable {
     static let toolName = "Grep"
+    static let accentColor: Color = .purple
+    static let icon: String = "text.magnifyingglass"
 
     @MainActor
     func body(content: ToolContent) -> any View {

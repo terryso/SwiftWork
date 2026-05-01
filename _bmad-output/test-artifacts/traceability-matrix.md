@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-04-analyze-gaps'
   - 'step-05-gate-decision'
 lastStep: 'step-05-gate-decision'
-lastSaved: '2026-05-01'
+lastSaved: '2026-05-02'
 workflowType: 'testarch-trace'
 coverageBasis: 'acceptance_criteria'
 oracleConfidence: 'high'
@@ -15,13 +15,15 @@ oracleSources:
   - '_bmad-output/implementation-artifacts/1-1-project-init-data-layer.md'
   - '_bmad-output/implementation-artifacts/1-2-onboarding-agent-config.md'
   - '_bmad-output/implementation-artifacts/1-3-session-management-sidebar.md'
+  - '_bmad-output/implementation-artifacts/2-3-event-visual-system.md'
   - '_bmad-output/test-artifacts/atdd-checklist-1-1-project-init-data-layer.md'
   - '_bmad-output/test-artifacts/atdd-checklist-1-2-onboarding-agent-config.md'
   - '_bmad-output/test-artifacts/atdd-checklist-1-3-session-management-sidebar.md'
+  - '_bmad-output/test-artifacts/atdd-checklist-2-3-event-type-visual-system.md'
   - '_bmad-output/project-context.md'
 externalPointerStatus: 'not_used'
-traceScope: 'stories-1-1-to-1-3'
-tempCoverageMatrixPath: '/tmp/tea-trace-coverage-matrix-1-3.json'
+traceScope: 'stories-1-1-to-2-3'
+tempCoverageMatrixPath: '/tmp/tea-trace-coverage-matrix-2-3.json'
 ---
 
 # Traceability Matrix & Gate Decision — Stories 1-1 to 1-3
@@ -683,6 +685,85 @@ traceability_and_gate:
 
 **Generated:** 2026-05-01
 **Workflow:** testarch-trace v4.0 (Enhanced with Gate Decision)
+
+---
+
+## Story 2-3: 事件类型视觉系统
+
+### Traceability Report
+
+**Target:** Story 2-3 (Epic 2: Agent 执行可视化)
+**Date:** 2026-05-02
+**Coverage Oracle:** Acceptance Criteria (formal requirements)
+**Oracle Confidence:** High
+
+### Coverage Summary
+
+| Priority  | Total Criteria | FULL Coverage | Coverage % | Status     |
+| --------- | -------------- | ------------- | ---------- | ---------- |
+| P0        | 11             | 11            | 100%       | PASS       |
+| P1        | 4              | 4             | 100%       | PASS       |
+| P2        | 0              | 0             | N/A        | N/A        |
+| P3        | 0              | 0             | N/A        | N/A        |
+| **Total** | **15**         | **15**        | **100%**   | **PASS**   |
+
+### Acceptance Criteria Traceability
+
+#### AC#1: 事件类型差异化视觉样式 (FR11, FR12)
+
+| # | Requirement | Priority | Tests | Coverage |
+|---|------------|----------|-------|----------|
+| 1.1 | 用户消息 (.userMessage) 蓝色左侧气泡 | P0 | `testUserMessageViewHasBlueBubbleStyle`, `testUserMessageVisualConsistency`, `testEventStyleBackgroundForUserMessage`, `testEventStyleForegroundForUserMessage`, `testEventIconForUserMessage` | FULL |
+| 1.2 | 工具调用 (.toolUse) 灰色卡片 | P0 | `testToolCardViewHasGrayCardStyle`, `testEventStyleBackgroundForToolUse`, `testEventIconForToolUse` | FULL |
+| 1.3 | 工具结果成功 (.toolResult) 绿色卡片 | P0 | `testToolResultViewSuccessUsesGreenBackground`, `testEventStyleBackgroundForResult` | FULL |
+| 1.4 | 工具结果失败 (.toolResult isError) 红色卡片 | P0 | `testToolResultViewErrorUsesRedBackground`, `testErrorStylingConsistency` | FULL |
+| 1.5 | 系统事件 (.system) 浅灰色次要文字 | P0 | `testSystemEventViewUsesSecondaryStyle`, `testEventStyleBackgroundForSystem`, `testEventStyleForegroundForSystem`, `testEventIconForSystem` | FULL |
+| 1.6 | 结果 (.result) 状态色图标（绿/红/橙） | P0 | `testResultViewSuccessUsesGreenStatusColor`, `testResultViewErrorUsesRedStatusColor`, `testResultViewCancelledUsesOrangeStatusColor`, `testResultViewErrorSubtypeHasRedBorder`, `testResultViewSuccessSubtypeHasNormalBackground` | FULL |
+
+#### AC#2: 工具类型差异化卡片样式 (FR19)
+
+| # | Requirement | Priority | Tests | Coverage |
+|---|------------|----------|-------|----------|
+| 2.1 | Bash — terminal 图标 + 绿色左边条 | P0 | `testBashToolRendererUsesTerminalIcon`, `testBashToolRendererAccentColor`, `testBashToolRendererIcon`, `testEventStyleToolAccentForBash`, `testRegistryResolvesAccentColorForBash`, `testRegistryResolvesIconForBash` | FULL |
+| 2.2 | Edit — pencil.line + 橙色左边条 | P0 | `testFileEditToolRendererUsesFileEditIcon`, `testFileEditToolRendererAccentColor`, `testFileEditToolRendererIcon`, `testEventStyleToolAccentForEdit`, `testRegistryResolvesAccentColorForEdit` | FULL |
+| 2.3 | Grep — text.magnifyingglass + 紫色左边条 | P0 | `testSearchToolRendererUsesSearchIcon`, `testSearchToolRendererAccentColor`, `testSearchToolRendererIcon`, `testEventStyleToolAccentForGrep`, `testRegistryResolvesIconForGrep` | FULL |
+| 2.4 | Read — doc.text + 蓝色左边条 | P0 | `testReadToolRendererUsesDocumentIcon`, `testReadToolRendererAccentColor`, `testReadToolRendererIcon`, `testEventStyleToolAccentForRead` | FULL |
+| 2.5 | Write — pencil.and.outline + 橙色左边条 | P0 | `testWriteToolRendererUsesWriteIcon`, `testWriteToolRendererAccentColor`, `testWriteToolRendererIcon`, `testEventStyleToolAccentForWrite` | FULL |
+| 2.6 | 未注册工具 — wrench.and.screwdriver fallback | P1 | `testToolCardViewUsesWrenchFallbackForUnknownTool`, `testEventIconForUnknownTool`, `testEventStyleToolAccentForUnknownTool`, `testToolRenderableDefaultIconIsWrench`, `testToolRenderableDefaultAccentColorIsGray` | FULL |
+
+#### AC#3: 错误事件突出显示 (FR12)
+
+| # | Requirement | Priority | Tests | Coverage |
+|---|------------|----------|-------|----------|
+| 3.1 | ToolCardView 错误 — 红色边框和背景高亮 | P0 | `testToolCardViewFailedStatusUsesErrorStyling`, `testToolCardViewErrorCardHasRedBackground`, `testSystemEventViewErrorHasRedBackground` | FULL |
+| 3.2 | SystemEventView 错误 — 红色高亮 + 警告图标 | P0 | `testSystemEventViewErrorUsesRedStyle`, `testSystemEventViewErrorHighlighting`, `testErrorStylingConsistency` | FULL |
+| 3.3 | ToolResultContentView 错误 — 红色样式 + 错误图标 | P1 | `testToolResultContentViewErrorUsesRedStyling`, `testToolResultContentViewSuccessUsesGreenStyling`, `testToolResultContentViewErrorShowsErrorIcon`, `testErrorStylingConsistency` | FULL |
+
+### Test Inventory
+
+| File | Level | Tests | Status |
+|------|-------|-------|--------|
+| `EventVisualSystemTests.swift` | Unit | 49 | All PASS |
+| `EventTypeVisualStyleTests.swift` | Unit | 45 | All PASS |
+| `EventThemeIntegrationTests.swift` | Integration | 13 | All PASS |
+| **Total Story 2-3** | | **107** | **0 failures** |
+
+### GATE DECISION: PASS
+
+**Rationale:** P0 coverage is 100% (11/11), P1 coverage is 100% (4/4, target: 90%), and overall coverage is 100% (minimum: 80%). All 107 tests pass with 0 failures.
+
+| Criterion | Required | Actual | Status |
+|-----------|----------|--------|--------|
+| P0 Coverage | 100% | 100% | MET |
+| P1 Coverage (target) | 90% | 100% | MET |
+| Overall Coverage | >=80% | 100% | MET |
+| Critical Gaps | 0 | 0 | MET |
+
+### Advisory Observations
+
+1. **No snapshot/visual regression tests:** Tests verify structural correctness (view instantiation, protocol conformance, correct return values) but not pixel-level rendering. This is a known XCTest limitation for SwiftUI.
+2. **Light/Dark Mode not explicitly tested:** Implementation uses `.opacity()` for automatic adaptation, making this low-risk.
+3. **ToolCardView left accent bar 3px width not asserted:** Cosmetic detail with very low regression risk.
 
 ---
 

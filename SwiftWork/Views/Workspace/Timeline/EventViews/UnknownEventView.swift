@@ -5,15 +5,28 @@ struct UnknownEventView: View {
 
     var body: some View {
         HStack {
-            Image(systemName: "questionmark.circle")
-                .foregroundStyle(.secondary)
-            Text("未知事件")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Spacer()
+            VStack(spacing: 4) {
+                Image(systemName: "questionmark.circle")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                Text("未知事件")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if !event.content.isEmpty {
+                    Text(event.content)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(2)
+                }
+            }
+            .padding(12)
             Spacer()
         }
-        .padding(8)
-        .background(.gray.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.secondary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+        )
     }
 }

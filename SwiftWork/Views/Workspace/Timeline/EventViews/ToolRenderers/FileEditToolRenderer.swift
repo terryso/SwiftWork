@@ -2,6 +2,8 @@ import SwiftUI
 
 struct FileEditToolRenderer: ToolRenderable {
     static let toolName = "Edit"
+    static let accentColor: Color = .orange
+    static let icon: String = "pencil.line"
 
     @MainActor
     func body(content: ToolContent) -> any View {

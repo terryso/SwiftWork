@@ -19,6 +19,10 @@ struct ResultView: View {
         event.metadata["numTurns"] as? Int
     }
 
+    private var isError: Bool {
+        !subtype.isEmpty && subtype != "success" && subtype != "cancelled"
+    }
+
     private var statusColor: Color {
         switch subtype {
         case "success": .green
@@ -44,6 +48,7 @@ struct ResultView: View {
                     Text(subtype)
                         .font(.caption)
                         .fontWeight(.medium)
+                        .foregroundStyle(statusColor)
                 }
                 if !event.content.isEmpty {
                     Text(event.content)
@@ -72,11 +77,11 @@ struct ResultView: View {
             Spacer()
         }
         .padding(8)
-        .background(.bar)
+        .background(isError ? AnyShapeStyle(Color.red.opacity(0.08)) : AnyShapeStyle(.bar))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                .stroke(isError ? Color.red.opacity(0.3) : Color.primary.opacity(0.1), lineWidth: 1)
         )
     }
 }

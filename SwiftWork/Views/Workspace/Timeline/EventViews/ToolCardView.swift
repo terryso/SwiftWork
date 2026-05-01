@@ -28,45 +28,61 @@ struct ToolCardView: View {
         }
     }
 
+    private var toolAccentColor: Color {
+        if content.isError { return .red }
+        if let renderer = registry.renderer(for: content.toolName) {
+            return type(of: renderer).accentColor
+        }
+        return .clear
+    }
+
     private var toolIcon: String {
         if let renderer = registry.renderer(for: content.toolName) {
-            // Use known SF Symbols for registered tools
-            switch content.toolName {
-            case "Bash": return "terminal"
-            case "Edit": return "pencil.line"
-            case "Grep": return "text.magnifyingglass"
-            case "Read": return "doc.text"
-            case "Write": return "pencil.and.outline"
-            default: return "wrench.and.screwdriver"
-            }
+            return type(of: renderer).icon
         }
         return "wrench.and.screwdriver"
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Title row (always visible)
-            titleRow
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    onSelect()
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isExpanded.toggle()
-                    }
-                }
-
-            // Expanded content
-            if isExpanded {
-                expandedContent
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+    private var toolIconColor: Color {
+        if content.isError { return .red }
+        if let renderer = registry.renderer(for: content.toolName) {
+            return type(of: renderer).accentColor
         }
-        .padding(8)
+        return .secondary
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // Left accent bar (3px)
+            RoundedRectangle(cornerRadius: 2)
+                .fill(toolAccentColor)
+                .frame(width: 3)
+
+            // Card content
+            VStack(alignment: .leading, spacing: 0) {
+                // Title row (always visible)
+                titleRow
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onSelect()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded.toggle()
+                        }
+                    }
+
+                // Expanded content
+                if isExpanded {
+                    expandedContent
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .padding(8)
+        }
         .background(cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+                .stroke(borderColor, lineWidth: isSelected ? 2 : (content.isError ? 1 : 0))
         )
     }
 
@@ -76,7 +92,7 @@ struct ToolCardView: View {
         HStack(alignment: .top, spacing: 6) {
             Image(systemName: toolIcon)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(toolIconColor)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
@@ -195,9 +211,15 @@ struct ToolCardView: View {
 
     private var cardBackground: some ShapeStyle {
         if content.isError {
-            return AnyShapeStyle(Color.red.opacity(0.05))
+            return AnyShapeStyle(Color.red.opacity(0.08))
         }
         return AnyShapeStyle(Color.gray.opacity(0.1))
+    }
+
+    private var borderColor: Color {
+        if isSelected { return .accentColor }
+        if content.isError { return .red.opacity(0.3) }
+        return .clear
     }
 }
 

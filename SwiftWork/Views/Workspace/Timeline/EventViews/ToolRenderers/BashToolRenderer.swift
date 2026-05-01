@@ -2,6 +2,8 @@ import SwiftUI
 
 struct BashToolRenderer: ToolRenderable {
     static let toolName = "Bash"
+    static let accentColor: Color = .green
+    static let icon: String = "terminal"
 
     @MainActor
     func body(content: ToolContent) -> any View {

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct WriteToolRenderer: ToolRenderable {
     static let toolName = "Write"
+    static let accentColor: Color = .orange
+    static let icon: String = "pencil.and.outline"
 
     @MainActor
     func body(content: ToolContent) -> any View {
