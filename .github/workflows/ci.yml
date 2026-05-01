@@ -33,8 +33,9 @@ jobs:
           echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
           echo "Coverage: ${COVERAGE}%"
       - name: Update coverage badge
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.GIST_TOKEN != ''
         uses: Schneegans/dynamic-badges-action@v1.8.0
+        continue-on-error: true
         with:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: ${{ secrets.GIST_ID }}
