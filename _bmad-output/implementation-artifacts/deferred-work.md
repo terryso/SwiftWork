@@ -9,3 +9,8 @@
 ## Deferred from: code review of 1-6-app-state-restore (2026-05-01)
 
 - loadNSRect treats zero rect as nil — minimized window edge case where NSRectFromString returns zero. Extremely unlikely in practice; design choice rather than bug.
+
+## Deferred from: fix-tool-card-spinner (2026-05-01)
+
+- Orphan toolResult events (no prior toolUse entry in toolContentMap) are silently dropped — pre-existing behavior, not a regression. Legacy ToolResultView fallback renders acceptably.
+- loadEvents(for:) does not rebuild toolContentMap from persisted events — after app restart or session switch, all historical tools degrade to legacy ToolCallView rendering. Should be addressed when implementing session restore for tool cards.
