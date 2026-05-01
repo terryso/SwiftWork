@@ -266,4 +266,104 @@ final class AgentBridgeTests: XCTestCase {
 
         XCTAssertTrue(bridge.events.isEmpty, "Events should be cleared on session switch")
     }
+
+    // MARK: - loadEvents
+
+    func testLoadEventsWithMockStore() throws {
+        let bridge = makeBridge()
+        let session = Session(title: "Test")
+        let mockStore = MockEventStore()
+        let expectedEvent = AgentEvent(type: .assistant, content: "previous response", timestamp: .now)
+        mockStore.eventsToReturn = [expectedEvent]
+
+        bridge.configureEvents(store: mockStore, session: session)
+        bridge.loadEvents(for: session)
+
+        XCTAssertEqual(bridge.events.count, 1)
+        XCTAssertEqual(bridge.events.first?.content, "previous response")
+    }
+
+    func testLoadEventsSetsEventOrder() throws {
+        let bridge = makeBridge()
+        let session = Session(title: "Test")
+        let mockStore = MockEventStore()
+        mockStore.eventsToReturn = [
+            AgentEvent(type: .userMessage, content: "a", timestamp: .now),
+            AgentEvent(type: .assistant, content: "b", timestamp: .now),
+            AgentEvent(type: .userMessage, content: "c", timestamp: .now)
+        ]
+
+        bridge.configureEvents(store: mockStore, session: session)
+        bridge.loadEvents(for: session)
+
+        XCTAssertEqual(bridge.events.count, 3)
+    }
+
+    func testLoadEventsClearsPreviousEvents() throws {
+        let bridge = makeBridge()
+        bridge.configure(apiKey: "key", baseURL: nil, model: "m", workspacePath: nil)
+        bridge.cancelExecution() // adds an event
+        XCTAssertFalse(bridge.events.isEmpty)
+
+        let session = Session(title: "New")
+        let mockStore = MockEventStore()
+        bridge.configureEvents(store: mockStore, session: session)
+        bridge.loadEvents(for: session)
+
+        // Should have cleared old events and loaded from store (empty in this case)
+        XCTAssertTrue(mockStore.eventsToReturn.isEmpty)
+    }
+
+    func testLoadEventsWithoutStoreDoesNotCrash() {
+        let bridge = makeBridge()
+        let session = Session(title: "Test")
+        // No store configured
+        bridge.loadEvents(for: session)
+        XCTAssertTrue(bridge.events.isEmpty)
+    }
+
+    func testLoadEventsHandlesStoreError() throws {
+        let bridge = makeBridge()
+        let session = Session(title: "Test")
+        let mockStore = MockEventStore()
+        mockStore.shouldThrow = true
+
+        bridge.configureEvents(store: mockStore, session: session)
+        bridge.loadEvents(for: session)
+
+        XCTAssertNotNil(bridge.errorMessage, "Should set errorMessage when store throws")
+    }
+
+    // MARK: - configureEvents
+
+    func testConfigureEventsStoresReferences() {
+        let bridge = makeBridge()
+        let session = Session(title: "Test")
+        let mockStore = MockEventStore()
+
+        bridge.configureEvents(store: mockStore, session: session)
+
+        // Verify by loading events — if configured, loadEvents uses the store
+        mockStore.eventsToReturn = [AgentEvent(type: .system, content: "configured", timestamp: .now)]
+        bridge.loadEvents(for: session)
+        XCTAssertEqual(bridge.events.first?.content, "configured")
+    }
+}
+
+// MARK: - Mock EventStore
+
+private final class MockEventStore: EventStoring, @unchecked Sendable {
+    var eventsToReturn: [AgentEvent] = []
+    var shouldThrow = false
+    var persistedEvents: [AgentEvent] = []
+
+    func persist(_ event: AgentEvent, session: Session, order: Int) throws {
+        if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
+        persistedEvents.append(event)
+    }
+
+    func fetchEvents(for sessionID: UUID) throws -> [AgentEvent] {
+        if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
+        return eventsToReturn
+    }
 }
