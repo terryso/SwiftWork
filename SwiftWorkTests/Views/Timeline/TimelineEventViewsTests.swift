@@ -155,7 +155,7 @@ final class TimelineEventViewsTests: XCTestCase {
 
     // MARK: - AC#1 — SystemEventView
 
-    func testSystemEventViewInstantiation() throws {
+    @MainActor func testSystemEventViewInstantiation() throws {
         // RED: SystemEventView does not exist yet as an independent struct
         let event = AgentEvent(
             type: .system,
@@ -167,7 +167,7 @@ final class TimelineEventViewsTests: XCTestCase {
         XCTAssertNotNil(view, "SystemEventView should instantiate with AgentEvent")
     }
 
-    func testSystemEventViewDisplaysContent() throws {
+    @MainActor func testSystemEventViewDisplaysContent() throws {
         // RED: SystemEventView should display event content
         let event = AgentEvent(
             type: .system,
