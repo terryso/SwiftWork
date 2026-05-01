@@ -61,6 +61,7 @@ final class AgentBridge {
             let persisted = try eventStore.fetchEvents(for: session.id)
             events = persisted
             eventOrder = persisted.count
+            rebuildToolContentMap()
         } catch {
             errorMessage = AppError(
                 domain: .data,
@@ -157,6 +158,16 @@ final class AgentBridge {
         currentTask?.cancel()
         currentTask = nil
         eventOrder = 0
+    }
+
+    /// Rebuilds toolContentMap from persisted events, then finalizes
+    /// any tools still in pending/running state (historical sessions
+    /// have no active stream, so all tools should show completed).
+    private func rebuildToolContentMap() {
+        for event in events {
+            processToolContentMap(for: event)
+        }
+        finalizeToolContentMap()
     }
 
     /// Finalizes all pending/running tools to completed state.
