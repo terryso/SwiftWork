@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TimelineView: View {
     let agentBridge: AgentBridge
+    var toolRendererRegistry: ToolRendererRegistry = ToolRendererRegistry()
 
     var body: some View {
         if agentBridge.events.isEmpty {
@@ -53,7 +54,7 @@ struct TimelineView: View {
         case .assistant:
             AssistantMessageView(event: event)
         case .toolUse:
-            ToolCallView(event: event)
+            toolUseView(event: event)
         case .toolResult:
             ToolResultView(event: event)
         case .toolProgress:
@@ -75,6 +76,17 @@ struct TimelineView: View {
             SystemEventView(event: event)
         case .unknown:
             UnknownEventView(event: event)
+        }
+    }
+
+    @ViewBuilder
+    private func toolUseView(event: AgentEvent) -> some View {
+        let toolName = event.content
+        if let renderer = toolRendererRegistry.renderer(for: toolName) {
+            let content = ToolContent.fromToolUseEvent(event)
+            AnyView(renderer.body(content: content))
+        } else {
+            ToolCallView(event: event)
         }
     }
 

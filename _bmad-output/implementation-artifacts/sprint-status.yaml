@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-01
-last_updated: 2026-05-01T17:41:00
+last_updated: 2026-05-01T21:45:00
 project: swiftwork
 project_key: NOKEY
 tracking_system: file-system
@@ -50,11 +50,11 @@ development_status:
   1-4-message-input-agent-execution: done
   1-5-timeline-event-stream: done
   1-6-app-state-restore: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # === Epic 2: Agent 执行可视化（Tool Card 体验） ===
-  epic-2: backlog
-  2-1-tool-visualization-architecture: backlog
+  epic-2: in-progress
+  2-1-tool-visualization-architecture: done
   2-2-tool-card-experience: backlog
   2-3-event-visual-system: backlog
   2-4-markdown-code-highlight: backlog
