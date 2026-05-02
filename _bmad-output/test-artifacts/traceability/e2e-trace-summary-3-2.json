@@ -1,0 +1,102 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-05-02T13:29:42Z",
+  "repo": "swiftwork",
+  "collection_mode": "contract_static",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "priority_thresholds",
+  "source_sha": "e9fb8b5",
+  "target": {
+    "type": "story",
+    "id": "3-2",
+    "label": "权限配置与规则管理"
+  },
+  "decision_mode": "yolo",
+  "evaluator": "GLM-5.1",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/3-2-permission-config-rules.md",
+      "_bmad-output/test-artifacts/atdd-checklist-3-2-permission-config-rules.md",
+      "_bmad-output/planning-artifacts/epics.md",
+      "_bmad-output/planning-artifacts/architecture.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "coverage": {
+    "inventory": {
+      "covered": 25,
+      "total": 25,
+      "pct": 100
+    },
+    "priority_breakdown": {
+      "P0": { "total": 10, "covered": 10, "pct": 100 },
+      "P1": { "total": 11, "covered": 11, "pct": 100 },
+      "P2": { "total": 4, "covered": 4, "pct": 100 },
+      "P3": { "total": 0, "covered": 0, "pct": 100 }
+    },
+    "by_level": {
+      "e2e": { "tests": 0, "criteria_covered": 0 },
+      "api": { "tests": 0, "criteria_covered": 0 },
+      "component": { "tests": 2, "criteria_covered": 2 },
+      "unit": { "tests": 18, "criteria_covered": 19 },
+      "other": { "tests": 4, "criteria_covered": 4 }
+    }
+  },
+  "tests": {
+    "files": 3,
+    "cases": 24,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 0,
+    "medium_open": 0,
+    "low_open": 0
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "not_applicable",
+    "error_path_status": "partial",
+    "ui_journey_status": "not_applicable",
+    "ui_state_status": "partial"
+  },
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Run /bmad:tea:test-review to assess test quality",
+      "requirements": []
+    },
+    {
+      "priority": "LOW",
+      "action": "Consider introducing XCUITest or ViewInspector for deeper UI rendering validation in Phase 4",
+      "requirements": []
+    }
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-matrix-3-2.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  },
+  "gate_status": "PASS",
+  "gate_criteria": {
+    "p0_coverage_required": "100%",
+    "p0_coverage_actual": "100%",
+    "p0_status": "MET",
+    "p1_coverage_target": "90%",
+    "p1_coverage_minimum": "80%",
+    "p1_coverage_actual": "100%",
+    "p1_status": "MET",
+    "overall_coverage_minimum": "80%",
+    "overall_coverage_actual": "100%",
+    "overall_status": "MET"
+  }
+}

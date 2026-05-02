@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var hasCompletedOnboarding: Bool? = nil
     @State private var appStateManager = AppStateManager()
     @State private var isInspectorVisible: Bool = false
+    @State private var isSettingsPresented: Bool = false
     @State private var mainWindow: NSWindow?
     @State private var notificationObservers: [NSObjectProtocol] = []
 
@@ -20,6 +21,16 @@ struct ContentView: View {
                 if completed {
                     NavigationSplitView {
                         SidebarView(sessionViewModel: sessionViewModel)
+                            .toolbar {
+                                ToolbarItem(placement: .automatic) {
+                                    Button {
+                                        isSettingsPresented = true
+                                    } label: {
+                                        Image(systemName: "gearshape")
+                                    }
+                                    .help("设置")
+                                }
+                            }
                     } detail: {
                         if let session = sessionViewModel.selectedSession {
                             WorkspaceView(
@@ -48,6 +59,10 @@ struct ContentView: View {
                 mainWindow = window
             }
         )
+        .sheet(isPresented: $isSettingsPresented) {
+            SettingsView(permissionHandler: agentBridge.permissionHandler)
+                .frame(minWidth: 520, minHeight: 450)
+        }
         .task {
             settingsViewModel.configure(modelContext: modelContext)
             hasCompletedOnboarding = settingsViewModel.isAPIKeyConfigured

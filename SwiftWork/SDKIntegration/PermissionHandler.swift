@@ -12,7 +12,13 @@ enum GlobalPermissionMode: String, Sendable, Equatable {
 @Observable
 final class PermissionHandler {
 
-    var globalMode: GlobalPermissionMode = .autoApprove
+    var globalMode: GlobalPermissionMode = .autoApprove {
+        didSet {
+            if isModelContextConfigured {
+                persistGlobalMode()
+            }
+        }
+    }
 
     var auditLog: [PermissionAuditEntry] = []
 
@@ -25,9 +31,14 @@ final class PermissionHandler {
     @ObservationIgnored
     private var cachedRules: [PermissionRule] = []
 
+    @ObservationIgnored
+    private var isModelContextConfigured = false
+
     func setModelContext(_ context: ModelContext) {
         self.modelContext = context
         reloadRules()
+        loadPersistedGlobalMode()
+        self.isModelContextConfigured = true
     }
 
     func reloadRules() {
@@ -95,6 +106,24 @@ final class PermissionHandler {
         modelContext.insert(rule)
         try? modelContext.save()
         return true
+    }
+
+    // MARK: - Rule Deletion
+
+    func deleteRule(_ rule: PermissionRule) {
+        guard cachedRules.contains(where: { $0.id == rule.id }) else { return }
+        cachedRules.removeAll { $0.id == rule.id }
+        modelContext?.delete(rule)
+        try? modelContext?.save()
+    }
+
+    func deleteRule(at offsets: IndexSet) {
+        let sortedRules = cachedRules
+        for index in offsets {
+            guard index < sortedRules.count else { continue }
+            let rule = sortedRules[index]
+            deleteRule(rule)
+        }
     }
 
     // MARK: - Private Helpers
@@ -173,6 +202,44 @@ final class PermissionHandler {
         case .requiresApproval:
             return .denied
         }
+    }
+
+    // MARK: - Global Mode Persistence
+
+    private func persistGlobalMode() {
+        guard let modelContext else { return }
+        let key = "globalPermissionMode"
+        let newValue = Data(globalMode.rawValue.utf8)
+
+        let descriptor = FetchDescriptor<AppConfiguration>(
+            predicate: #Predicate<AppConfiguration> { $0.key == "globalPermissionMode" }
+        )
+
+        if let existing = try? modelContext.fetch(descriptor).first {
+            existing.value = newValue
+            existing.updatedAt = .now
+        } else {
+            let config = AppConfiguration(key: key, value: newValue)
+            modelContext.insert(config)
+        }
+        try? modelContext.save()
+    }
+
+    private func loadPersistedGlobalMode() {
+        guard let modelContext else { return }
+
+        var descriptor = FetchDescriptor<AppConfiguration>()
+        descriptor.predicate = #Predicate<AppConfiguration> { $0.key == "globalPermissionMode" }
+
+        guard let config = try? modelContext.fetch(descriptor).first,
+              let rawValue = String(data: config.value, encoding: .utf8),
+              let mode = GlobalPermissionMode(rawValue: rawValue) else {
+            return
+        }
+        // Set without triggering persist (avoid re-writing during load)
+        isModelContextConfigured = false
+        globalMode = mode
+        isModelContextConfigured = true
     }
 }
 
