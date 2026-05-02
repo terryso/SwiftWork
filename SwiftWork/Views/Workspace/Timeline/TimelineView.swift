@@ -12,7 +12,6 @@ struct TimelineView: View {
     @State private var scrollPositionId: UUID?
     @State private var hasCompletedInitialScroll = false
     @State private var scrollViewHeight: CGFloat = 0
-    @State private var previousBottomAnchorY: CGFloat?
 
     private let estimatedRowHeight: CGFloat = 80
 
@@ -79,16 +78,27 @@ struct TimelineView: View {
         .onPreferenceChange(BottomAnchorPreferenceKey.self) { bottomY in
             guard hasCompletedInitialScroll else { return }
             let distanceFromBottom = max(0, bottomY - scrollViewHeight)
-            let scrollDelta = previousBottomAnchorY.map { $0 - bottomY } ?? 0
-            previousBottomAnchorY = bottomY
-            scrollModeManager.handleScrollChange(
-                scrollDelta: scrollDelta,
-                distanceFromBottom: distanceFromBottom
-            )
+            if distanceFromBottom <= 96 {
+                scrollModeManager.scrollMode = .followLatest
+            }
+        }
+        .onChange(of: scrollPositionId) { oldId, newId in
+            guard hasCompletedInitialScroll else { return }
+            guard let newId,
+                  let newIdx = agentBridge.events.firstIndex(where: { $0.id == newId })
+            else { return }
+            let total = agentBridge.events.count
+            let distanceFromEnd = total - 1 - newIdx
+            if distanceFromEnd <= 2 {
+                scrollModeManager.scrollMode = .followLatest
+            } else if let oldId,
+                      let oldIdx = agentBridge.events.firstIndex(where: { $0.id == oldId }),
+                      newIdx < oldIdx {
+                scrollModeManager.scrollMode = .manualBrowse
+            }
         }
         .task(id: agentBridge.events.first?.id) {
             hasCompletedInitialScroll = false
-            previousBottomAnchorY = nil
             guard !agentBridge.events.isEmpty else { return }
             scrollModeManager.scrollMode = .followLatest
             visibleRange = 0..<0
