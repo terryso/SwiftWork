@@ -9,9 +9,10 @@ struct TimelineView: View {
     @State private var scrollModeManager = ScrollModeManager()
     @State private var visibleRange: Range<Int> = 0..<0
 
-    // Native SwiftUI scroll position tracking
     @State private var scrollPositionId: UUID?
     @State private var hasCompletedInitialScroll = false
+    @State private var scrollViewHeight: CGFloat = 0
+    @State private var previousBottomAnchorY: CGFloat?
 
     private let estimatedRowHeight: CGFloat = 80
 
@@ -20,9 +21,15 @@ struct TimelineView: View {
             emptyStateView
         } else {
             ScrollViewReader { proxy in
-                ZStack(alignment: .bottomTrailing) {
-                    timelineContent(proxy: proxy)
-                    returnToBottomButton(proxy: proxy)
+                GeometryReader { geo in
+                    ZStack(alignment: .bottomTrailing) {
+                        timelineContent(proxy: proxy)
+                        returnToBottomButton(proxy: proxy)
+                    }
+                    .onAppear { scrollViewHeight = geo.size.height }
+                    .onChange(of: geo.size.height) { _, newHeight in
+                        scrollViewHeight = newHeight
+                    }
                 }
             }
         }
@@ -57,29 +64,31 @@ struct TimelineView: View {
                 Color.clear
                     .frame(height: 1)
                     .id("bottom-anchor")
+                    .background(
+                        GeometryReader { bottomGeo in
+                            Color.clear.preference(
+                                key: BottomAnchorPreferenceKey.self,
+                                value: bottomGeo.frame(in: .named("timelineScroll")).minY
+                            )
+                        }
+                    )
             }
         }
         .scrollPosition(id: $scrollPositionId)
-        .onChange(of: scrollPositionId) { oldId, newId in
+        .coordinateSpace(name: "timelineScroll")
+        .onPreferenceChange(BottomAnchorPreferenceKey.self) { bottomY in
             guard hasCompletedInitialScroll else { return }
-            guard let newId,
-                  let newIdx = agentBridge.events.firstIndex(where: { $0.id == newId })
-            else { return }
-
-            let total = agentBridge.events.count
-            let distanceFromEnd = total - 1 - newIdx
-
-            if distanceFromEnd <= 5 {
-                scrollModeManager.scrollMode = .followLatest
-            } else if let oldId,
-                      let oldIdx = agentBridge.events.firstIndex(where: { $0.id == oldId }),
-                      newIdx < oldIdx {
-                // Scrolled to an earlier event = user scrolled up
-                scrollModeManager.scrollMode = .manualBrowse
-            }
+            let distanceFromBottom = max(0, bottomY - scrollViewHeight)
+            let scrollDelta = previousBottomAnchorY.map { $0 - bottomY } ?? 0
+            previousBottomAnchorY = bottomY
+            scrollModeManager.handleScrollChange(
+                scrollDelta: scrollDelta,
+                distanceFromBottom: distanceFromBottom
+            )
         }
         .task(id: agentBridge.events.first?.id) {
             hasCompletedInitialScroll = false
+            previousBottomAnchorY = nil
             guard !agentBridge.events.isEmpty else { return }
             scrollModeManager.scrollMode = .followLatest
             visibleRange = 0..<0
@@ -291,5 +300,12 @@ struct TimelineView: View {
                 proxy.scrollTo(lastEvent.id, anchor: .bottom)
             }
         }
+    }
+}
+
+private struct BottomAnchorPreferenceKey: PreferenceKey {
+    nonisolated(unsafe) static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

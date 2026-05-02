@@ -14,6 +14,7 @@ build/
 *.perspectivev3
 !default.perspectivev3
 xcuserdata/
+*.xcodeproj/xcshareddata/
 
 # Swift Package Manager
 .build/

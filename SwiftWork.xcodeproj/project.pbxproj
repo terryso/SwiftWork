@@ -115,6 +115,7 @@
 		F90F7E481EF67F7D0A8DC5FC /* ToolContentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F978D38B9A923838708C435 /* ToolContentTests.swift */; };
 		FD70FDBAC348210593516402 /* AppEntryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEE31509E08AAA6CF8174F66 /* AppEntryTests.swift */; };
 		FDF994987DEF742D1975F5D1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9DE8F7D4DE985171849FE3 /* Sparkle */; };
+		AA11RR0000000001AA11RR01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 010145D62FA623FE0034A429 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -251,6 +252,17 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+			AA11RR0000000001AA11RR02 /* Resources */ = {
+				isa = PBXResourcesBuildPhase;
+				buildActionMask = 2147483647;
+				files = (
+					AA11RR0000000001AA11RR01 /* Assets.xcassets in Resources */,
+				);
+				runOnlyForDeploymentPostprocessing = 0;
+			};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXGroup section */
 		0282B52D50B7B6C7CAF2D0F8 /* Views */ = {
@@ -663,6 +675,7 @@
 			buildConfigurationList = 206494CF205DA2015B4C4BD5 /* Build configuration list for PBXNativeTarget "SwiftWork" */;
 			buildPhases = (
 				B0F4CAB0FC3A8A8D55EE37D3 /* Sources */,
+				AA11RR0000000001AA11RR02 /* Resources */,
 				955AA7162AF47961EA05C87D /* Frameworks */,
 			);
 			buildRules = (
