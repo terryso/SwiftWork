@@ -111,6 +111,7 @@
 		CC55VP0000000001CC55VP02 /* ScrollModeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC55VP0000000001CC55VP21 /* ScrollModeManager.swift */; };
 		CC55VP0000000001CC55VP03 /* TimelinePerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC55VP0000000001CC55VP31 /* TimelinePerformanceTests.swift */; };
 		CC55VP0000000001CC55VP05 /* AgentBridge+ToolContentMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC55VP0000000001CC55VP51 /* AgentBridge+ToolContentMap.swift */; };
+		AD40B4E4E956437FECAA1386 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2E78FAD74A60383EB8A49E9F /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -227,6 +228,7 @@
 		CC55VP0000000001CC55VP21 /* ScrollModeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollModeManager.swift; sourceTree = "<group>"; };
 		CC55VP0000000001CC55VP31 /* TimelinePerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelinePerformanceTests.swift; sourceTree = "<group>"; };
 		CC55VP0000000001CC55VP51 /* AgentBridge+ToolContentMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentBridge+ToolContentMap.swift"; sourceTree = "<group>"; };
+		2E78FAD74A60383EB8A49E9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -569,6 +571,7 @@
 				4E5870B129AD3186C0AADE97 /* ViewModels */,
 				0282B52D50B7B6C7CAF2D0F8 /* Views */,
 				E244F1C15A40ADEA53BC86DB /* SwiftWork.entitlements */,
+				2E78FAD74A60383EB8A49E9F /* Assets.xcassets */,
 			);
 			path = SwiftWork;
 			sourceTree = "<group>";

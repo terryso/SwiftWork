@@ -124,6 +124,19 @@ swift build
 swift run SwiftWork
 ```
 
+## 安装
+
+从 [Releases](https://github.com/terryso/SwiftWork/releases) 下载最新的 `SwiftWork-*.dmg`，然后：
+
+1. 打开 DMG，将 **SwiftWork.app** 拖到 **应用程序** 文件夹
+2. 执行以下命令移除 macOS 隔离标记：
+
+```bash
+xattr -cr /Applications/SwiftWork.app
+```
+
+3. 从启动台或 Spotlight 启动 SwiftWork
+
 ## 开发进度
 
 | Epic | 描述 | 状态 |

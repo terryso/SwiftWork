@@ -10,8 +10,15 @@ permissions:
 
 jobs:
   release:
-    name: Build & Release
+    name: Build & Release (${{ matrix.arch }})
     runs-on: macos-15
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            display: AppleSilicon
+          - arch: x86_64
+            display: Intel
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +31,8 @@ jobs:
             -scheme SwiftWork \
             -configuration Release \
             -derivedDataPath build \
+            ARCHS="${{ matrix.arch }}" \
+            ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
@@ -41,11 +50,28 @@ jobs:
             --icon-size 100 \
             --icon "SwiftWork.app" 175 190 \
             --app-drop-link 425 190 \
-            "SwiftWork-${{ steps.version.outputs.VERSION }}.dmg" \
+            "SwiftWork-${{ steps.version.outputs.VERSION }}-${{ matrix.display }}.dmg" \
             "build/Build/Products/Release/SwiftWork.app"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SwiftWork-${{ matrix.display }}
+          path: SwiftWork-*.dmg
+
+  publish:
+    name: Publish Release
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
       - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          files: SwiftWork-*.dmg
+          files: dist/*.dmg
           generate_release_notes: true

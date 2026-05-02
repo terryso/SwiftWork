@@ -124,6 +124,19 @@ swift build
 swift run SwiftWork
 ```
 
+## Installation
+
+Download the latest `SwiftWork-*.dmg` from [Releases](https://github.com/terryso/SwiftWork/releases), then:
+
+1. Open the DMG and drag **SwiftWork.app** to **Applications**
+2. Run the following command to remove macOS quarantine:
+
+```bash
+xattr -cr /Applications/SwiftWork.app
+```
+
+3. Launch SwiftWork from Applications or Spotlight
+
 ## Development Status
 
 | Epic | Description | Status |
