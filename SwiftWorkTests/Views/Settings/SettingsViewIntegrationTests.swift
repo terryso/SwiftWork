@@ -28,9 +28,9 @@ final class SettingsViewIntegrationTests: XCTestCase {
         return handler
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         testContainer = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - AC#1: SettingsView integrates PermissionRulesView

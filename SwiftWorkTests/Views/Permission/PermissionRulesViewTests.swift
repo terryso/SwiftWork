@@ -42,9 +42,9 @@ final class PermissionRulesViewTests: XCTestCase {
         try? context.save()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         testContainer = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - AC#1: PermissionRulesView displays list of rules
