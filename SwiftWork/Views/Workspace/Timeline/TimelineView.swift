@@ -102,7 +102,16 @@ struct TimelineView: View {
             }
             hasCompletedInitialScroll = true
         }
-        .onChange(of: agentBridge.events.count) { _, newCount in
+        .onChange(of: agentBridge.events.count) { oldCount, newCount in
+            if newCount > oldCount {
+                let range = oldCount..<newCount
+                let hasUserMessage = range.contains { idx in
+                    idx < agentBridge.events.count && agentBridge.events[idx].type == .userMessage
+                }
+                if hasUserMessage {
+                    scrollModeManager.returnToBottom()
+                }
+            }
             updateVisibleRangeForCount(newCount)
             if scrollModeManager.scrollMode == .followLatest {
                 scrollToLast(proxy: proxy)
