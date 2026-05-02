@@ -366,4 +366,16 @@ private final class MockEventStore: EventStoring, @unchecked Sendable {
         if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
         return eventsToReturn
     }
+
+    func fetchEvents(for sessionID: UUID, offset: Int, limit: Int) throws -> [AgentEvent] {
+        if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
+        let start = min(offset, eventsToReturn.count)
+        let end = min(offset + limit, eventsToReturn.count)
+        return Array(eventsToReturn[start..<end])
+    }
+
+    func totalEventCount(for sessionID: UUID) throws -> Int {
+        if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
+        return eventsToReturn.count
+    }
 }

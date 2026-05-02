@@ -102,6 +102,10 @@
 	CC44MD0000000001CC44MD05 /* CodeHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC44MD0000000001CC44MD15 /* CodeHighlighterTests.swift */; };
 	CC44MD0000000001CC44MD06 /* MarkdownContentViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC44MD0000000001CC44MD16 /* MarkdownContentViewTests.swift */; };
 	CC44MD0000000001CC44MD07 /* MarkdownRenderingIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC44MD0000000001CC44MD17 /* MarkdownRenderingIntegrationTests.swift */; };
+		CC55VP0000000001CC55VP01 /* TimelineVirtualizationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC55VP0000000001CC55VP11 /* TimelineVirtualizationManager.swift */; };
+		CC55VP0000000001CC55VP02 /* ScrollModeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC55VP0000000001CC55VP21 /* ScrollModeManager.swift */; };
+		CC55VP0000000001CC55VP03 /* TimelinePerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC55VP0000000001CC55VP31 /* TimelinePerformanceTests.swift */; };
+		CC55VP0000000001CC55VP05 /* AgentBridge+ToolContentMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC55VP0000000001CC55VP51 /* AgentBridge+ToolContentMap.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -209,6 +213,10 @@
 	CC44MD0000000001CC44MD15 /* CodeHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeHighlighterTests.swift; sourceTree = "<group>"; };
 	CC44MD0000000001CC44MD16 /* MarkdownContentViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownContentViewTests.swift; sourceTree = "<group>"; };
 	CC44MD0000000001CC44MD17 /* MarkdownRenderingIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderingIntegrationTests.swift; sourceTree = "<group>"; };
+		CC55VP0000000001CC55VP11 /* TimelineVirtualizationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineVirtualizationManager.swift; sourceTree = "<group>"; };
+		CC55VP0000000001CC55VP21 /* ScrollModeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollModeManager.swift; sourceTree = "<group>"; };
+		CC55VP0000000001CC55VP31 /* TimelinePerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelinePerformanceTests.swift; sourceTree = "<group>"; };
+		CC55VP0000000001CC55VP51 /* AgentBridge+ToolContentMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentBridge+ToolContentMap.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -359,6 +367,8 @@
 			children = (
 				CC01EV0000000001AA01EV41 /* EventViews */,
 				E15297C90DBB0B4B30655751 /* TimelineView.swift */,
+				CC55VP0000000001CC55VP11 /* TimelineVirtualizationManager.swift */,
+				CC55VP0000000001CC55VP21 /* ScrollModeManager.swift */,
 			);
 			path = Timeline;
 			sourceTree = "<group>";
@@ -404,6 +414,7 @@
 				AABB00112233445566778802 /* EventMapper.swift */,
 				CC22AB0000000001CC22AB18 /* ToolRenderable.swift */,
 				CC22AB0000000001CC22AB19 /* ToolRendererRegistry.swift */,
+				CC55VP0000000001CC55VP51 /* AgentBridge+ToolContentMap.swift */,
 			);
 			path = SDKIntegration;
 			sourceTree = "<group>";
@@ -489,6 +500,7 @@
 				CC33TC0000000001CC33TC13 /* ToolCardTimelineIntegrationTests.swift */,
 				CC44MD0000000001CC44MD16 /* MarkdownContentViewTests.swift */,
 				CC44MD0000000001CC44MD17 /* MarkdownRenderingIntegrationTests.swift */,
+				CC55VP0000000001CC55VP31 /* TimelinePerformanceTests.swift */,
 			);
 			path = Timeline;
 			sourceTree = "<group>";
@@ -721,6 +733,8 @@
 				CC44MD0000000001CC44MD05 /* CodeHighlighterTests.swift in Sources */,
 				CC44MD0000000001CC44MD06 /* MarkdownContentViewTests.swift in Sources */,
 				CC44MD0000000001CC44MD07 /* MarkdownRenderingIntegrationTests.swift in Sources */,
+				CC55VP0000000001CC55VP03 /* TimelinePerformanceTests.swift in Sources */,
+
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -729,6 +743,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4882B7B1920FCACBEC8AA8C8 /* AgentBridge.swift in Sources */,
+				CC55VP0000000001CC55VP05 /* AgentBridge+ToolContentMap.swift in Sources */,
 				AABB00112233445566778801 /* EventMapper.swift in Sources */,
 				AABB00112233445566778803 /* WorkspaceView.swift in Sources */,
 				AABB00112233445566778820 /* EventSerializer.swift in Sources */,
@@ -783,6 +798,8 @@
 				CC44MD0000000001CC44MD01 /* MarkdownRenderer.swift in Sources */,
 				CC44MD0000000001CC44MD02 /* CodeHighlighter.swift in Sources */,
 				CC44MD0000000001CC44MD03 /* MarkdownContentView.swift in Sources */,
+				CC55VP0000000001CC55VP01 /* TimelineVirtualizationManager.swift in Sources */,
+				CC55VP0000000001CC55VP02 /* ScrollModeManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

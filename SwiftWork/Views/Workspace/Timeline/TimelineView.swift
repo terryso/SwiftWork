@@ -5,35 +5,193 @@ struct TimelineView: View {
     var toolRendererRegistry: ToolRendererRegistry = ToolRendererRegistry()
 
     @State private var selectedEventId: UUID?
+    @State private var virtualizationManager = TimelineVirtualizationManager()
+    @State private var scrollModeManager = ScrollModeManager()
+    @State private var visibleRange: Range<Int> = 0..<0
+
+    // Native SwiftUI scroll position tracking
+    @State private var scrollPositionId: UUID?
+    @State private var hasCompletedInitialScroll = false
+
+    private let estimatedRowHeight: CGFloat = 80
 
     var body: some View {
         if agentBridge.events.isEmpty {
             emptyStateView
         } else {
             ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(agentBridge.events) { event in
-                            eventView(for: event)
-                                .id(event.id)
-                        }
-
-                        if !agentBridge.streamingText.isEmpty {
-                            StreamingTextView(text: agentBridge.streamingText)
-                                .id("streaming")
-                        }
-                    }
-                    .padding()
-                }
-                .onChange(of: agentBridge.events.count) { _, _ in
-                    scrollToLast(proxy: proxy)
-                }
-                .onChange(of: agentBridge.streamingText) { _, _ in
-                    scrollToLast(proxy: proxy)
+                ZStack(alignment: .bottomTrailing) {
+                    timelineContent(proxy: proxy)
+                    returnToBottomButton(proxy: proxy)
                 }
             }
         }
     }
+
+    // MARK: - Timeline Content
+
+    private func timelineContent(proxy: ScrollViewProxy) -> some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                topPlaceholder
+
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(virtualizedEvents) { event in
+                        eventView(for: event)
+                            .id(event.id)
+                    }
+                }
+                .scrollTargetLayout()
+                .padding(.horizontal)
+                .padding(.vertical, 4)
+
+                bottomPlaceholder
+
+                if !agentBridge.streamingText.isEmpty {
+                    StreamingTextView(text: agentBridge.streamingText)
+                        .id("streaming")
+                        .padding(.horizontal)
+                        .padding(.vertical, 4)
+                }
+
+                Color.clear
+                    .frame(height: 1)
+                    .id("bottom-anchor")
+            }
+        }
+        .scrollPosition(id: $scrollPositionId)
+        .onChange(of: scrollPositionId) { oldId, newId in
+            guard hasCompletedInitialScroll else { return }
+            guard let newId,
+                  let newIdx = agentBridge.events.firstIndex(where: { $0.id == newId })
+            else { return }
+
+            let total = agentBridge.events.count
+            let distanceFromEnd = total - 1 - newIdx
+
+            if distanceFromEnd <= 5 {
+                scrollModeManager.scrollMode = .followLatest
+            } else if let oldId,
+                      let oldIdx = agentBridge.events.firstIndex(where: { $0.id == oldId }),
+                      newIdx < oldIdx {
+                // Scrolled to an earlier event = user scrolled up
+                scrollModeManager.scrollMode = .manualBrowse
+            }
+        }
+        .task(id: agentBridge.events.first?.id) {
+            hasCompletedInitialScroll = false
+            guard !agentBridge.events.isEmpty else { return }
+            scrollModeManager.scrollMode = .followLatest
+            visibleRange = 0..<0
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            let total = agentBridge.events.count
+            let lower = max(0, total - 50)
+            visibleRange = lower..<total
+            withAnimation {
+                proxy.scrollTo("bottom-anchor", anchor: .bottom)
+            }
+            hasCompletedInitialScroll = true
+        }
+        .onChange(of: agentBridge.events.count) { _, newCount in
+            updateVisibleRangeForCount(newCount)
+            if scrollModeManager.scrollMode == .followLatest {
+                scrollToLast(proxy: proxy)
+            }
+        }
+        .onChange(of: agentBridge.streamingText) { _, _ in
+            if scrollModeManager.scrollMode == .followLatest {
+                scrollToLast(proxy: proxy)
+            }
+        }
+    }
+
+    // MARK: - Virtualization
+
+    private var virtualizedEvents: [AgentEvent] {
+        let allEvents = agentBridge.events
+        if allEvents.isEmpty { return [] }
+
+        if visibleRange.isEmpty {
+            let upper = allEvents.count
+            let lower = max(0, upper - 50)
+            return virtualizationManager.eventsToRender(
+                visibleRange: lower..<upper,
+                allEvents: allEvents
+            )
+        }
+
+        return virtualizationManager.eventsToRender(
+            visibleRange: visibleRange,
+            allEvents: allEvents
+        )
+    }
+
+    private var topPlaceholder: some View {
+        let upper = max(0, visibleRange.lowerBound - virtualizationManager.renderBuffer)
+        return Group {
+            if upper > 0 && !visibleRange.isEmpty {
+                Spacer()
+                    .frame(height: CGFloat(upper) * estimatedRowHeight)
+            }
+        }
+    }
+
+    private var bottomPlaceholder: some View {
+        let allEvents = agentBridge.events
+        let lower = min(
+            allEvents.count,
+            visibleRange.upperBound + virtualizationManager.renderBuffer
+        )
+        let remaining = allEvents.count - lower
+        return Group {
+            if remaining > 0 && !visibleRange.isEmpty {
+                Spacer()
+                    .frame(height: CGFloat(remaining) * estimatedRowHeight)
+            }
+        }
+    }
+
+    private func updateVisibleRangeForCount(_ count: Int) {
+        guard count > 0 else {
+            visibleRange = 0..<0
+            return
+        }
+        if scrollModeManager.scrollMode == .followLatest {
+            let upper = count
+            let lower = max(0, upper - 50)
+            visibleRange = lower..<upper
+        }
+    }
+
+    // MARK: - Return to Bottom Button
+
+    private func returnToBottomButton(proxy: ScrollViewProxy) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            if scrollModeManager.showReturnToBottomButton {
+                Button {
+                    scrollModeManager.returnToBottom()
+                    let total = agentBridge.events.count
+                    let lower = max(0, total - 50)
+                    visibleRange = lower..<total
+                    withAnimation {
+                        proxy.scrollTo("bottom-anchor", anchor: .bottom)
+                    }
+                } label: {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                        .background(Circle().fill(.regularMaterial).shadow(radius: 2))
+                }
+                .buttonStyle(.plain)
+                .padding()
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: scrollModeManager.showReturnToBottomButton)
+    }
+
+    // MARK: - Empty State
 
     private var emptyStateView: some View {
         VStack(spacing: 8) {
@@ -45,6 +203,8 @@ struct TimelineView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    // MARK: - Event Views
 
     @ViewBuilder
     private func eventView(for event: AgentEvent) -> some View {
@@ -58,8 +218,6 @@ struct TimelineView: View {
         case .toolUse:
             toolCardView(for: event)
         case .toolResult, .toolProgress:
-            // Paired tool events are rendered inside ToolCardView (via toolContentMap)
-            // Only render as fallback if there's no corresponding toolUse in the map
             pairedToolEventView(for: event)
         case .result:
             ResultView(event: event)
@@ -99,12 +257,9 @@ struct TimelineView: View {
     @ViewBuilder
     private func pairedToolEventView(for event: AgentEvent) -> some View {
         let toolUseId = event.metadata["toolUseId"] as? String ?? ""
-        // If this toolResult/toolProgress has been paired with a toolUse,
-        // it's rendered inside the ToolCardView — don't render a separate card.
         if agentBridge.toolContentMap[toolUseId] != nil {
             EmptyView()
         } else {
-            // Unpaired fallback: render the legacy views
             if event.type == .toolResult {
                 ToolResultView(event: event)
             } else {

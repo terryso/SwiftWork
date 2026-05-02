@@ -14,3 +14,8 @@
 
 - Orphan toolResult events (no prior toolUse entry in toolContentMap) are silently dropped — pre-existing behavior, not a regression. Legacy ToolResultView fallback renders acceptably.
 - loadEvents(for:) does not rebuild toolContentMap from persisted events — after app restart or session switch, all historical tools degrade to legacy ToolCallView rendering. Should be addressed when implementing session restore for tool cards.
+
+## Deferred from: code review of 2-5-timeline-performance (2026-05-02)
+
+- 缺少 600ms 手势窗口防误判 — Story spec 引用 OpenWork scroll-controller.ts 的 600ms 防抖窗口未实现，快速滚动时可能导致 follow/manual 模式闪烁 [ScrollModeManager.swift]。v1 可接受，后续 UX 打磨时添加。
+- 无向上滚动加载更多事件触发机制 — 用户向上滚动到已加载事件顶部时没有触发 loadMoreEvents() 的机制，当前仅支持初始分页加载 [TimelineView.swift]。后续 story 可通过 topPlaceholder.onAppear 触发。

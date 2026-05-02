@@ -6,6 +6,7 @@ struct MarkdownContentView: View {
 
     @State private var isExpanded = false
     @State private var renderedViews: [AnyView] = []
+    @State private var cachedMarkdownHash: Int = 0
 
     private static let collapseCharThreshold = 1000
     private static let collapseLineThreshold = 20
@@ -44,11 +45,20 @@ struct MarkdownContentView: View {
             }
         }
         .onAppear {
-            renderedViews = MarkdownRenderer.render(markdown)
+            renderIfNeeded()
         }
         .onChange(of: markdown) {
-            renderedViews = MarkdownRenderer.render(markdown)
+            renderIfNeeded()
         }
+    }
+
+    // MARK: - Render Cache
+
+    private func renderIfNeeded() {
+        let newHash = markdown.hashValue
+        guard newHash != cachedMarkdownHash else { return }
+        cachedMarkdownHash = newHash
+        renderedViews = MarkdownRenderer.render(markdown)
     }
 
     // MARK: - Collapse / Expand UI

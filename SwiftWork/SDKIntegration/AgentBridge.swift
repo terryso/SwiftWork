@@ -31,6 +31,21 @@ final class AgentBridge {
     @ObservationIgnored
     private var eventOrder: Int = 0
 
+    // MARK: - Pagination State (Story 2-5)
+
+    @ObservationIgnored
+    private var pageSize: Int = 50
+
+    @ObservationIgnored
+    private var totalPersistedEvents: Int = 0
+
+    @ObservationIgnored
+    private var trimmedEventCount: Int = 0
+
+    var hasMoreEvents: Bool {
+        totalPersistedEvents > trimmedEventCount + events.count
+    }
+
     var onResult: ((String) -> Void)?
 
     func configure(apiKey: String, baseURL: String?, model: String, workspacePath: String?) {
@@ -58,9 +73,20 @@ final class AgentBridge {
         guard let eventStore else { return }
 
         do {
-            let persisted = try eventStore.fetchEvents(for: session.id)
-            events = persisted
-            eventOrder = persisted.count
+            let total = try eventStore.totalEventCount(for: session.id)
+            totalPersistedEvents = total
+
+            if total > 1000 {
+                // Large session: load first page only
+                let firstPage = try eventStore.fetchEvents(for: session.id, offset: 0, limit: pageSize)
+                events = firstPage
+                eventOrder = total
+            } else {
+                // Small session: load all events
+                let persisted = try eventStore.fetchEvents(for: session.id)
+                events = persisted
+                eventOrder = persisted.count
+            }
             rebuildToolContentMap()
         } catch {
             errorMessage = AppError(
@@ -69,6 +95,50 @@ final class AgentBridge {
                 message: error.localizedDescription,
                 underlying: error
             ).message
+        }
+    }
+
+    func loadInitialPage(for session: Session) {
+        clearEvents()
+        currentSession = session
+
+        guard let eventStore else { return }
+
+        do {
+            totalPersistedEvents = try eventStore.totalEventCount(for: session.id)
+            let limit = min(pageSize, totalPersistedEvents)
+            let firstPage = try eventStore.fetchEvents(for: session.id, offset: 0, limit: limit)
+            events = firstPage
+            eventOrder = totalPersistedEvents
+            rebuildToolContentMap()
+        } catch {
+            errorMessage = AppError(
+                domain: .data,
+                code: "LOAD_EVENTS_FAILED",
+                message: error.localizedDescription,
+                underlying: error
+            ).message
+        }
+    }
+
+    func loadMoreEvents() {
+        guard let eventStore, let currentSession else { return }
+
+        let offset = trimmedEventCount + events.count
+        guard offset < totalPersistedEvents else { return }
+
+        do {
+            let remaining = totalPersistedEvents - offset
+            let limit = min(pageSize, remaining)
+            let nextPage = try eventStore.fetchEvents(
+                for: currentSession.id,
+                offset: offset,
+                limit: limit
+            )
+            events.append(contentsOf: nextPage)
+            rebuildToolContentMap()
+        } catch {
+            // Non-critical: pagination failure should not block the user
         }
     }
 
@@ -158,59 +228,8 @@ final class AgentBridge {
         currentTask?.cancel()
         currentTask = nil
         eventOrder = 0
-    }
-
-    /// Rebuilds toolContentMap from persisted events, then finalizes
-    /// any tools still in pending/running state (historical sessions
-    /// have no active stream, so all tools should show completed).
-    private func rebuildToolContentMap() {
-        for event in events {
-            processToolContentMap(for: event)
-        }
-        finalizeToolContentMap()
-    }
-
-    /// Finalizes all pending/running tools to completed state.
-    /// Called when the stream ends to ensure no spinners remain forever.
-    func finalizeToolContentMap() {
-        for (toolUseId, content) in toolContentMap {
-            if content.status == .pending || content.status == .running {
-                var copy = content
-                copy.status = .completed
-                toolContentMap[toolUseId] = copy
-            }
-        }
-    }
-
-    /// Processes an event and updates toolContentMap for tool events.
-    /// Call this for each event to maintain the tool content pairing.
-    func processToolContentMap(for event: AgentEvent) {
-        switch event.type {
-        case .toolUse:
-            let content = ToolContent.fromToolUseEvent(event)
-            toolContentMap[content.toolUseId] = content
-        case .toolProgress:
-            let toolUseId = event.metadata["toolUseId"] as? String ?? ""
-            if let existing = toolContentMap[toolUseId] {
-                toolContentMap[toolUseId] = existing.applyingProgress(event)
-            }
-        case .toolResult:
-            let resultContent = ToolContent.fromToolResultEvent(event)
-            let toolUseId = resultContent.toolUseId
-            if let existing = toolContentMap[toolUseId] {
-                toolContentMap[toolUseId] = ToolContent(
-                    toolName: existing.toolName,
-                    toolUseId: existing.toolUseId,
-                    input: existing.input,
-                    output: resultContent.output,
-                    isError: resultContent.isError,
-                    status: resultContent.status,
-                    elapsedTimeSeconds: existing.elapsedTimeSeconds
-                )
-            }
-        default:
-            break
-        }
+        totalPersistedEvents = 0
+        trimmedEventCount = 0
     }
 
     private func appendAndPersist(_ event: AgentEvent) {
@@ -220,11 +239,33 @@ final class AgentBridge {
         guard event.type != .partialMessage,
               let eventStore, let currentSession else { return }
 
+        totalPersistedEvents += 1
+
         do {
             try eventStore.persist(event, session: currentSession, order: eventOrder)
             eventOrder += 1
         } catch {
             // Non-critical: persistence failure should not block the user
+        }
+
+        trimOldEvents()
+    }
+
+    private let maxInMemory = 500
+
+    func trimOldEvents() {
+        guard events.count > maxInMemory else { return }
+        let removeCount = events.count - maxInMemory
+        let removed = Array(events.prefix(removeCount))
+        events.removeFirst(removeCount)
+        trimmedEventCount += removeCount
+
+        // Clean up toolContentMap entries that belonged to removed events
+        for event in removed {
+            if event.type == .toolUse {
+                let toolUseId = event.metadata["toolUseId"] as? String ?? ""
+                toolContentMap.removeValue(forKey: toolUseId)
+            }
         }
     }
 }
