@@ -91,10 +91,7 @@ final class PermissionHandler {
         let rule = PermissionRule(toolName: toolName, pattern: pattern, decision: decision)
         cachedRules.insert(rule, at: 0)
 
-        guard let modelContext else {
-            assertionFailure("PermissionHandler.addPersistentRule called without ModelContext — rule will not survive restart")
-            return false
-        }
+        guard let modelContext else { return false }
         modelContext.insert(rule)
         try? modelContext.save()
         return true
