@@ -29,6 +29,9 @@ final class AgentBridge {
     private var currentSession: Session?
 
     @ObservationIgnored
+    private let sdkSessionStore = SessionStore()
+
+    @ObservationIgnored
     private var eventOrder: Int = 0
 
     // MARK: - Pagination State (Story 2-5)
@@ -59,7 +62,7 @@ final class AgentBridge {
         self.permissionHandler = permissionHandler
     }
 
-    func configure(apiKey: String, baseURL: String?, model: String, workspacePath: String?) {
+    func configure(apiKey: String, baseURL: String?, model: String, workspacePath: String?, sessionId: String) {
         let options = AgentOptions(
             apiKey: apiKey,
             model: model,
@@ -67,7 +70,10 @@ final class AgentBridge {
             maxTurns: 10,
             permissionMode: .default,
             cwd: workspacePath,
-            tools: getAllBaseTools(tier: .core)
+            tools: getAllBaseTools(tier: .core),
+            sessionStore: sdkSessionStore,
+            sessionId: sessionId,
+            persistSession: true
         )
         self.agent = createAgent(options: options)
         setupPermissionCallback()

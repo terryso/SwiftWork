@@ -37,7 +37,7 @@ final class AgentBridgeTests: XCTestCase {
     // [P0] sendMessage appends user message event before SDK stream
     func testSendMessageAppendsUserMessage() async throws {
         let bridge = makeBridge()
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         await bridge.sendMessage("Hello, Agent!")
 
@@ -51,7 +51,7 @@ final class AgentBridgeTests: XCTestCase {
     // [P0] sendMessage with empty text does nothing
     func testSendMessageEmptyTextDoesNothing() async {
         let bridge = makeBridge()
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         await bridge.sendMessage("")
 
@@ -76,7 +76,7 @@ final class AgentBridgeTests: XCTestCase {
     // [P0] sendMessage sets isRunning to true, then false when stream completes
     func testSendMessageSetsIsRunning() async throws {
         let bridge = makeBridge()
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         // Start sending — isRunning should become true
         bridge.sendMessage("Do something")
@@ -107,7 +107,7 @@ final class AgentBridgeTests: XCTestCase {
         // Simulate a previous error
         // After implementation, errorMessage would be set by a failed send
         // Then a new send should clear it
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         await bridge.sendMessage("First message")
         // After first message completes (likely error due to fake key), errorMessage may be set
@@ -173,7 +173,7 @@ final class AgentBridgeTests: XCTestCase {
     func testConfigureDoesNotCrash() {
         let bridge = makeBridge()
 
-        bridge.configure(apiKey: "sk-test-key", baseURL: "https://api.example.com", model: "claude-sonnet-4-6", workspacePath: "/tmp/workspace")
+        bridge.configure(apiKey: "sk-test-key", baseURL: "https://api.example.com", model: "claude-sonnet-4-6", workspacePath: "/tmp/workspace", sessionId: UUID().uuidString)
 
         // No crash = success
         XCTAssertTrue(true, "configure should not crash")
@@ -183,7 +183,7 @@ final class AgentBridgeTests: XCTestCase {
     func testConfigureWithNilOptionals() {
         let bridge = makeBridge()
 
-        bridge.configure(apiKey: "sk-test-key", baseURL: nil, model: "claude-sonnet-4-6", workspacePath: nil)
+        bridge.configure(apiKey: "sk-test-key", baseURL: nil, model: "claude-sonnet-4-6", workspacePath: nil, sessionId: UUID().uuidString)
 
         XCTAssertTrue(true, "configure with nil optionals should not crash")
     }
@@ -210,7 +210,7 @@ final class AgentBridgeTests: XCTestCase {
     // [P0] clearEvents empties the events array
     func testClearEventsEmptiesArray() {
         let bridge = makeBridge()
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         // Add some events via cancelExecution
         bridge.cancelExecution()
@@ -226,7 +226,7 @@ final class AgentBridgeTests: XCTestCase {
     // [P1] clearEvents resets all state to initial values
     func testClearEventsResetsAllState() {
         let bridge = makeBridge()
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
         bridge.cancelExecution()
 
         bridge.clearEvents()
@@ -241,7 +241,7 @@ final class AgentBridgeTests: XCTestCase {
     // [P0] User message appears before SDK events
     func testUserMessageOrdering() async throws {
         let bridge = makeBridge()
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         await bridge.sendMessage("Hello")
 
@@ -256,13 +256,13 @@ final class AgentBridgeTests: XCTestCase {
     // [P0] Switching sessions clears old events
     func testSessionSwitchClearsOldEvents() {
         let bridge = makeBridge()
-        bridge.configure(apiKey: "key1", baseURL: nil, model: "model1", workspacePath: "/path1")
+        bridge.configure(apiKey: "key1", baseURL: nil, model: "model1", workspacePath: "/path1", sessionId: UUID().uuidString)
         bridge.cancelExecution()  // Add some events
         XCTAssertFalse(bridge.events.isEmpty)
 
         // Simulate session switch
         bridge.clearEvents()
-        bridge.configure(apiKey: "key1", baseURL: nil, model: "model1", workspacePath: "/path2")
+        bridge.configure(apiKey: "key1", baseURL: nil, model: "model1", workspacePath: "/path2", sessionId: UUID().uuidString)
 
         XCTAssertTrue(bridge.events.isEmpty, "Events should be cleared on session switch")
     }
@@ -301,7 +301,7 @@ final class AgentBridgeTests: XCTestCase {
 
     func testLoadEventsClearsPreviousEvents() throws {
         let bridge = makeBridge()
-        bridge.configure(apiKey: "key", baseURL: nil, model: "m", workspacePath: nil)
+        bridge.configure(apiKey: "key", baseURL: nil, model: "m", workspacePath: nil, sessionId: UUID().uuidString)
         bridge.cancelExecution() // adds an event
         XCTAssertFalse(bridge.events.isEmpty)
 

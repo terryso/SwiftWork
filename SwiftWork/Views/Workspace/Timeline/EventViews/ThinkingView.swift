@@ -2,17 +2,16 @@ import SwiftUI
 
 struct ThinkingView: View {
     var isActive: Bool = true
-    @State private var isAnimating = false
 
     var body: some View {
         HStack(spacing: 8) {
             if isActive {
-                Image(systemName: "gearshape")
-                    .rotationEffect(.degrees(isAnimating ? 360 : 0))
-                    .animation(
-                        .linear(duration: 1).repeatForever(autoreverses: false),
-                        value: isAnimating
-                    )
+                SwiftUI.TimelineView(.animation) { context in
+                    let angle = context.date.timeIntervalSinceReferenceDate
+                        .truncatingRemainder(dividingBy: 1) * 360
+                    Image(systemName: "gearshape")
+                        .rotationEffect(.degrees(angle))
+                }
                 Text("思考中...")
                     .foregroundStyle(.secondary)
             } else {
@@ -24,6 +23,5 @@ struct ThinkingView: View {
             Spacer()
         }
         .padding(8)
-        .onAppear { if isActive { isAnimating = true } }
     }
 }

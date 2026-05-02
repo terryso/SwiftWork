@@ -299,11 +299,12 @@ struct TimelineView: View {
     @ViewBuilder
     private func systemOrThinking(event: AgentEvent) -> some View {
         let subtype = event.metadata["subtype"] as? String ?? ""
-        let isLastEvent = agentBridge.events.last?.id == event.id
-        if (subtype == "init" || subtype == "status") && isLastEvent {
-            ThinkingView()
-        } else if subtype == "init" || subtype == "status" {
-            ThinkingView(isActive: false)
+        if subtype == "init" || subtype == "status" {
+            let isLatestInit = agentBridge.events.last(where: {
+                let s = $0.metadata["subtype"] as? String ?? ""
+                return s == "init" || s == "status"
+            })?.id == event.id
+            ThinkingView(isActive: isLatestInit && agentBridge.isRunning)
         } else if let isError = event.metadata["isError"] as? Bool, isError {
             SystemEventView(event: event, isError: true)
         } else {

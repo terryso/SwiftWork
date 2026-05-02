@@ -68,7 +68,8 @@ final class MessageInputAgentExecutionIntegrationTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "claude-sonnet-4-6",
-            workspacePath: session.workspacePath
+            workspacePath: session.workspacePath,
+            sessionId: session.id.uuidString
         )
 
         // No crash = success
@@ -78,7 +79,7 @@ final class MessageInputAgentExecutionIntegrationTests: XCTestCase {
     // [P0] Multiple messages can be sent sequentially
     func testMultipleMessagesSequentially() async throws {
         let bridge = AgentBridge()
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         await bridge.sendMessage("First message")
         await bridge.sendMessage("Second message")
@@ -97,7 +98,7 @@ final class MessageInputAgentExecutionIntegrationTests: XCTestCase {
     // [P0] Cancel adds system event and preserves existing events
     func testCancelPreservesExistingEvents() async throws {
         let bridge = AgentBridge()
-        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         await bridge.sendMessage("Hello")
         let preCancelCount = bridge.events.count
@@ -116,7 +117,7 @@ final class MessageInputAgentExecutionIntegrationTests: XCTestCase {
     // [P0] After error, user can send a new message
     func testErrorRecoveryAllowsResend() async throws {
         let bridge = AgentBridge()
-        bridge.configure(apiKey: "invalid-key", baseURL: nil, model: "test-model", workspacePath: nil)
+        bridge.configure(apiKey: "invalid-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
 
         // First send with invalid key (will likely fail)
         await bridge.sendMessage("First")
@@ -131,14 +132,14 @@ final class MessageInputAgentExecutionIntegrationTests: XCTestCase {
     // [P0] clearEvents + reconfigure allows fresh start after error
     func testFreshStartAfterError() async throws {
         let bridge = AgentBridge()
-        bridge.configure(apiKey: "key", baseURL: nil, model: "model", workspacePath: nil)
+        bridge.configure(apiKey: "key", baseURL: nil, model: "model", workspacePath: nil, sessionId: UUID().uuidString)
 
         await bridge.sendMessage("error-causing message")
         bridge.cancelExecution()
 
         // Fresh start
         bridge.clearEvents()
-        bridge.configure(apiKey: "new-key", baseURL: nil, model: "new-model", workspacePath: "/new")
+        bridge.configure(apiKey: "new-key", baseURL: nil, model: "new-model", workspacePath: "/new", sessionId: UUID().uuidString)
 
         XCTAssertTrue(bridge.events.isEmpty, "Fresh start should clear all events")
         XCTAssertFalse(bridge.isRunning)

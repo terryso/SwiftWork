@@ -54,7 +54,8 @@ struct WorkspaceView: View {
             apiKey: apiKey,
             baseURL: baseURL,
             model: model,
-            workspacePath: session.workspacePath
+            workspacePath: session.workspacePath,
+            sessionId: session.id.uuidString
         )
     }
 

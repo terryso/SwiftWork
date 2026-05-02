@@ -28,9 +28,8 @@ final class PermissionHandlerConfigTests: XCTestCase {
         return (handler, context)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         testContainer = nil
-        super.tearDown()
     }
 
     private func assertApproved(_ decision: PermissionDecision, file: StaticString = #file, line: UInt = #line) {
