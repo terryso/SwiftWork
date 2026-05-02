@@ -8,6 +8,7 @@ struct WorkspaceView: View {
     let sessionViewModel: SessionViewModel
 
     var body: some View {
+        @Bindable var bridge = agentBridge
         VStack(spacing: 0) {
             TimelineView(agentBridge: agentBridge)
                 .frame(maxHeight: .infinity)
@@ -17,6 +18,13 @@ struct WorkspaceView: View {
             InputBarView(agentBridge: agentBridge)
         }
         .background(Color(nsColor: .textBackgroundColor))
+        .sheet(item: $bridge.pendingPermissionRequest, onDismiss: {
+            agentBridge.resolvePermission(.deny)
+        }) { request in
+            PermissionDialogView(request: request) { result in
+                agentBridge.resolvePermission(result)
+            }
+        }
         .task {
             configureAgent()
             loadPersistedEvents()

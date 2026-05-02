@@ -92,6 +92,8 @@ struct ContentView: View {
         sessionViewModel.configure(modelContext: modelContext)
         eventStore = SwiftDataEventStore(modelContext: modelContext)
 
+        agentBridge.permissionHandler.setModelContext(modelContext)
+
         // Restore selected session
         restoreSelectedSession()
 

@@ -48,6 +48,17 @@ final class AgentBridge {
 
     var onResult: ((String) -> Void)?
 
+    // MARK: - Permission System (Story 3-1)
+
+    var pendingPermissionRequest: PendingPermissionRequest?
+
+    @ObservationIgnored
+    var permissionHandler: PermissionHandler
+
+    init(permissionHandler: PermissionHandler = PermissionHandler()) {
+        self.permissionHandler = permissionHandler
+    }
+
     func configure(apiKey: String, baseURL: String?, model: String, workspacePath: String?) {
         let options = AgentOptions(
             apiKey: apiKey,
@@ -59,6 +70,7 @@ final class AgentBridge {
             tools: getAllBaseTools(tier: .core)
         )
         self.agent = createAgent(options: options)
+        setupPermissionCallback()
     }
 
     func configureEvents(store: any EventStoring, session: Session) {
@@ -267,5 +279,82 @@ final class AgentBridge {
                 toolContentMap.removeValue(forKey: toolUseId)
             }
         }
+    }
+
+    // MARK: - Permission Callback (Story 3-1)
+
+    private func setupPermissionCallback() {
+        agent?.setCanUseTool { [weak self] tool, input, _ in
+            guard let self else { return .allow() }
+            let toolName = tool.name
+            let inputDict = (input as? [String: Any]) ?? [:]
+            nonisolated(unsafe) let unsafeInput = inputDict
+            return await self.handlePermissionOnMainActor(toolName: toolName, input: unsafeInput)
+        }
+    }
+
+    @MainActor
+    private func handlePermissionOnMainActor(
+        toolName: String,
+        input: [String: Any]
+    ) async -> CanUseToolResult {
+        let decision = permissionHandler.evaluate(toolName: toolName, input: input)
+
+        switch decision {
+        case .approved:
+            return .allow()
+        case .denied(let reason):
+            return .deny(reason)
+        case .requiresApproval(let toolName, let description, let parameters):
+            return await presentPermissionDialog(
+                toolName: toolName,
+                description: description,
+                parameters: parameters,
+                input: input
+            )
+        }
+    }
+
+    @MainActor
+    private func presentPermissionDialog(
+        toolName: String,
+        description: String,
+        parameters: [String: any Sendable],
+        input: [String: Any]
+    ) async -> CanUseToolResult {
+        let request = PendingPermissionRequest(
+            toolName: toolName,
+            description: description,
+            parameters: parameters,
+            input: input
+        )
+
+        self.pendingPermissionRequest = request
+
+        let dialogResult = await request.waitForResult()
+
+        self.pendingPermissionRequest = nil
+
+        switch dialogResult {
+        case .allowOnce:
+            permissionHandler.addSessionOverride(
+                toolName: toolName,
+                decision: .approved
+            )
+            return .allow()
+        case .alwaysAllow:
+            _ = permissionHandler.addPersistentRule(
+                toolName: toolName,
+                pattern: "*",
+                decision: .allow
+            )
+            return .allow()
+        case .deny:
+            return .deny("用户拒绝")
+        }
+    }
+
+    func resolvePermission(_ result: PermissionDialogResult) {
+        pendingPermissionRequest?.resolve(result)
     }
 }
