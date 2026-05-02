@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Build app
+        run: |
+          xcodebuild -project SwiftWork.xcodeproj \
+            -scheme SwiftWork \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "SwiftWork" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "SwiftWork.app" 175 190 \
+            --app-drop-link 425 190 \
+            "SwiftWork-${{ steps.version.outputs.VERSION }}.dmg" \
+            "build/Build/Products/Release/SwiftWork.app"
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SwiftWork-*.dmg
+          generate_release_notes: true
