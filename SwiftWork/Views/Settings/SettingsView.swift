@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
     let permissionHandler: PermissionHandler
 
     var body: some View {
@@ -11,6 +12,11 @@ struct SettingsView: View {
             }
             .padding(20)
         }
-        .frame(minWidth: 480, minHeight: 400)
+        .frame(minWidth: 520, minHeight: 450)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("关闭") { dismiss() }
+            }
+        }
     }
 }
