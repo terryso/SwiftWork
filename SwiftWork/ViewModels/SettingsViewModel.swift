@@ -103,6 +103,96 @@ final class SettingsViewModel {
         }
     }
 
+    // MARK: - Story 4.2: Settings Page Methods
+
+    /// Updates the API Key in Keychain. Validates the new key is non-empty.
+    func updateAPIKey(_ newKey: String) throws {
+        let trimmed = newKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw AppError(
+                domain: .ui,
+                code: "EMPTY_API_KEY",
+                message: "API Key cannot be empty"
+            )
+        }
+
+        do {
+            try keychainManager.saveAPIKey(trimmed)
+            isAPIKeyConfigured = true
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            throw error
+        }
+    }
+
+    /// Updates the Base URL and persists to Keychain.
+    func updateBaseURL(_ url: String) {
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        var normalized = trimmed
+        if normalized.hasSuffix("/") {
+            normalized.removeLast()
+        }
+        baseURL = normalized
+
+        if !normalized.isEmpty {
+            try? keychainManager.save(key: KeychainConstants.baseURLAccount, data: Data(normalized.utf8))
+        } else {
+            try? keychainManager.delete(key: KeychainConstants.baseURLAccount)
+        }
+    }
+
+    /// Updates the selected model and persists to AppConfiguration.
+    func updateModel(_ model: String) throws {
+        guard let context = modelContext else {
+            throw AppError(
+                domain: .ui,
+                code: "SETTINGS_NOT_CONFIGURED",
+                message: "Settings not configured. Please restart the app."
+            )
+        }
+
+        selectedModel = model
+
+        let descriptor = FetchDescriptor<AppConfiguration>(
+            predicate: #Predicate { $0.key == "selectedModel" }
+        )
+        if let existing = try? context.fetch(descriptor).first {
+            existing.value = Data(model.utf8)
+            existing.updatedAt = .now
+        } else {
+            let config = AppConfiguration(key: "selectedModel", value: Data(model.utf8))
+            context.insert(config)
+        }
+
+        try context.save()
+    }
+
+    /// Refreshes all configuration state from Keychain and AppConfiguration.
+    func loadCurrentConfig() {
+        checkExistingConfig()
+    }
+
+    /// Returns a masked version of the current API Key for display.
+    /// Format: first 8 chars + "****" + last 4 chars for long keys.
+    /// For short keys (< 12 chars): first 4 chars + "****".
+    var maskedAPIKey: String {
+        guard let keyData = try? keychainManager.load(key: KeychainConstants.apiKeyAccount),
+              let fullKey = String(data: keyData, encoding: .utf8),
+              !fullKey.isEmpty else {
+            return ""
+        }
+
+        if fullKey.count < 12 {
+            let prefix = String(fullKey.prefix(4))
+            return "\(prefix)****"
+        }
+
+        let prefix = String(fullKey.prefix(8))
+        let suffix = String(fullKey.suffix(4))
+        return "\(prefix)****\(suffix)"
+    }
+
     func completeSetup() {
         guard let context = modelContext else { return }
 

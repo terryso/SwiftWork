@@ -63,7 +63,7 @@ struct ContentView: View {
             }
         )
         .sheet(isPresented: $isSettingsPresented) {
-            SettingsView(permissionHandler: agentBridge.permissionHandler)
+            SettingsView(settingsViewModel: settingsViewModel, permissionHandler: agentBridge.permissionHandler)
                 .frame(minWidth: 520, minHeight: 450)
         }
         .task {

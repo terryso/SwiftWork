@@ -25,3 +25,7 @@
 - `colorForEventType` 在 InspectorView 和 RawEventStreamView 中重复 — 提取为共享 `Color+EventType.swift` 扩展可消除重复，但当前刻意保持独立以避免不必要的大范围重构。建议在 Epic 4 收尾或 Phase 4 UX 打磨阶段统一处理。
 - DebugViewModel 计算属性（`toolLogs`、`tokenSummary`、`filteredEvents`）每次访问遍历全量 events — MVP 阶段会话事件数在可接受范围内。如后续出现性能问题，改为 `@ObservationIgnored` + 手动刷新按钮。
 - `ForEach(Array(resultEvents.enumerated()), id: \.offset)` 在 TokenStatsView 中使用 index 作为 identity — append-only 事件模式下风险极低，理想做法应使用 event.id。
+
+## Deferred from: code review of 4-2-app-settings (2026-05-03)
+
+- 缺少规格中的"高级"Tab — 规格 Tab 结构为三 Tab（通用/权限/高级），实际实现为两 Tab（通用/权限），Base URL 放入通用 Tab。设计决策：Base URL 与 API Key 逻辑关联更紧密，高级 Tab 标注为"可选"。

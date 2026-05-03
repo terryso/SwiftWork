@@ -24,6 +24,8 @@
 		6875A0610B89A01875DF094C /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 2422B18A36703C665BEC37C1 /* Markdown */; };
 		6E97C5216D9AEDDE11526F10 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C6170341C30E6FF194A7BC /* SidebarView.swift */; };
 		746CF756E7D32748AA83A61D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C3C0139DF5EF81E0D529C0B /* SettingsView.swift */; };
+		AA42B10000000001AA42B102 /* APIKeySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA42B10000000001AA42B101 /* APIKeySettingsView.swift */; };
+		BB53C20000000001BB53C202 /* ModelPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB53C20000000001BB53C201 /* ModelPickerView.swift */; };
 		806EB61B6A799ED680668A7D /* AgentEventTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE3EFDE3087C00EEA98C04F9 /* AgentEventTypeTests.swift */; };
 		83ADD06F7DDADF4A5456C344 /* EventModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BDD7170CFC300A7F2AF4B7 /* EventModelTests.swift */; };
 		8C743464C8F7FAE465A8CEB9 /* PermissionDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AE6CFF904575C21CD601030 /* PermissionDecision.swift */; };
@@ -45,6 +47,9 @@
 		AABB00112233445566778842 /* PermissionHandlerConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778841 /* PermissionHandlerConfigTests.swift */; };
 		AABB00112233445566778844 /* PermissionRulesViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778843 /* PermissionRulesViewTests.swift */; };
 		AABB00112233445566778846 /* SettingsViewIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778845 /* SettingsViewIntegrationTests.swift */; };
+		CC64D30000000001CC64D302 /* SettingsViewModel4_2Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC64D30000000001CC64D301 /* SettingsViewModel4_2Tests.swift */; };
+		DD75E40000000001DD75E402 /* APIKeySettingsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD75E40000000001DD75E401 /* APIKeySettingsViewTests.swift */; };
+		EE86F50000000001EE86F502 /* ModelPickerViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE86F50000000001EE86F501 /* ModelPickerViewTests.swift */; };
 		AD62AE9DC8686665CF4C57E8 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8D56DBF5CA437066312B71 /* InspectorView.swift */; };
 		EE01DS0000000001EE01DS01 /* EventDetailSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE01DS0000000001EE01DS11 /* EventDetailSections.swift */; };
 		EE02IT0000000001EE02IT01 /* InspectorViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE02IT0000000001EE02IT11 /* InspectorViewTests.swift */; };
@@ -175,6 +180,8 @@
 		96704485F78FE4CE33AEC125 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9AE6CFF904575C21CD601030 /* PermissionDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionDecision.swift; sourceTree = "<group>"; };
 		9C3C0139DF5EF81E0D529C0B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AA42B10000000001AA42B101 /* APIKeySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeySettingsView.swift; sourceTree = "<group>"; };
+		BB53C20000000001BB53C201 /* ModelPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPickerView.swift; sourceTree = "<group>"; };
 		9F978D38B9A923838708C435 /* ToolContentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolContentTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* PermissionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionHandler.swift; sourceTree = "<group>"; };
 		A81D549796B7B288E5CB045C /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
@@ -191,6 +198,9 @@
 		AABB00112233445566778841 /* PermissionHandlerConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionHandlerConfigTests.swift; sourceTree = "<group>"; };
 		AABB00112233445566778843 /* PermissionRulesViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionRulesViewTests.swift; sourceTree = "<group>"; };
 		AABB00112233445566778845 /* SettingsViewIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewIntegrationTests.swift; sourceTree = "<group>"; };
+		CC64D30000000001CC64D301 /* SettingsViewModel4_2Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel4_2Tests.swift; sourceTree = "<group>"; };
+		DD75E40000000001DD75E401 /* APIKeySettingsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeySettingsViewTests.swift; sourceTree = "<group>"; };
+		EE86F50000000001EE86F501 /* ModelPickerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPickerViewTests.swift; sourceTree = "<group>"; };
 		B0507702D730BD80D27694D3 /* SwiftWorkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftWorkApp.swift; sourceTree = "<group>"; };
 		B05A161FC9B4D4534ED729ED /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
 		B091DE964F2B3C5657B07A0E /* PermissionDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionDecisionTests.swift; sourceTree = "<group>"; };
@@ -484,6 +494,7 @@
 			children = (
 				0B6DE1A65E1A5E4A920A9777 /* SessionViewModelTests.swift */,
 				B1EC9D65D9B0E0DFDA57F376 /* SettingsViewModelTests.swift */,
+				CC64D30000000001CC64D301 /* SettingsViewModel4_2Tests.swift */,
 				DD01DB0000000001DD01DB05 /* DebugViewModelTests.swift */,
 			);
 			path = ViewModels;
@@ -598,6 +609,9 @@
 			isa = PBXGroup;
 			children = (
 				AABB00112233445566778845 /* SettingsViewIntegrationTests.swift */,
+				CC64D30000000001CC64D301 /* SettingsViewModel4_2Tests.swift */,
+				DD75E40000000001DD75E401 /* APIKeySettingsViewTests.swift */,
+				EE86F50000000001EE86F501 /* ModelPickerViewTests.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -696,6 +710,8 @@
 			isa = PBXGroup;
 			children = (
 				9C3C0139DF5EF81E0D529C0B /* SettingsView.swift */,
+				AA42B10000000001AA42B101 /* APIKeySettingsView.swift */,
+				BB53C20000000001BB53C201 /* ModelPickerView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -849,6 +865,9 @@
 				AABB00112233445566778842 /* PermissionHandlerConfigTests.swift in Sources */,
 				AABB00112233445566778844 /* PermissionRulesViewTests.swift in Sources */,
 				AABB00112233445566778846 /* SettingsViewIntegrationTests.swift in Sources */,
+				CC64D30000000001CC64D302 /* SettingsViewModel4_2Tests.swift in Sources */,
+				DD75E40000000001DD75E402 /* APIKeySettingsViewTests.swift in Sources */,
+				EE86F50000000001EE86F502 /* ModelPickerViewTests.swift in Sources */,
 				EE02IT0000000001EE02IT01 /* InspectorViewTests.swift in Sources */,
 				DD01DB0000000001DD01DB06 /* DebugViewModelTests.swift in Sources */,
 				DD01DB0000000001DD01DB08 /* DebugViewTests.swift in Sources */,
@@ -891,6 +910,8 @@
 				9E1DB5BDA7B1221130D2CEA7 /* SessionRowView.swift in Sources */,
 				C0F4DE2EBF09C1E2099390EC /* SessionViewModel.swift in Sources */,
 				746CF756E7D32748AA83A61D /* SettingsView.swift in Sources */,
+				AA42B10000000001AA42B102 /* APIKeySettingsView.swift in Sources */,
+				BB53C20000000001BB53C202 /* ModelPickerView.swift in Sources */,
 				A9270B3EBB7ABEC5E9EC5688 /* SettingsViewModel.swift in Sources */,
 				6E97C5216D9AEDDE11526F10 /* SidebarView.swift in Sources */,
 				F416E1F61DEF44C0B62487F0 /* SwiftWorkApp.swift in Sources */,
