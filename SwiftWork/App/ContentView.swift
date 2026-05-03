@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var hasCompletedOnboarding: Bool? = nil
     @State private var appStateManager = AppStateManager()
     @State private var isInspectorVisible: Bool = false
+    @State private var isDebugPanelVisible: Bool = false
     @State private var isSettingsPresented: Bool = false
     @State private var mainWindow: NSWindow?
     @State private var notificationObservers: [NSObjectProtocol] = []
@@ -39,7 +40,8 @@ struct ContentView: View {
                                 session: session,
                                 settingsViewModel: settingsViewModel,
                                 sessionViewModel: sessionViewModel,
-                                isInspectorVisible: $isInspectorVisible
+                                isInspectorVisible: $isInspectorVisible,
+                                isDebugPanelVisible: $isDebugPanelVisible
                             )
                         } else {
                             Text("选择或创建一个会话")
@@ -90,6 +92,9 @@ struct ContentView: View {
         .onChange(of: isInspectorVisible) { _, newValue in
             appStateManager.saveInspectorVisibility(newValue)
         }
+        .onChange(of: isDebugPanelVisible) { _, newValue in
+            appStateManager.saveDebugPanelVisibility(newValue)
+        }
         .onDisappear {
             for observer in notificationObservers {
                 NotificationCenter.default.removeObserver(observer)
@@ -115,6 +120,9 @@ struct ContentView: View {
 
         // Restore Inspector visibility
         isInspectorVisible = appStateManager.isInspectorVisible
+
+        // Restore Debug Panel visibility
+        isDebugPanelVisible = appStateManager.isDebugPanelVisible
 
         // Restore window frame if window reference is already available
         if let window = mainWindow {

@@ -7,9 +7,11 @@ struct WorkspaceView: View {
     let settingsViewModel: SettingsViewModel
     let sessionViewModel: SessionViewModel
     @Binding var isInspectorVisible: Bool
+    @Binding var isDebugPanelVisible: Bool
 
     @State private var selectedEventId: UUID?
     @State private var eventLookup: [UUID: AgentEvent] = [:]
+    @State private var debugViewModel: DebugViewModel?
 
     var body: some View {
         @Bindable var bridge = agentBridge
@@ -38,6 +40,16 @@ struct WorkspaceView: View {
                 .background(Color(nsColor: .controlBackgroundColor))
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
+
+            // Debug panel
+            if isDebugPanelVisible {
+                if let debugViewModel {
+                    DebugView(debugViewModel: debugViewModel)
+                        .frame(width: 320)
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
+            }
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -51,6 +63,17 @@ struct WorkspaceView: View {
                 }
                 .help(isInspectorVisible ? "隐藏 Inspector" : "显示 Inspector")
             }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isDebugPanelVisible.toggle()
+                    }
+                } label: {
+                    Image(systemName: "ladybug")
+                        .foregroundStyle(isDebugPanelVisible ? Color.accentColor : .secondary)
+                }
+                .help(isDebugPanelVisible ? "隐藏 Debug Panel" : "显示 Debug Panel")
+            }
         }
         .sheet(item: $bridge.pendingPermissionRequest, onDismiss: {
             agentBridge.resolvePermission(.deny)
@@ -60,6 +83,7 @@ struct WorkspaceView: View {
             }
         }
         .task {
+            debugViewModel = DebugViewModel(agentBridge: agentBridge)
             configureAgent()
             loadPersistedEvents()
             setupTitleGeneration()

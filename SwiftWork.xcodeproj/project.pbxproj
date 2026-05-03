@@ -119,6 +119,15 @@
 		FD70FDBAC348210593516402 /* AppEntryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEE31509E08AAA6CF8174F66 /* AppEntryTests.swift */; };
 		FDF994987DEF742D1975F5D1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9DE8F7D4DE985171849FE3 /* Sparkle */; };
 		AA11RR0000000001AA11RR01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 010145D62FA623FE0034A429 /* Assets.xcassets */; };
+		PP01PS0000000001PP01PS02 /* PlanStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = PP01PS0000000001PP01PS01 /* PlanStep.swift */; };
+		PP01PV0000000001PP01PV02 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = PP01PV0000000001PP01PV01 /* PlanView.swift */; };
+		DD01DB0000000001DD01DB02 /* DebugViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01DB0000000001DD01DB01 /* DebugViewModel.swift */; };
+		DD01DB0000000001DD01DB04 /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01DB0000000001DD01DB03 /* DebugView.swift */; };
+		DD01DB0000000001DD01DB06 /* DebugViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01DB0000000001DD01DB05 /* DebugViewModelTests.swift */; };
+				DD01DB0000000001DD01DB08 /* DebugViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01DB0000000001DD01DB07 /* DebugViewTests.swift */; };
+		DD01RS0000000001DD01RS01 /* RawEventStreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01RS0000000001DD01RS11 /* RawEventStreamView.swift */; };
+		DD01TS0000000001DD01TS01 /* TokenStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01TS0000000001DD01TS11 /* TokenStatsView.swift */; };
+		DD01TL0000000001DD01TL01 /* ToolLogListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01TL0000000001DD01TL11 /* ToolLogListView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -243,6 +252,15 @@
 		E244F1C15A40ADEA53BC86DB /* SwiftWork.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwiftWork.entitlements; sourceTree = "<group>"; };
 		F1E2D3C4B5A6978869504132 /* PermissionRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionRulesView.swift; sourceTree = "<group>"; };
 		FC489F9AD659EAE84527791A /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
+		PP01PS0000000001PP01PS01 /* PlanStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanStep.swift; sourceTree = "<group>"; };
+		PP01PV0000000001PP01PV01 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
+		DD01DB0000000001DD01DB01 /* DebugViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewModel.swift; sourceTree = "<group>"; };
+		DD01DB0000000001DD01DB03 /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
+		DD01DB0000000001DD01DB05 /* DebugViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewModelTests.swift; sourceTree = "<group>"; };
+				DD01DB0000000001DD01DB07 /* DebugViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewTests.swift; sourceTree = "<group>"; };
+		DD01RS0000000001DD01RS11 /* RawEventStreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RawEventStreamView.swift; sourceTree = "<group>"; };
+		DD01TS0000000001DD01TS11 /* TokenStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStatsView.swift; sourceTree = "<group>"; };
+		DD01TL0000000001DD01TL11 /* ToolLogListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolLogListView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -388,6 +406,7 @@
 			children = (
 				FC489F9AD659EAE84527791A /* SessionViewModel.swift */,
 				04345AE1BDD7BD96AF0C12CB /* SettingsViewModel.swift */,
+				DD01DB0000000001DD01DB01 /* DebugViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -421,8 +440,9 @@
 				B2C3D4E5F6A7B8C9D0E1F2A3 /* PermissionAuditEntry.swift */,
 				C3D4E5F6A7B8C9D0E1F2A3B4 /* PendingPermissionRequest.swift */,
 				21A810EEDDD9BE9EC8A13D6E /* ToolContent.swift */,
-			);
-			path = UI;
+					PP01PS0000000001PP01PS01 /* PlanStep.swift */,
+				);
+				path = UI;
 			sourceTree = "<group>";
 		};
 		7258D796805AE7642216953B /* SDKIntegration */ = {
@@ -464,6 +484,7 @@
 			children = (
 				0B6DE1A65E1A5E4A920A9777 /* SessionViewModelTests.swift */,
 				B1EC9D65D9B0E0DFDA57F376 /* SettingsViewModelTests.swift */,
+				DD01DB0000000001DD01DB05 /* DebugViewModelTests.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -527,6 +548,10 @@
 			children = (
 				6B8D56DBF5CA437066312B71 /* InspectorView.swift */,
 				EE01DS0000000001EE01DS11 /* EventDetailSections.swift */,
+				DD01DB0000000001DD01DB03 /* DebugView.swift */,
+				DD01RS0000000001DD01RS11 /* RawEventStreamView.swift */,
+				DD01TS0000000001DD01TS11 /* TokenStatsView.swift */,
+				DD01TL0000000001DD01TL11 /* ToolLogListView.swift */,
 			);
 			path = Inspector;
 			sourceTree = "<group>";
@@ -581,6 +606,7 @@
 			isa = PBXGroup;
 			children = (
 				EE02IT0000000001EE02IT11 /* InspectorViewTests.swift */,
+				DD01DB0000000001DD01DB07 /* DebugViewTests.swift */,
 			);
 			path = Inspector;
 			sourceTree = "<group>";
@@ -623,6 +649,7 @@
 				CC22AB0000000001CC22AB12 /* ToolResultContentView.swift */,
 				CC44MD0000000001CC44MD13 /* MarkdownContentView.swift */,
 				CC22AB0000000001CC22AB51 /* ToolRenderers */,
+				PP01PV0000000001PP01PV01 /* PlanView.swift */,
 			);
 			path = EventViews;
 			sourceTree = "<group>";
@@ -823,6 +850,8 @@
 				AABB00112233445566778844 /* PermissionRulesViewTests.swift in Sources */,
 				AABB00112233445566778846 /* SettingsViewIntegrationTests.swift in Sources */,
 				EE02IT0000000001EE02IT01 /* InspectorViewTests.swift in Sources */,
+				DD01DB0000000001DD01DB06 /* DebugViewModelTests.swift in Sources */,
+				DD01DB0000000001DD01DB08 /* DebugViewTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -894,6 +923,13 @@
 				CC44MD0000000001CC44MD03 /* MarkdownContentView.swift in Sources */,
 				CC55VP0000000001CC55VP01 /* TimelineVirtualizationManager.swift in Sources */,
 				CC55VP0000000001CC55VP02 /* ScrollModeManager.swift in Sources */,
+				PP01PS0000000001PP01PS02 /* PlanStep.swift in Sources */,
+				PP01PV0000000001PP01PV02 /* PlanView.swift in Sources */,
+				DD01DB0000000001DD01DB02 /* DebugViewModel.swift in Sources */,
+				DD01DB0000000001DD01DB04 /* DebugView.swift in Sources */,
+				DD01RS0000000001DD01RS01 /* RawEventStreamView.swift in Sources */,
+				DD01TS0000000001DD01TS01 /* TokenStatsView.swift in Sources */,
+				DD01TL0000000001DD01TL01 /* ToolLogListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

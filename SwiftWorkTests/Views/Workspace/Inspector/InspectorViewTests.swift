@@ -370,7 +370,8 @@ final class InspectorViewTests: XCTestCase {
             session: session,
             settingsViewModel: settingsVM,
             sessionViewModel: sessionVM,
-            isInspectorVisible: .constant(false)
+            isInspectorVisible: .constant(false),
+            isDebugPanelVisible: .constant(false)
         )
         XCTAssertNotNil(view, "WorkspaceView should accept isInspectorVisible binding")
     }
@@ -388,7 +389,8 @@ final class InspectorViewTests: XCTestCase {
             session: session,
             settingsViewModel: settingsVM,
             sessionViewModel: sessionVM,
-            isInspectorVisible: .constant(true)
+            isInspectorVisible: .constant(true),
+            isDebugPanelVisible: .constant(false)
         )
         XCTAssertNotNil(view, "WorkspaceView should accept isInspectorVisible=true")
     }

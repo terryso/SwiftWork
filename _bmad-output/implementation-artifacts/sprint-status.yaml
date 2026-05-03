@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-01
-last_updated: 2026-05-03T12:07:00
+last_updated: 2026-05-03T15:05:00
 project: swiftwork
 project_key: NOKEY
 tracking_system: file-system
@@ -71,8 +71,8 @@ development_status:
   epic-3-retrospective: optional
 
   # === Epic 4: 调试面板与应用外壳（开发者工具体验） ===
-  epic-4: backlog
-  4-1-debug-panel: backlog
+  epic-4: in-progress
+  4-1-debug-panel: done
   4-2-app-settings: backlog
   4-3-menubar-shortcuts: backlog
   4-4-dock-badge-window-management: backlog

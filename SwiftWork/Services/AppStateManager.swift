@@ -8,12 +8,14 @@ final class AppStateManager {
     static let lastActiveSessionIDKey = AppStateKeys.lastActiveSessionID
     static let windowFrameKey = AppStateKeys.windowFrame
     static let inspectorVisibleKey = AppStateKeys.inspectorVisible
+    static let debugPanelVisibleKey = AppStateKeys.debugPanelVisible
 
     private var modelContext: ModelContext?
 
     var lastActiveSessionID: UUID?
     var windowFrame: NSRect?
     var isInspectorVisible: Bool = false
+    var isDebugPanelVisible: Bool = false
 
     func configure(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -23,6 +25,7 @@ final class AppStateManager {
         lastActiveSessionID = loadUUID(key: Self.lastActiveSessionIDKey)
         windowFrame = loadNSRect(key: Self.windowFrameKey)
         isInspectorVisible = loadBool(key: Self.inspectorVisibleKey)
+        isDebugPanelVisible = loadBool(key: Self.debugPanelVisibleKey)
     }
 
     func saveLastActiveSessionID(_ id: UUID?) {
@@ -43,6 +46,11 @@ final class AppStateManager {
     func saveInspectorVisibility(_ visible: Bool) {
         saveString(visible ? "true" : "false", forKey: Self.inspectorVisibleKey)
         isInspectorVisible = visible
+    }
+
+    func saveDebugPanelVisibility(_ visible: Bool) {
+        saveString(visible ? "true" : "false", forKey: Self.debugPanelVisibleKey)
+        isDebugPanelVisible = visible
     }
 
     // MARK: - Private Helpers

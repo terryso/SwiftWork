@@ -47,7 +47,8 @@ final class MessageInputAgentExecutionIntegrationTests: XCTestCase {
             session: session,
             settingsViewModel: settingsVM,
             sessionViewModel: SessionViewModel(),
-            isInspectorVisible: .constant(false)
+            isInspectorVisible: .constant(false),
+            isDebugPanelVisible: .constant(false)
         )
         XCTAssertNotNil(workspace, "WorkspaceView should be instantiable")
     }

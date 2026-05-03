@@ -19,3 +19,9 @@
 
 - 缺少 600ms 手势窗口防误判 — Story spec 引用 OpenWork scroll-controller.ts 的 600ms 防抖窗口未实现，快速滚动时可能导致 follow/manual 模式闪烁 [ScrollModeManager.swift]。v1 可接受，后续 UX 打磨时添加。
 - 无向上滚动加载更多事件触发机制 — 用户向上滚动到已加载事件顶部时没有触发 loadMoreEvents() 的机制，当前仅支持初始分页加载 [TimelineView.swift]。后续 story 可通过 topPlaceholder.onAppear 触发。
+
+## Deferred from: checkpoint review of 4-1-debug-panel (2026-05-03)
+
+- `colorForEventType` 在 InspectorView 和 RawEventStreamView 中重复 — 提取为共享 `Color+EventType.swift` 扩展可消除重复，但当前刻意保持独立以避免不必要的大范围重构。建议在 Epic 4 收尾或 Phase 4 UX 打磨阶段统一处理。
+- DebugViewModel 计算属性（`toolLogs`、`tokenSummary`、`filteredEvents`）每次访问遍历全量 events — MVP 阶段会话事件数在可接受范围内。如后续出现性能问题，改为 `@ObservationIgnored` + 手动刷新按钮。
+- `ForEach(Array(resultEvents.enumerated()), id: \.offset)` 在 TokenStatsView 中使用 index 作为 identity — append-only 事件模式下风险极低，理想做法应使用 event.id。

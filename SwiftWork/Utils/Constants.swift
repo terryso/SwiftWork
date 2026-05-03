@@ -22,4 +22,5 @@ enum AppStateKeys {
     static let lastActiveSessionID = "appState.lastActiveSessionID"
     static let windowFrame = "appState.windowFrame"
     static let inspectorVisible = "appState.inspectorVisible"
+    static let debugPanelVisible = "appState.debugPanelVisible"
 }
