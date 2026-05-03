@@ -4,9 +4,9 @@ import AppKit
 enum InputBarComposerMetrics {
     static let placeholderText = "输入消息发送给 Agent..."
     static let fontSize = NSFont.systemFontSize
-    static let textContainerInset = NSSize(width: 4, height: 2)
+    static let textContainerInset = NSSize(width: 4, height: 3)
     static let lineFragmentPadding: CGFloat = 0
-    static let singleLineTextHeight: CGFloat = 16
+    static let singleLineTextHeight: CGFloat = 18
     static let singleLineHeight = singleLineTextHeight + textContainerInset.height * 2
     static let maxVisibleHeight: CGFloat = 96
 
@@ -15,9 +15,11 @@ enum InputBarComposerMetrics {
     static let controlBottomPadding: CGFloat = 4
     static let controlTrailingPadding: CGFloat = 2
     static let outerVerticalPadding: CGFloat = 4
-    static let cornerRadius: CGFloat = 12
+    static let cornerRadius: CGFloat = 10
     static let placeholderLeadingPadding = textContainerInset.width
     static let placeholderTopPadding = textContainerInset.height
+    static let composerMinHeight = singleLineHeight
+    static let composerMaxHeight = maxVisibleHeight
 
     static func clampedVisibleHeight(for contentHeight: CGFloat) -> CGFloat {
         min(max(contentHeight, singleLineHeight), maxVisibleHeight)
@@ -64,6 +66,8 @@ struct IMESafeTextView: NSViewRepresentable {
         scrollView.drawsBackground = false
         scrollView.borderType = .noBorder
         scrollView.scrollerStyle = .overlay
+        scrollView.setContentHuggingPriority(.required, for: .vertical)
+        scrollView.setContentCompressionResistancePriority(.required, for: .vertical)
 
         let tv = SendTextView()
         tv.delegate = context.coordinator
@@ -84,6 +88,8 @@ struct IMESafeTextView: NSViewRepresentable {
         tv.textContainer?.lineBreakMode = .byWordWrapping
         tv.textContainer?.lineFragmentPadding = InputBarComposerMetrics.lineFragmentPadding
         tv.textContainerInset = InputBarComposerMetrics.textContainerInset
+        tv.setContentHuggingPriority(.required, for: .vertical)
+        tv.setContentCompressionResistancePriority(.required, for: .vertical)
 
         scrollView.documentView = tv
         scrollView.syncToTextViewState(resetScrollPosition: true)

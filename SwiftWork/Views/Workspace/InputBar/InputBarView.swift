@@ -25,8 +25,14 @@ struct InputBarView: View {
                     .allowsHitTesting(false)
                     .accessibilityHidden(!InputBarComposerMetrics.showsPlaceholder(for: inputText))
             }
+            .frame(
+                minHeight: InputBarComposerMetrics.composerMinHeight,
+                maxHeight: InputBarComposerMetrics.composerMaxHeight,
+                alignment: .topLeading
+            )
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(InputBarComposerMetrics.composerPadding)
+            .fixedSize(horizontal: false, vertical: true)
 
             // Send button (always visible when there is text)
             if !trimmedInputText.isEmpty || !agentBridge.isRunning {
