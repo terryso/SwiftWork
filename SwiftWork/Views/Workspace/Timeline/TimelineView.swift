@@ -121,7 +121,8 @@ struct TimelineView: View {
                 allEvents: agentBridge.events
             )
             let contentExceedsViewport = scrollViewHeight == 0 || renderedHeight > scrollViewHeight
-            if shouldFocusLatestUserMessage(allEvents: agentBridge.events),
+            let shouldFocusUserMessage = shouldFocusLatestUserMessage(allEvents: agentBridge.events)
+            if shouldFocusUserMessage,
                let latestUserMessage = latestUserMessage(in: 0..<agentBridge.events.count, allEvents: agentBridge.events) {
                 proxy.scrollTo(latestUserMessage.id, anchor: .top)
             } else if contentExceedsViewport {
@@ -132,6 +133,15 @@ struct TimelineView: View {
                 proxy.scrollTo(firstRenderableEvent.id, anchor: .top)
             }
             hasCompletedInitialScroll = true
+
+            if !shouldFocusUserMessage {
+                let total = agentBridge.events.count
+                let lower = max(0, total - 50)
+                visibleRange = lower..<total
+                try? await Task.sleep(for: .milliseconds(50))
+                guard !Task.isCancelled else { return }
+                scrollToLast(proxy: proxy)
+            }
         }
         .onChange(of: agentBridge.events.count) { oldCount, newCount in
             if newCount > oldCount {

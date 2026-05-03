@@ -154,6 +154,72 @@ final class EventVisualSystemTests: XCTestCase {
         let view = ResultView(event: event)
         XCTAssertNotNil(view, "ResultView with success subtype should have normal bar background")
     }
+
+    func testResultViewSuccessHidesBodyContentByDefault() {
+        let event = AgentEvent(
+            type: .result,
+            content: "Same assistant summary shown above",
+            metadata: ["subtype": "success", "durationMs": 100, "numTurns": 2] as [String: any Sendable],
+            timestamp: .now
+        )
+
+        let view = ResultView(event: event)
+
+        XCTAssertFalse(view.shouldShowContent, "Success results should not repeat the body content in the result card")
+        XCTAssertTrue(view.showsMetadata, "Success results should keep the metadata row visible")
+    }
+
+    func testResultViewSuccessStillHidesUniqueBodyContent() {
+        let event = AgentEvent(
+            type: .result,
+            content: "Only visible success summary",
+            metadata: ["subtype": "success", "durationMs": 100] as [String: any Sendable],
+            timestamp: .now
+        )
+
+        let view = ResultView(event: event)
+
+        XCTAssertFalse(view.shouldShowContent, "Success results should hide body content even when it does not match a previous assistant message")
+    }
+
+    func testResultViewCancelledStillShowsBodyContent() {
+        let event = AgentEvent(
+            type: .result,
+            content: "Cancelled by user",
+            metadata: ["subtype": "cancelled", "durationMs": 100] as [String: any Sendable],
+            timestamp: .now
+        )
+
+        let view = ResultView(event: event)
+
+        XCTAssertTrue(view.shouldShowContent, "Cancelled results should keep their body content visible")
+    }
+
+    func testResultViewErrorStillShowsBodyContent() {
+        let event = AgentEvent(
+            type: .result,
+            content: "Execution failed on step 3",
+            metadata: ["subtype": "errorDuringExecution", "durationMs": 100] as [String: any Sendable],
+            timestamp: .now
+        )
+
+        let view = ResultView(event: event)
+
+        XCTAssertTrue(view.shouldShowContent, "Error results should keep their body content visible")
+    }
+
+    func testResultViewCancelledHidesWhitespaceOnlyBodyContent() {
+        let event = AgentEvent(
+            type: .result,
+            content: "  \n\t  ",
+            metadata: ["subtype": "cancelled"] as [String: any Sendable],
+            timestamp: .now
+        )
+
+        let view = ResultView(event: event)
+
+        XCTAssertFalse(view.shouldShowContent, "Whitespace-only non-success content should not render an empty body block")
+    }
 }
 
 // MARK: - Mock Renderer for Testing Default Protocol Values

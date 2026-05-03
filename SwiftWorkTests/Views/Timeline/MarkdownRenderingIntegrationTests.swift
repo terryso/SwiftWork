@@ -63,15 +63,15 @@ final class MarkdownRenderingIntegrationTests: XCTestCase {
 
     // MARK: - AC#1 — ResultView Integration
 
-    // [P2] ResultView should optionally render Markdown content
+    // [P2] ResultView should still render Markdown content for non-success outcomes
     @MainActor
-    func testResultViewRendersMarkdownContent() throws {
-        let markdownContent = "Task completed with **3** changes:\n- File A modified\n- File B created"
+    func testResultViewRendersMarkdownContentForCancelledResult() throws {
+        let markdownContent = "Operation cancelled after **3** steps:\n- File A modified\n- File B skipped"
         let event = AgentEvent(
             type: .result,
             content: markdownContent,
             metadata: [
-                "subtype": "success",
+                "subtype": "cancelled",
                 "numTurns": 3,
                 "durationMs": 15000,
                 "totalCostUsd": 0.04
@@ -79,7 +79,7 @@ final class MarkdownRenderingIntegrationTests: XCTestCase {
             timestamp: .now
         )
         let view = ResultView(event: event)
-        XCTAssertNotNil(view, "ResultView should render Markdown content in its content area")
+        XCTAssertNotNil(view, "Cancelled ResultView should still render Markdown content in its content area")
     }
 
     // MARK: - AC#2 — Code Highlighting in Context

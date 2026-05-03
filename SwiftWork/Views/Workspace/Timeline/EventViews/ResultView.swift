@@ -19,6 +19,18 @@ struct ResultView: View {
         event.metadata["numTurns"] as? Int
     }
 
+    private var trimmedContent: String {
+        event.content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var shouldShowContent: Bool {
+        subtype != "success" && !trimmedContent.isEmpty
+    }
+
+    var showsMetadata: Bool {
+        durationMs != nil || numTurns != nil || totalCostUsd != nil
+    }
+
     private var isError: Bool {
         !subtype.isEmpty && subtype != "success" && subtype != "cancelled"
     }
@@ -50,25 +62,27 @@ struct ResultView: View {
                         .fontWeight(.medium)
                         .foregroundStyle(statusColor)
                 }
-                if !event.content.isEmpty {
-                    MarkdownContentView(markdown: event.content)
+                if shouldShowContent {
+                    MarkdownContentView(markdown: trimmedContent)
                         .font(.caption)
                 }
-                HStack(spacing: 12) {
-                    if let duration = durationMs {
-                        Label("\(duration)ms", systemImage: "clock")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let turns = numTurns {
-                        Label("\(turns) 轮", systemImage: "arrow.triangle.2.circlepath")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let cost = totalCostUsd {
-                        Label(String(format: "$%.4f", cost), systemImage: "dollarsign.circle")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                if showsMetadata {
+                    HStack(spacing: 12) {
+                        if let duration = durationMs {
+                            Label("\(duration)ms", systemImage: "clock")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        if let turns = numTurns {
+                            Label("\(turns) 轮", systemImage: "arrow.triangle.2.circlepath")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        if let cost = totalCostUsd {
+                            Label(String(format: "$%.4f", cost), systemImage: "dollarsign.circle")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
