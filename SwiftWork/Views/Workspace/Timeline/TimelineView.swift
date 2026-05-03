@@ -257,6 +257,8 @@ struct TimelineView: View {
             ResultView(event: event)
         case .system:
             systemOrThinking(event: event)
+        case .plan:
+            PlanView(event: event)
         case .hookStarted,
              .hookProgress,
              .hookResponse,

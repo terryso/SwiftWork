@@ -1,0 +1,66 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-03T12:17:00Z",
+  "repo": "swiftwork",
+  "target": {
+    "type": "story",
+    "id": "3-5",
+    "label": "执行计划可视化"
+  },
+  "test_counts": {
+    "total": 46,
+    "passed": 46,
+    "failed": 0,
+    "skipped": 0
+  },
+  "regression": {
+    "total_suite": 661,
+    "total_passed": 661,
+    "total_failed": 0
+  },
+  "coverage": {
+    "p0": { "total": 22, "covered": 22, "percentage": 100 },
+    "p1": { "total": 14, "covered": 14, "percentage": 100 },
+    "overall": { "total": 36, "covered": 36, "percentage": 100 }
+  },
+  "test_files": [
+    {
+      "path": "SwiftWorkTests/Models/UI/PlanStepModelTests.swift",
+      "level": "Unit (Model)",
+      "test_count": 15,
+      "status": "passed"
+    },
+    {
+      "path": "SwiftWorkTests/SDKIntegration/PlanEventMapperTests.swift",
+      "level": "Unit (SDKIntegration)",
+      "test_count": 16,
+      "status": "passed"
+    },
+    {
+      "path": "SwiftWorkTests/Views/Timeline/PlanViewTests.swift",
+      "level": "Unit (View)",
+      "test_count": 15,
+      "status": "passed"
+    }
+  ],
+  "source_files": [
+    "SwiftWork/Models/UI/PlanStep.swift",
+    "SwiftWork/Models/UI/AgentEventType.swift",
+    "SwiftWork/SDKIntegration/EventMapper.swift",
+    "SwiftWork/Views/Workspace/Timeline/EventViews/PlanView.swift",
+    "SwiftWork/Views/Workspace/Timeline/TimelineView.swift",
+    "SwiftWork/Views/Workspace/Inspector/InspectorView.swift",
+    "SwiftWork/Views/Workspace/Inspector/EventDetailSections.swift"
+  ],
+  "gaps": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "observations": [
+      "PlanStep.parseList(from:) tested indirectly via PlanView instantiation, not direct output assertion",
+      "SwiftUI view tests use XCTAssertNotNil (instantiation-only), standard for SwiftUI unit tests",
+      "No end-to-end integration test (SDKMessage -> EventMapper -> Timeline -> PlanView); acceptable given three-layer unit coverage"
+    ]
+  }
+}

@@ -25,6 +25,10 @@ struct EventMapper {
             )
 
         case .toolUse(let data):
+            // Plan-related tools: remap to .plan event type
+            if data.toolName == "EnterPlanMode" || data.toolName == "ExitPlanMode" || data.toolName == "TodoWrite" {
+                return mapPlanToolUse(data)
+            }
             return AgentEvent(
                 type: .toolUse,
                 content: data.toolName,
@@ -171,5 +175,121 @@ struct EventMapper {
                 timestamp: .now
             )
         }
+    }
+
+    // MARK: - Plan Tool Mapping
+
+    /// Maps plan-related toolUse events (EnterPlanMode, ExitPlanMode, TodoWrite) to .plan type.
+    private static func mapPlanToolUse(_ data: SDKMessage.ToolUseData) -> AgentEvent {
+        var metadata: [String: any Sendable] = [
+            "toolUseId": data.toolUseId,
+            "input": data.input
+        ]
+
+        let content: String
+
+        switch data.toolName {
+        case "EnterPlanMode":
+            metadata["planAction"] = "enter"
+            content = "进入计划模式"
+
+        case "ExitPlanMode":
+            metadata["planAction"] = "exit"
+            let (planText, approved) = parseExitPlanInput(data.input)
+            metadata["approved"] = approved
+            if !planText.isEmpty {
+                content = planText
+                let steps = PlanStep.parseList(from: planText)
+                if !steps.isEmpty {
+                    metadata["steps"] = steps.map { step -> [String: any Sendable] in
+                        [
+                            "id": step.id,
+                            "description": step.description,
+                            "status": step.status.rawValue,
+                            "dependencies": step.dependencies
+                        ] as [String: any Sendable]
+                    }
+                }
+            } else {
+                // JSON parse failed — try extracting plan from raw input
+                let rawContent = extractPlanFromRawInput(data.input)
+                content = rawContent.isEmpty ? "退出计划模式" : rawContent
+            }
+
+        case "TodoWrite":
+            metadata["planAction"] = "todoUpdate"
+            let todoSteps = parseTodoInput(data.input)
+            if !todoSteps.isEmpty {
+                metadata["steps"] = todoSteps.map { step -> [String: any Sendable] in
+                    [
+                        "id": step.id,
+                        "description": step.description,
+                        "status": step.status.rawValue,
+                        "dependencies": step.dependencies
+                    ] as [String: any Sendable]
+                }
+            }
+            content = "更新任务清单"
+
+        default:
+            content = data.toolName
+        }
+
+        return AgentEvent(
+            type: .plan,
+            content: content,
+            metadata: metadata,
+            timestamp: .now
+        )
+    }
+
+    /// Parses ExitPlanMode input JSON to extract plan text and approval status.
+    private static func parseExitPlanInput(_ input: String) -> (plan: String, approved: Bool) {
+        guard !input.isEmpty,
+              let data = input.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return ("", false) }
+
+        let plan = json["plan"] as? String ?? ""
+        let approved = json["approved"] as? Bool ?? false
+        return (plan, approved)
+    }
+
+    /// Extracts plan text from raw input when the primary JSON parse fails.
+    /// Returns empty string on failure so PlanView falls back to default text.
+    private static func extractPlanFromRawInput(_ input: String) -> String {
+        guard let data = input.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let plan = json["plan"] as? String,
+              !plan.isEmpty
+        else { return "" }
+        return plan
+    }
+
+    /// Parses TodoWrite input JSON to extract todo items as plan steps.
+    private static func parseTodoInput(_ input: String) -> [PlanStep] {
+        guard !input.isEmpty,
+              let data = input.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return [] }
+
+        // Single todo operation
+        if let text = json["text"] as? String, !text.isEmpty {
+            let id = json["id"] as? String ?? UUID().uuidString
+            let action = json["action"] as? String ?? "add"
+            let status: PlanStepStatus = action == "toggle" ? .completed : .pending
+            return [PlanStep(id: id, description: text, status: status, dependencies: [])]
+        }
+
+        // Batch todos (if input has array)
+        if let todos = json["todos"] as? [[String: Any]] {
+            return todos.enumerated().map { (index, todo) in
+                let text = todo["text"] as? String ?? ""
+                let id = todo["id"] as? String ?? "todo-\(index)"
+                return PlanStep(id: id, description: text, status: .pending, dependencies: [])
+            }
+        }
+
+        return []
     }
 }

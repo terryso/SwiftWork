@@ -14,10 +14,11 @@ final class AgentEventTypeTests: XCTestCase {
             .taskStarted, .taskProgress,
             .authStatus, .filesPersisted, .localCommandOutput,
             .promptSuggestion, .toolUseSummary,
+            .plan,
             .unknown
         ]
 
-        XCTAssertEqual(AgentEventType.allCases.count, 19)
+        XCTAssertEqual(AgentEventType.allCases.count, 20)
         for expected in expectedCases {
             XCTAssertNotNil(expected)
         }

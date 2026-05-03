@@ -19,6 +19,7 @@ enum AgentEventType: String, Codable, CaseIterable, Sendable {
     case localCommandOutput
     case promptSuggestion
     case toolUseSummary
+    case plan
     case unknown
 
     init(from decoder: Decoder) throws {

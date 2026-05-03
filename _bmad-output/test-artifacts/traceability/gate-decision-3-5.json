@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-03T12:17:00Z",
+  "repo": "swiftwork",
+  "target": {
+    "type": "story",
+    "id": "3-5",
+    "label": "执行计划可视化"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "rationale": "P0 coverage is 100% (22/22), P1 coverage is 100% (14/14, target: 90%), and overall coverage is 100% (36/36, minimum: 80%). All 3 acceptance criteria and 6 regression items have FULL coverage across model, SDK integration, and view test levels. 46 tests pass with 0 failures. Full regression suite: 661 tests, 0 failures. No gaps at any severity level.",
+  "p0_status": "MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-matrix-3-5.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}

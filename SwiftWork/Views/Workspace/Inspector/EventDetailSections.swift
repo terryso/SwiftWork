@@ -144,4 +144,60 @@ extension InspectorView {
             }
         }
     }
+
+    // MARK: - Plan Event Section — Story 3.5
+
+    @ViewBuilder
+    func planEventSection(event: AgentEvent) -> some View {
+        if let planAction = event.metadata["planAction"] as? String {
+            labeledRow("操作", value: planAction)
+        }
+
+        if let planId = event.metadata["planId"] as? String {
+            labeledRow("计划 ID", value: planId)
+        }
+
+        if let approved = event.metadata["approved"] as? Bool {
+            labeledRow("已批准", value: approved ? "是" : "否")
+        }
+
+        // Step summary
+        if let rawSteps = event.metadata["steps"] as? [[String: any Sendable]], !rawSteps.isEmpty {
+            let completed = rawSteps.filter { $0["status"] as? String == "completed" }.count
+            labeledRow("步骤进度", value: "\(completed)/\(rawSteps.count) 完成")
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("步骤列表")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ForEach(Array(rawSteps.enumerated()), id: \.offset) { _, step in
+                    HStack(spacing: 4) {
+                        Text(step["status"] as? String ?? "pending")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                        Text(step["description"] as? String ?? "")
+                            .font(.caption2)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+
+        if let input = event.metadata["input"] as? String, !input.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text("输入")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    CopyButton(text: input)
+                }
+                Text(input)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+        }
+    }
 }

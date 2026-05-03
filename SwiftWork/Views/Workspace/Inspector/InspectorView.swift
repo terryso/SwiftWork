@@ -59,6 +59,8 @@ struct InspectorView: View {
                     assistantEventSection(event: event)
                 case .system:
                     systemEventSection(event: event)
+                case .plan:
+                    planEventSection(event: event)
                 default:
                     genericMetadataSection(event: event)
                 }
@@ -95,6 +97,7 @@ struct InspectorView: View {
         case .assistant: return .purple
         case .userMessage: return .orange
         case .system: return .gray
+        case .plan: return .teal
         default: return .secondary
         }
     }

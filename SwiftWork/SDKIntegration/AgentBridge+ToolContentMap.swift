@@ -28,7 +28,7 @@ extension AgentBridge {
     /// Call this for each event to maintain the tool content pairing.
     func processToolContentMap(for event: AgentEvent) {
         switch event.type {
-        case .toolUse:
+        case .toolUse, .plan:
             let content = ToolContent.fromToolUseEvent(event)
             toolContentMap[content.toolUseId] = content
         case .toolProgress:
