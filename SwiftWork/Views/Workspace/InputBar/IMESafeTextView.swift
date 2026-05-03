@@ -1,6 +1,37 @@
 import SwiftUI
 import AppKit
 
+enum InputBarComposerMetrics {
+    static let placeholderText = "输入消息发送给 Agent..."
+    static let fontSize = NSFont.systemFontSize
+    static let textContainerInset = NSSize(width: 4, height: 2)
+    static let lineFragmentPadding: CGFloat = 0
+    static let singleLineTextHeight: CGFloat = 16
+    static let singleLineHeight = singleLineTextHeight + textContainerInset.height * 2
+    static let maxVisibleHeight: CGFloat = 96
+
+    static let composerPadding = EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 6)
+    static let controlSpacing: CGFloat = 6
+    static let controlBottomPadding: CGFloat = 4
+    static let controlTrailingPadding: CGFloat = 2
+    static let outerVerticalPadding: CGFloat = 4
+    static let cornerRadius: CGFloat = 12
+    static let placeholderLeadingPadding = textContainerInset.width
+    static let placeholderTopPadding = textContainerInset.height
+
+    static func clampedVisibleHeight(for contentHeight: CGFloat) -> CGFloat {
+        min(max(contentHeight, singleLineHeight), maxVisibleHeight)
+    }
+
+    static func needsInternalScrolling(for contentHeight: CGFloat) -> Bool {
+        contentHeight > maxVisibleHeight
+    }
+
+    static func showsPlaceholder(for text: String) -> Bool {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
 struct IMESafeTextView: NSViewRepresentable {
     @Binding var text: String
     var onSend: () -> Void
@@ -16,7 +47,8 @@ struct IMESafeTextView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? NSTextView else { return }
             parent.text = tv.string
-            tv.enclosingScrollView?.invalidateIntrinsicContentSize()
+            (tv.enclosingScrollView as? AutoSizingScrollView)?
+                .syncToTextViewState(resetScrollPosition: tv.string.isEmpty)
         }
     }
 
@@ -39,7 +71,7 @@ struct IMESafeTextView: NSViewRepresentable {
         tv.drawsBackground = false
         tv.isEditable = true
         tv.isSelectable = true
-        tv.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        tv.font = NSFont.systemFont(ofSize: InputBarComposerMetrics.fontSize)
         tv.textColor = .textColor
         tv.insertionPointColor = .controlAccentColor
         tv.isAutomaticQuoteSubstitutionEnabled = false
@@ -50,9 +82,11 @@ struct IMESafeTextView: NSViewRepresentable {
         tv.isHorizontallyResizable = false
         tv.textContainer?.widthTracksTextView = false
         tv.textContainer?.lineBreakMode = .byWordWrapping
-        tv.textContainerInset = NSSize(width: 4, height: 4)
+        tv.textContainer?.lineFragmentPadding = InputBarComposerMetrics.lineFragmentPadding
+        tv.textContainerInset = InputBarComposerMetrics.textContainerInset
 
         scrollView.documentView = tv
+        scrollView.syncToTextViewState(resetScrollPosition: true)
 
         return scrollView
     }
@@ -60,27 +94,24 @@ struct IMESafeTextView: NSViewRepresentable {
     func updateNSView(_ scrollView: AutoSizingScrollView, context: Context) {
         guard let tv = scrollView.documentView as? SendTextView else { return }
         if !tv.hasMarkedText() && tv.string != text {
+            let existingSelection = tv.selectedRange()
             tv.string = text
-            scrollView.invalidateIntrinsicContentSize()
+            let selectionLocation = min(existingSelection.location, tv.string.count)
+            let selectionLength = min(existingSelection.length, max(tv.string.count - selectionLocation, 0))
+            tv.setSelectedRange(NSRange(location: selectionLocation, length: selectionLength))
+            scrollView.syncToTextViewState(resetScrollPosition: text.isEmpty)
         }
         tv.onSend = onSend
     }
 }
 
 final class AutoSizingScrollView: NSScrollView {
-    private static let singleLineHeight: CGFloat = 22
-    private static let maxVisibleHeight: CGFloat = 120
-
     override var intrinsicContentSize: NSSize {
-        guard let tv = documentView as? NSTextView,
-              let container = tv.textContainer,
-              let manager = tv.layoutManager else {
-            return NSSize(width: -1, height: Self.singleLineHeight)
+        guard let tv = documentView as? NSTextView else {
+            return NSSize(width: -1, height: InputBarComposerMetrics.singleLineHeight)
         }
-        manager.ensureLayout(for: container)
-        let rect = manager.usedRect(for: container)
-        let contentHeight = rect.height + tv.textContainerInset.height * 2
-        let height = min(max(contentHeight, Self.singleLineHeight), Self.maxVisibleHeight)
+
+        let height = InputBarComposerMetrics.clampedVisibleHeight(for: measuredContentHeight(for: tv))
         return NSSize(width: -1, height: height)
     }
 
@@ -96,8 +127,36 @@ final class AutoSizingScrollView: NSScrollView {
         let padding = tv.textContainerInset.width * 2
         container.size = NSSize(width: max(width - padding, 0), height: .greatestFiniteMagnitude)
         manager.ensureLayout(for: container)
-        let textHeight = manager.usedRect(for: container).height + tv.textContainerInset.height * 2
-        tv.frame = NSRect(x: 0, y: 0, width: width, height: max(textHeight, Self.singleLineHeight + tv.textContainerInset.height * 2))
+        let contentHeight = measuredContentHeight(for: tv)
+        let visibleHeight = InputBarComposerMetrics.clampedVisibleHeight(for: contentHeight)
+        hasVerticalScroller = InputBarComposerMetrics.needsInternalScrolling(for: contentHeight)
+        tv.frame = NSRect(x: 0, y: 0, width: width, height: max(contentHeight, visibleHeight))
+    }
+
+    func syncToTextViewState(resetScrollPosition: Bool) {
+        guard let tv = documentView as? NSTextView else { return }
+
+        let contentHeight = measuredContentHeight(for: tv)
+        hasVerticalScroller = InputBarComposerMetrics.needsInternalScrolling(for: contentHeight)
+        invalidateIntrinsicContentSize()
+        needsLayout = true
+
+        if resetScrollPosition || !hasVerticalScroller {
+            contentView.scroll(to: .zero)
+            reflectScrolledClipView(contentView)
+        }
+    }
+
+    private func measuredContentHeight(for textView: NSTextView) -> CGFloat {
+        guard let container = textView.textContainer,
+              let manager = textView.layoutManager else {
+            return InputBarComposerMetrics.singleLineHeight
+        }
+
+        manager.ensureLayout(for: container)
+        let usedHeight = manager.usedRect(for: container).height
+        let textHeight = max(usedHeight, InputBarComposerMetrics.singleLineTextHeight)
+        return textHeight + textView.textContainerInset.height * 2
     }
 }
 

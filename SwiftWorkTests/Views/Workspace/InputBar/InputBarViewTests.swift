@@ -140,6 +140,38 @@ final class InputBarViewTests: XCTestCase {
         XCTAssertNotNil(inputBar, "InputBarView should compile with multi-line support")
     }
 
+    func testCompactComposerMetricsClampGrowthAndScrollThreshold() {
+        XCTAssertEqual(
+            InputBarComposerMetrics.clampedVisibleHeight(for: 0),
+            InputBarComposerMetrics.singleLineHeight,
+            "Empty composer should render at compact single-line height"
+        )
+        XCTAssertEqual(
+            InputBarComposerMetrics.clampedVisibleHeight(for: InputBarComposerMetrics.maxVisibleHeight + 48),
+            InputBarComposerMetrics.maxVisibleHeight,
+            "Long content should clamp to the max visible height"
+        )
+        XCTAssertTrue(
+            InputBarComposerMetrics.needsInternalScrolling(for: InputBarComposerMetrics.maxVisibleHeight + 1),
+            "Content beyond the max visible height should scroll internally"
+        )
+    }
+
+    func testCompactComposerPlaceholderVisibilityContract() {
+        XCTAssertEqual(InputBarComposerMetrics.placeholderText, "输入消息发送给 Agent...")
+        XCTAssertTrue(InputBarComposerMetrics.showsPlaceholder(for: ""))
+        XCTAssertTrue(InputBarComposerMetrics.showsPlaceholder(for: " "))
+        XCTAssertEqual(
+            InputBarComposerMetrics.placeholderLeadingPadding,
+            InputBarComposerMetrics.textContainerInset.width
+        )
+        XCTAssertEqual(
+            InputBarComposerMetrics.placeholderTopPadding,
+            InputBarComposerMetrics.textContainerInset.height
+        )
+        XCTAssertFalse(InputBarComposerMetrics.showsPlaceholder(for: "hello"))
+    }
+
     // [P1] Enter key sends message (behavioral contract)
     // Note: Keyboard behavior testing in SwiftUI requires ViewInspector or UI tests.
     // This test documents the expected behavior contract.

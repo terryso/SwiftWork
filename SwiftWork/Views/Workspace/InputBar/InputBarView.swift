@@ -6,26 +6,41 @@ struct InputBarView: View {
     @State private var inputText: String = ""
     @FocusState private var isFocused: Bool
 
+    private var trimmedInputText: String {
+        inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            IMESafeTextView(text: $inputText, onSend: sendMessage)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .focused($isFocused)
+        HStack(alignment: .bottom, spacing: InputBarComposerMetrics.controlSpacing) {
+            ZStack(alignment: .topLeading) {
+                IMESafeTextView(text: $inputText, onSend: sendMessage)
+                    .focused($isFocused)
+
+                Text(InputBarComposerMetrics.placeholderText)
+                    .font(.system(size: InputBarComposerMetrics.fontSize))
+                    .foregroundStyle(.secondary)
+                    .opacity(InputBarComposerMetrics.showsPlaceholder(for: inputText) ? 1 : 0)
+                    .padding(.leading, InputBarComposerMetrics.placeholderLeadingPadding)
+                    .padding(.top, InputBarComposerMetrics.placeholderTopPadding)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(!InputBarComposerMetrics.showsPlaceholder(for: inputText))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(InputBarComposerMetrics.composerPadding)
 
             // Send button (always visible when there is text)
-            if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !agentBridge.isRunning {
+            if !trimmedInputText.isEmpty || !agentBridge.isRunning {
                 Button {
                     sendMessage()
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray : .blue)
+                        .foregroundStyle(trimmedInputText.isEmpty ? .gray : .blue)
                 }
                 .buttonStyle(.plain)
-                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .padding(.trailing, 4)
-                .padding(.bottom, 4)
+                .disabled(trimmedInputText.isEmpty)
+                .padding(.trailing, InputBarComposerMetrics.controlTrailingPadding)
+                .padding(.bottom, InputBarComposerMetrics.controlBottomPadding)
             }
 
             // Stop button (visible when agent is running)
@@ -38,22 +53,22 @@ struct InputBarView: View {
                         .foregroundStyle(.red)
                 }
                 .buttonStyle(.plain)
-                .padding(.trailing, 4)
-                .padding(.bottom, 4)
+                .padding(.trailing, InputBarComposerMetrics.controlTrailingPadding)
+                .padding(.bottom, InputBarComposerMetrics.controlBottomPadding)
             }
         }
         .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: InputBarComposerMetrics.cornerRadius))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: InputBarComposerMetrics.cornerRadius)
                 .stroke(Color.primary.opacity(0.15), lineWidth: 1)
         )
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, InputBarComposerMetrics.outerVerticalPadding)
     }
 
     private func sendMessage() {
-        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = trimmedInputText
         guard !text.isEmpty else { return }
 
         agentBridge.sendMessage(text)
