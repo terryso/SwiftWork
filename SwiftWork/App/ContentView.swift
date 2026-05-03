@@ -4,15 +4,11 @@ import AppKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var settingsViewModel = SettingsViewModel()
-    @State private var sessionViewModel = SessionViewModel()
+    @Environment(AppState.self) private var appState
     @State private var agentBridge = AgentBridge()
     @State private var eventStore: (any EventStoring)?
     @State private var hasCompletedOnboarding: Bool? = nil
     @State private var appStateManager = AppStateManager()
-    @State private var isInspectorVisible: Bool = false
-    @State private var isDebugPanelVisible: Bool = false
-    @State private var isSettingsPresented: Bool = false
     @State private var mainWindow: NSWindow?
     @State private var notificationObservers: [NSObjectProtocol] = []
 
@@ -21,11 +17,11 @@ struct ContentView: View {
             if let completed = hasCompletedOnboarding {
                 if completed {
                     NavigationSplitView {
-                        SidebarView(sessionViewModel: sessionViewModel)
+                        SidebarView(sessionViewModel: appState.sessionViewModel)
                             .toolbar {
                                 ToolbarItem(placement: .automatic) {
                                     Button {
-                                        isSettingsPresented = true
+                                        appState.isSettingsPresented = true
                                     } label: {
                                         Image(systemName: "gearshape")
                                     }
@@ -33,15 +29,21 @@ struct ContentView: View {
                                 }
                             }
                     } detail: {
-                        if let session = sessionViewModel.selectedSession {
+                        if let session = appState.sessionViewModel.selectedSession {
                             WorkspaceView(
                                 agentBridge: agentBridge,
                                 eventStore: eventStore,
                                 session: session,
-                                settingsViewModel: settingsViewModel,
-                                sessionViewModel: sessionViewModel,
-                                isInspectorVisible: $isInspectorVisible,
-                                isDebugPanelVisible: $isDebugPanelVisible
+                                settingsViewModel: appState.settingsViewModel,
+                                sessionViewModel: appState.sessionViewModel,
+                                isInspectorVisible: Binding(
+                                    get: { appState.isInspectorVisible },
+                                    set: { appState.isInspectorVisible = $0 }
+                                ),
+                                isDebugPanelVisible: Binding(
+                                    get: { appState.isDebugPanelVisible },
+                                    set: { appState.isDebugPanelVisible = $0 }
+                                )
                             )
                         } else {
                             Text("选择或创建一个会话")
@@ -49,7 +51,7 @@ struct ContentView: View {
                         }
                     }
                 } else {
-                    WelcomeView(viewModel: settingsViewModel) {
+                    WelcomeView(viewModel: appState.settingsViewModel) {
                         withAnimation {
                             hasCompletedOnboarding = true
                         }
@@ -62,14 +64,17 @@ struct ContentView: View {
                 mainWindow = window
             }
         )
-        .sheet(isPresented: $isSettingsPresented) {
-            SettingsView(settingsViewModel: settingsViewModel, permissionHandler: agentBridge.permissionHandler)
+        .sheet(isPresented: Binding(
+            get: { appState.isSettingsPresented },
+            set: { appState.isSettingsPresented = $0 }
+        )) {
+            SettingsView(settingsViewModel: appState.settingsViewModel, permissionHandler: agentBridge.permissionHandler)
                 .frame(minWidth: 520, minHeight: 450)
         }
         .task {
-            settingsViewModel.configure(modelContext: modelContext)
-            hasCompletedOnboarding = settingsViewModel.isAPIKeyConfigured
-                && !settingsViewModel.isFirstLaunch
+            appState.settingsViewModel.configure(modelContext: modelContext)
+            hasCompletedOnboarding = appState.settingsViewModel.isAPIKeyConfigured
+                && !appState.settingsViewModel.isFirstLaunch
 
             if hasCompletedOnboarding == true {
                 configureAndRestoreState()
@@ -89,10 +94,10 @@ struct ContentView: View {
                 restoreWindowFrame(in: newWindow)
             }
         }
-        .onChange(of: isInspectorVisible) { _, newValue in
+        .onChange(of: appState.isInspectorVisible) { _, newValue in
             appStateManager.saveInspectorVisibility(newValue)
         }
-        .onChange(of: isDebugPanelVisible) { _, newValue in
+        .onChange(of: appState.isDebugPanelVisible) { _, newValue in
             appStateManager.saveDebugPanelVisibility(newValue)
         }
         .onDisappear {
@@ -109,8 +114,8 @@ struct ContentView: View {
         appStateManager.configure(modelContext: modelContext)
         appStateManager.loadAppState()
 
-        sessionViewModel.setAppStateManager(appStateManager)
-        sessionViewModel.configure(modelContext: modelContext)
+        appState.sessionViewModel.setAppStateManager(appStateManager)
+        appState.sessionViewModel.configure(modelContext: modelContext)
         eventStore = SwiftDataEventStore(modelContext: modelContext)
 
         agentBridge.permissionHandler.setModelContext(modelContext)
@@ -119,10 +124,10 @@ struct ContentView: View {
         restoreSelectedSession()
 
         // Restore Inspector visibility
-        isInspectorVisible = appStateManager.isInspectorVisible
+        appState.isInspectorVisible = appStateManager.isInspectorVisible
 
         // Restore Debug Panel visibility
-        isDebugPanelVisible = appStateManager.isDebugPanelVisible
+        appState.isDebugPanelVisible = appStateManager.isDebugPanelVisible
 
         // Restore window frame if window reference is already available
         if let window = mainWindow {
@@ -132,13 +137,13 @@ struct ContentView: View {
 
     private func restoreSelectedSession() {
         if let restoredID = appStateManager.lastActiveSessionID {
-            let matching = sessionViewModel.sessions.first { $0.id == restoredID }
+            let matching = appState.sessionViewModel.sessions.first { $0.id == restoredID }
             if let match = matching {
-                sessionViewModel.selectSession(match)
+                appState.sessionViewModel.selectSession(match)
             } else {
                 // Fallback: select first (most recent) session
-                if let first = sessionViewModel.sessions.first {
-                    sessionViewModel.selectSession(first)
+                if let first = appState.sessionViewModel.sessions.first {
+                    appState.sessionViewModel.selectSession(first)
                 }
             }
         }
@@ -197,5 +202,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environment(AppState())
         .modelContainer(for: AppConfiguration.self, inMemory: true)
 }

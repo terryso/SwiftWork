@@ -133,6 +133,9 @@
 		DD01RS0000000001DD01RS01 /* RawEventStreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01RS0000000001DD01RS11 /* RawEventStreamView.swift */; };
 		DD01TS0000000001DD01TS01 /* TokenStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01TS0000000001DD01TS11 /* TokenStatsView.swift */; };
 		DD01TL0000000001DD01TL01 /* ToolLogListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01TL0000000001DD01TL11 /* ToolLogListView.swift */; };
+		MM43MB0000000001MM43MB02 /* MenuBarCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43MB0000000001MM43MB01 /* MenuBarCommandsTests.swift */; };
+		MM43AI0000000001MM43AI02 /* AppStateIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43AI0000000001MM43AI01 /* AppStateIntegrationTests.swift */; };
+		MM43AS0000000001MM43AS02 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43AS0000000001MM43AS01 /* AppState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -271,6 +274,9 @@
 		DD01RS0000000001DD01RS11 /* RawEventStreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RawEventStreamView.swift; sourceTree = "<group>"; };
 		DD01TS0000000001DD01TS11 /* TokenStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStatsView.swift; sourceTree = "<group>"; };
 		DD01TL0000000001DD01TL11 /* ToolLogListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolLogListView.swift; sourceTree = "<group>"; };
+		MM43MB0000000001MM43MB01 /* MenuBarCommandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCommandsTests.swift; sourceTree = "<group>"; };
+		MM43AI0000000001MM43AI01 /* AppStateIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateIntegrationTests.swift; sourceTree = "<group>"; };
+		MM43AS0000000001MM43AS01 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -340,6 +346,7 @@
 		1BDF39E7B05817351E30A22B /* App */ = {
 			isa = PBXGroup;
 			children = (
+				MM43AS0000000001MM43AS01 /* AppState.swift */,
 				96704485F78FE4CE33AEC125 /* ContentView.swift */,
 				B0507702D730BD80D27694D3 /* SwiftWorkApp.swift */,
 			);
@@ -507,6 +514,8 @@
 				B05A161FC9B4D4534ED729ED /* OnboardingFlowTests.swift */,
 				498970670A45920CEF40738F /* SessionManagementIntegrationTests.swift */,
 				AABB00112233445566778810 /* MessageInputAgentExecutionIntegrationTests.swift */,
+				MM43MB0000000001MM43MB01 /* MenuBarCommandsTests.swift */,
+				MM43AI0000000001MM43AI01 /* AppStateIntegrationTests.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -609,7 +618,6 @@
 			isa = PBXGroup;
 			children = (
 				AABB00112233445566778845 /* SettingsViewIntegrationTests.swift */,
-				CC64D30000000001CC64D301 /* SettingsViewModel4_2Tests.swift */,
 				DD75E40000000001DD75E401 /* APIKeySettingsViewTests.swift */,
 				EE86F50000000001EE86F501 /* ModelPickerViewTests.swift */,
 			);
@@ -871,6 +879,8 @@
 				EE02IT0000000001EE02IT01 /* InspectorViewTests.swift in Sources */,
 				DD01DB0000000001DD01DB06 /* DebugViewModelTests.swift in Sources */,
 				DD01DB0000000001DD01DB08 /* DebugViewTests.swift in Sources */,
+				MM43MB0000000001MM43MB02 /* MenuBarCommandsTests.swift in Sources */,
+				MM43AI0000000001MM43AI02 /* AppStateIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -915,6 +925,7 @@
 				A9270B3EBB7ABEC5E9EC5688 /* SettingsViewModel.swift in Sources */,
 				6E97C5216D9AEDDE11526F10 /* SidebarView.swift in Sources */,
 				F416E1F61DEF44C0B62487F0 /* SwiftWorkApp.swift in Sources */,
+				MM43AS0000000001MM43AS02 /* AppState.swift in Sources */,
 				DF9B4611CABD9BE6B3563C44 /* TimelineView.swift in Sources */,
 				CC01EV0000000001AA01EV01 /* UserMessageView.swift in Sources */,
 				CC01EV0000000001AA01EV03 /* AssistantMessageView.swift in Sources */,
