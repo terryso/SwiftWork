@@ -6,18 +6,52 @@ struct WorkspaceView: View {
     let session: Session
     let settingsViewModel: SettingsViewModel
     let sessionViewModel: SessionViewModel
+    @Binding var isInspectorVisible: Bool
+
+    @State private var selectedEventId: UUID?
+    @State private var eventLookup: [UUID: AgentEvent] = [:]
 
     var body: some View {
         @Bindable var bridge = agentBridge
-        VStack(spacing: 0) {
-            TimelineView(agentBridge: agentBridge)
+        HStack(spacing: 0) {
+            // Main content area
+            VStack(spacing: 0) {
+                TimelineView(
+                    agentBridge: agentBridge,
+                    selectedEventId: $selectedEventId
+                )
                 .frame(maxHeight: .infinity)
 
-            Divider()
+                Divider()
 
-            InputBarView(agentBridge: agentBridge)
+                InputBarView(agentBridge: agentBridge)
+            }
+            .background(Color(nsColor: .textBackgroundColor))
+
+            // Inspector panel
+            if isInspectorVisible {
+                InspectorView(
+                    selectedEvent: selectedEvent,
+                    toolContentMap: agentBridge.toolContentMap
+                )
+                .frame(width: 300)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
-        .background(Color(nsColor: .textBackgroundColor))
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isInspectorVisible.toggle()
+                    }
+                } label: {
+                    Image(systemName: "sidebar.right")
+                        .foregroundStyle(isInspectorVisible ? Color.accentColor : .secondary)
+                }
+                .help(isInspectorVisible ? "隐藏 Inspector" : "显示 Inspector")
+            }
+        }
         .sheet(item: $bridge.pendingPermissionRequest, onDismiss: {
             agentBridge.resolvePermission(.deny)
         }) { request in
@@ -30,12 +64,31 @@ struct WorkspaceView: View {
             loadPersistedEvents()
             setupTitleGeneration()
         }
+        .onChange(of: agentBridge.events.count) { oldCount, newCount in
+            if newCount == 0 {
+                eventLookup.removeAll()
+            } else if newCount > oldCount {
+                for i in oldCount..<newCount {
+                    let event = agentBridge.events[i]
+                    eventLookup[event.id] = event
+                }
+            } else {
+                eventLookup = Dictionary(uniqueKeysWithValues: agentBridge.events.map { ($0.id, $0) })
+            }
+        }
         .onChange(of: session.id) { _, _ in
             agentBridge.clearEvents()
+            selectedEventId = nil
+            eventLookup.removeAll()
             configureAgent()
             loadPersistedEvents()
             setupTitleGeneration()
         }
+    }
+
+    private var selectedEvent: AgentEvent? {
+        guard let id = selectedEventId else { return nil }
+        return eventLookup[id]
     }
 
     private func configureAgent() {

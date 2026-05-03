@@ -4,7 +4,7 @@ struct TimelineView: View {
     let agentBridge: AgentBridge
     var toolRendererRegistry: ToolRendererRegistry = ToolRendererRegistry()
 
-    @State private var selectedEventId: UUID?
+    @Binding var selectedEventId: UUID?
     @State private var virtualizationManager = TimelineVirtualizationManager()
     @State private var scrollModeManager = ScrollModeManager()
     @State private var visibleRange: Range<Int> = 0..<0
@@ -45,6 +45,12 @@ struct TimelineView: View {
                     ForEach(virtualizedEvents) { event in
                         eventView(for: event)
                             .id(event.id)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedEventId = event.id }
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(Color.accentColor, lineWidth: selectedEventId == event.id && !hasOwnSelectionBorder(event) ? 2 : 0)
+                            )
                     }
                 }
                 .scrollTargetLayout()
@@ -320,6 +326,15 @@ struct TimelineView: View {
                 proxy.scrollTo(lastEvent.id, anchor: .bottom)
             }
         }
+    }
+
+    /// Returns true if the event's view already renders its own selection border.
+    private func hasOwnSelectionBorder(_ event: AgentEvent) -> Bool {
+        if event.type == .toolUse {
+            let toolUseId = event.metadata["toolUseId"] as? String ?? ""
+            return agentBridge.toolContentMap[toolUseId] != nil
+        }
+        return false
     }
 }
 

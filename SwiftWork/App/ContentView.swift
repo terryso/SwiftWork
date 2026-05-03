@@ -38,7 +38,8 @@ struct ContentView: View {
                                 eventStore: eventStore,
                                 session: session,
                                 settingsViewModel: settingsViewModel,
-                                sessionViewModel: sessionViewModel
+                                sessionViewModel: sessionViewModel,
+                                isInspectorVisible: $isInspectorVisible
                             )
                         } else {
                             Text("选择或创建一个会话")

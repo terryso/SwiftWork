@@ -32,7 +32,7 @@ final class MessageInputAgentExecutionIntegrationTests: XCTestCase {
     // [P0] TimelineView can be instantiated (placeholder → real view)
     func testTimelineViewInstantiation() {
         let bridge = AgentBridge()
-        let timeline = TimelineView(agentBridge: bridge)
+        let timeline = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(timeline, "TimelineView should be instantiable with AgentBridge")
     }
 
@@ -46,7 +46,8 @@ final class MessageInputAgentExecutionIntegrationTests: XCTestCase {
             eventStore: nil,
             session: session,
             settingsViewModel: settingsVM,
-            sessionViewModel: SessionViewModel()
+            sessionViewModel: SessionViewModel(),
+            isInspectorVisible: .constant(false)
         )
         XCTAssertNotNil(workspace, "WorkspaceView should be instantiable")
     }

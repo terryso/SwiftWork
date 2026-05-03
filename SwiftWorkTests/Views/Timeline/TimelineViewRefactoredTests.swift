@@ -22,14 +22,14 @@ final class TimelineViewRefactoredTests: XCTestCase {
             AgentEvent(type: .assistant, content: "Hi there", timestamp: .now),
             AgentEvent(type: .toolUse, content: "Bash", metadata: ["toolName": "Bash", "toolUseId": "t1", "input": "{}"] as [String: any Sendable], timestamp: .now)
         ]
-        let view = TimelineView(agentBridge: bridge)
+        let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render with 3 events")
     }
 
     func testTimelineViewEmptyState() throws {
         // RED: TimelineView should show empty state when no events
         let bridge = AgentBridge()
-        let view = TimelineView(agentBridge: bridge)
+        let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render empty state")
     }
 
@@ -60,7 +60,7 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 timestamp: .now
             )
             bridge.events = [event]
-            let view = TimelineView(agentBridge: bridge)
+            let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
             XCTAssertNotNil(view, "TimelineView should handle AgentEventType.\(eventType.rawValue)")
         }
     }
@@ -75,7 +75,7 @@ final class TimelineViewRefactoredTests: XCTestCase {
             AgentEvent(type: .userMessage, content: "Hello", timestamp: .now)
         ]
         bridge.streamingText = "Streaming response..."
-        let view = TimelineView(agentBridge: bridge)
+        let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render with streaming text")
     }
 
@@ -86,7 +86,7 @@ final class TimelineViewRefactoredTests: XCTestCase {
             AgentEvent(type: .userMessage, content: "Hello", timestamp: .now)
         ]
         bridge.streamingText = ""
-        let view = TimelineView(agentBridge: bridge)
+        let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render without streaming text block")
     }
 
@@ -104,7 +104,7 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 timestamp: .now
             )
         ]
-        let view = TimelineView(agentBridge: bridge)
+        let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render ThinkingView for system init")
     }
 
@@ -119,7 +119,7 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 timestamp: .now
             )
         ]
-        let view = TimelineView(agentBridge: bridge)
+        let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render SystemEventView for non-init system events")
     }
 
@@ -141,7 +141,7 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 timestamp: .now
             )
         ]
-        let view = TimelineView(agentBridge: bridge)
+        let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render ResultView for .result events")
     }
 
@@ -157,7 +157,7 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 timestamp: .now
             )
         ]
-        let view = TimelineView(agentBridge: bridge)
+        let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render UnknownEventView for .unknown events")
     }
 
@@ -179,7 +179,7 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 timestamp: .now
             )
             bridge.events = [event]
-            let view = TimelineView(agentBridge: bridge)
+            let view = TimelineView(agentBridge: bridge, selectedEventId: .constant(nil))
             XCTAssertNotNil(view, "TimelineView should handle growth type .\(eventType.rawValue)")
         }
     }

@@ -362,7 +362,7 @@ final class ToolRendererRegistryTests: XCTestCase {
                 timestamp: .now
             )
         ]
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should accept toolRendererRegistry parameter")
     }
 
@@ -384,7 +384,7 @@ final class ToolRendererRegistryTests: XCTestCase {
                 timestamp: .now
             )
         ]
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
         XCTAssertNotNil(view, "TimelineView should render with default ToolCallView fallback")
     }
 }

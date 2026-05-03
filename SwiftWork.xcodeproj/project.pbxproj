@@ -46,6 +46,9 @@
 		AABB00112233445566778844 /* PermissionRulesViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778843 /* PermissionRulesViewTests.swift */; };
 		AABB00112233445566778846 /* SettingsViewIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778845 /* SettingsViewIntegrationTests.swift */; };
 		AD62AE9DC8686665CF4C57E8 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8D56DBF5CA437066312B71 /* InspectorView.swift */; };
+		EE01DS0000000001EE01DS01 /* EventDetailSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE01DS0000000001EE01DS11 /* EventDetailSections.swift */; };
+		EE02IT0000000001EE02IT01 /* InspectorViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE02IT0000000001EE02IT11 /* InspectorViewTests.swift */; };
+		EE04IM0000000001EE04IM01 /* IMESafeTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE04IM0000000001EE04IM11 /* IMESafeTextView.swift */; };
 		AE0A03AB3339AD66709E6649 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1EC9D65D9B0E0DFDA57F376 /* SettingsViewModelTests.swift */; };
 		AF5822DC9CF8E7F34E82F5E3 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4889B0AAB114C1E82D4C0D3 /* AppError.swift */; };
 		B300B2346D1757F9FDC7222D /* AgentEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F53533AA5DAF536519AB24E /* AgentEvent.swift */; };
@@ -151,6 +154,9 @@
 		60F465E4A11CEB9AC1E257C0 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		64B9FFBA5217F80EB14B2A75 /* TestDataFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestDataFactory.swift; sourceTree = "<group>"; };
 		6B8D56DBF5CA437066312B71 /* InspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorView.swift; sourceTree = "<group>"; };
+		EE01DS0000000001EE01DS11 /* EventDetailSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailSections.swift; sourceTree = "<group>"; };
+		EE02IT0000000001EE02IT11 /* InspectorViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorViewTests.swift; sourceTree = "<group>"; };
+		EE04IM0000000001EE04IM11 /* IMESafeTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMESafeTextView.swift; sourceTree = "<group>"; };
 		726CE3FB92CE7CE8C08FACA1 /* PermissionDialogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionDialogView.swift; sourceTree = "<group>"; };
 		785DF0718453626821D2F3A1 /* AppConfigurationModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationModelTests.swift; sourceTree = "<group>"; };
 		804BE9032AA1C960630F46D1 /* Color+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Theme.swift"; sourceTree = "<group>"; };
@@ -477,6 +483,7 @@
 			isa = PBXGroup;
 			children = (
 				1C45DAE0F34EAB5699E7D9A6 /* InputBarView.swift */,
+				EE04IM0000000001EE04IM11 /* IMESafeTextView.swift */,
 			);
 			path = InputBar;
 			sourceTree = "<group>";
@@ -519,6 +526,7 @@
 			isa = PBXGroup;
 			children = (
 				6B8D56DBF5CA437066312B71 /* InspectorView.swift */,
+				EE01DS0000000001EE01DS11 /* EventDetailSections.swift */,
 			);
 			path = Inspector;
 			sourceTree = "<group>";
@@ -569,6 +577,22 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		EE03IG0000000001EE03IG01 /* Inspector */ = {
+			isa = PBXGroup;
+			children = (
+				EE02IT0000000001EE02IT11 /* InspectorViewTests.swift */,
+			);
+			path = Inspector;
+			sourceTree = "<group>";
+		};
+		EE05WS0000000001EE05WS01 /* Workspace */ = {
+			isa = PBXGroup;
+			children = (
+				EE03IG0000000001EE03IG01 /* Inspector */,
+			);
+			path = Workspace;
+			sourceTree = "<group>";
+		};
 		BECCCBA98C814AE0F963AB3A /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -607,6 +631,7 @@
 			isa = PBXGroup;
 			children = (
 				CC01TS0000000001AA01TS42 /* Timeline */,
+				EE05WS0000000001EE05WS01 /* Workspace */,
 				AABB00112233445566778847 /* Permission */,
 				AABB00112233445566778848 /* Settings */,
 			);
@@ -797,6 +822,7 @@
 				AABB00112233445566778842 /* PermissionHandlerConfigTests.swift in Sources */,
 				AABB00112233445566778844 /* PermissionRulesViewTests.swift in Sources */,
 				AABB00112233445566778846 /* SettingsViewIntegrationTests.swift in Sources */,
+				EE02IT0000000001EE02IT01 /* InspectorViewTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -824,7 +850,9 @@
 				EB6953EBF4E408AB1C0734D0 /* Date+Formatting.swift in Sources */,
 				F5275B89F4726519289605F1 /* Event.swift in Sources */,
 				F3500D7F4FA48A50A21FA1AB /* InputBarView.swift in Sources */,
+				EE04IM0000000001EE04IM01 /* IMESafeTextView.swift in Sources */,
 				AD62AE9DC8686665CF4C57E8 /* InspectorView.swift in Sources */,
+				EE01DS0000000001EE01DS01 /* EventDetailSections.swift in Sources */,
 				250548C48AABF652712DD83B /* KeychainManager.swift in Sources */,
 				8C743464C8F7FAE465A8CEB9 /* PermissionDecision.swift in Sources */,
 				0FB3EFB3EF3456D24C489A94 /* PermissionDialogView.swift in Sources */,

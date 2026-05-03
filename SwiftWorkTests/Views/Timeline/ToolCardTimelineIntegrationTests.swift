@@ -76,7 +76,7 @@ final class ToolCardTimelineIntegrationTests: XCTestCase {
         bridge.processToolContentMap(for: bridge.events[0])
 
         let registry = ToolRendererRegistry()
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
 
         XCTAssertNotNil(view,
             "TimelineView should render with toolUse events using toolContentMap")
@@ -95,7 +95,7 @@ final class ToolCardTimelineIntegrationTests: XCTestCase {
         bridge.processToolContentMap(for: toolResultEvent)
 
         let registry = ToolRendererRegistry()
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
 
         XCTAssertNotNil(view,
             "TimelineView should render with paired tool events")
@@ -114,7 +114,7 @@ final class ToolCardTimelineIntegrationTests: XCTestCase {
         bridge.processToolContentMap(for: progressEvent)
 
         let registry = ToolRendererRegistry()
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
 
         XCTAssertNotNil(view)
         XCTAssertEqual(bridge.toolContentMap["tu-001"]?.status, .running)
@@ -126,7 +126,7 @@ final class ToolCardTimelineIntegrationTests: XCTestCase {
     func testTimelineViewHasSelectedEventIdState() {
         let bridge = makeBridge()
         let registry = ToolRendererRegistry()
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
 
         XCTAssertNotNil(view, "TimelineView should accept selectedEventId parameter")
     }
@@ -147,7 +147,7 @@ final class ToolCardTimelineIntegrationTests: XCTestCase {
         bridge.processToolContentMap(for: resultEvent)
 
         let registry = ToolRendererRegistry()
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
 
         XCTAssertNotNil(view)
         let content = bridge.toolContentMap["tu-100"]
@@ -174,7 +174,7 @@ final class ToolCardTimelineIntegrationTests: XCTestCase {
         }
 
         let registry = ToolRendererRegistry()
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
 
         XCTAssertNotNil(view)
         XCTAssertEqual(bridge.toolContentMap.count, 1)
@@ -222,7 +222,7 @@ final class ToolCardTimelineIntegrationTests: XCTestCase {
         // Don't process toolContentMap — no corresponding toolUse
 
         let registry = ToolRendererRegistry()
-        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry)
+        let view = TimelineView(agentBridge: bridge, toolRendererRegistry: registry, selectedEventId: .constant(nil))
 
         XCTAssertNotNil(view,
             "TimelineView should handle unpaired toolResult without crash")
