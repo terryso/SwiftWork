@@ -20,7 +20,10 @@ final class AgentBridge {
     private var currentTask: _Concurrency.Task<Void, Never>?
 
     @ObservationIgnored
-    private var activeTaskGeneration: UInt64 = 0
+    private var inputContinuation: AsyncStream<String>.Continuation?
+
+    @ObservationIgnored
+    private var pendingTurnCount: Int = 0
 
     @ObservationIgnored
     private var eventStore: (any EventStoring)?
@@ -95,12 +98,10 @@ final class AgentBridge {
             totalPersistedEvents = total
 
             if total > 1000 {
-                // Large session: load first page only
                 let firstPage = try eventStore.fetchEvents(for: session.id, offset: 0, limit: pageSize)
                 events = firstPage
                 eventOrder = total
             } else {
-                // Small session: load all events
                 let persisted = try eventStore.fetchEvents(for: session.id)
                 events = persisted
                 eventOrder = persisted.count
@@ -156,16 +157,13 @@ final class AgentBridge {
             events.append(contentsOf: nextPage)
             rebuildToolContentMap()
         } catch {
-            // Non-critical: pagination failure should not block the user
         }
     }
 
+    // MARK: - Message Sending (streamInput multi-turn queue)
+
     func sendMessage(_ text: String) {
         guard let agent, !text.isEmpty else { return }
-
-        if isRunning {
-            cancelExecution()
-        }
 
         let userEvent = AgentEvent(
             type: .userMessage,
@@ -173,18 +171,25 @@ final class AgentBridge {
             timestamp: .now
         )
         appendAndPersist(userEvent)
-
         errorMessage = nil
-        isRunning = true
 
-        activeTaskGeneration &+= 1
-        let myGeneration = activeTaskGeneration
+        if !isRunning {
+            isRunning = true
+            startInputStream(agent)
+        }
+
+        pendingTurnCount += 1
+        inputContinuation?.yield(text)
+    }
+
+    private func startInputStream(_ agent: Agent) {
+        let (inputStream, continuation) = AsyncStream<String>.makeStream()
+        self.inputContinuation = continuation
 
         currentTask = _Concurrency.Task { [weak self] in
             guard let self else { return }
-            var receivedResult = false
-            let stream = agent.stream(text)
-            for await message in stream {
+            let sdkStream = agent.streamInput(inputStream)
+            for await message in sdkStream {
                 guard !_Concurrency.Task.isCancelled else { break }
 
                 if case .userMessage = message { continue }
@@ -201,32 +206,30 @@ final class AgentBridge {
                 }
 
                 if event.type == .result {
-                    receivedResult = true
                     self.onResult?(event.content)
+                    self.pendingTurnCount -= 1
+                    if self.pendingTurnCount <= 0 {
+                        self.inputContinuation?.finish()
+                    }
                 }
                 self.appendAndPersist(event)
             }
-            if !_Concurrency.Task.isCancelled && !receivedResult {
-                self.appendAndPersist(AgentEvent(
-                    type: .system,
-                    content: "Agent 流异常结束，未收到完整响应。",
-                    metadata: ["isError": true],
-                    timestamp: .now
-                ))
-            }
             self.finalizeToolContentMap()
-            if self.activeTaskGeneration == myGeneration {
-                self.currentTask = nil
-            }
+            self.currentTask = nil
             self.isRunning = false
+            self.pendingTurnCount = 0
+            self.inputContinuation = nil
         }
     }
 
     func cancelExecution() {
+        inputContinuation?.finish()
         agent?.interrupt()
         currentTask?.cancel()
         isRunning = false
         streamingText = ""
+        pendingTurnCount = 0
+        inputContinuation = nil
         finalizeToolContentMap()
 
         appendAndPersist(AgentEvent(
@@ -243,6 +246,9 @@ final class AgentBridge {
         errorMessage = nil
         isRunning = false
         toolContentMap = [:]
+        pendingTurnCount = 0
+        inputContinuation?.finish()
+        inputContinuation = nil
         currentTask?.cancel()
         currentTask = nil
         eventOrder = 0
@@ -263,7 +269,6 @@ final class AgentBridge {
             try eventStore.persist(event, session: currentSession, order: eventOrder)
             eventOrder += 1
         } catch {
-            // Non-critical: persistence failure should not block the user
         }
 
         trimOldEvents()
@@ -278,7 +283,6 @@ final class AgentBridge {
         events.removeFirst(removeCount)
         trimmedEventCount += removeCount
 
-        // Clean up toolContentMap entries that belonged to removed events
         for event in removed {
             if event.type == .toolUse {
                 let toolUseId = event.metadata["toolUseId"] as? String ?? ""

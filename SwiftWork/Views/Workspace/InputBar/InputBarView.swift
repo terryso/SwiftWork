@@ -8,31 +8,14 @@ struct InputBarView: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            // Text editor for multi-line input
-            TextField("输入消息发送给 Agent...", text: $inputText, axis: .vertical)
-                .lineLimit(1...4)
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .disabled(agentBridge.isRunning)
+            IMESafeTextView(text: $inputText, onSend: sendMessage)
+                .frame(minHeight: 36, maxHeight: 120)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
                 .focused($isFocused)
-                .onSubmit { sendMessage() }
 
-            // Send / Stop button
-            if agentBridge.isRunning {
-                // Stop button
-                Button {
-                    agentBridge.cancelExecution()
-                } label: {
-                    Image(systemName: "stop.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.red)
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, 4)
-                .padding(.bottom, 4)
-            } else {
-                // Send button
+            // Send button (always visible when there is text)
+            if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !agentBridge.isRunning {
                 Button {
                     sendMessage()
                 } label: {
@@ -42,6 +25,20 @@ struct InputBarView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .padding(.trailing, 4)
+                .padding(.bottom, 4)
+            }
+
+            // Stop button (visible when agent is running)
+            if agentBridge.isRunning {
+                Button {
+                    agentBridge.cancelExecution()
+                } label: {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
                 .padding(.trailing, 4)
                 .padding(.bottom, 4)
             }

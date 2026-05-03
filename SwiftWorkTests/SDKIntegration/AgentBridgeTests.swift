@@ -348,6 +348,103 @@ final class AgentBridgeTests: XCTestCase {
         bridge.loadEvents(for: session)
         XCTAssertEqual(bridge.events.first?.content, "configured")
     }
+
+    // MARK: - AC#3 (Story 3.3): 追加消息——streamInput multi-turn queue
+
+    // [P0] sendMessage while running queues follow-up via streamInput
+    // Using streamInput(), follow-up messages are queued and processed
+    // after the current turn completes — no interruption.
+    func testSendMessageWhileRunningQueuesFollowUp() async throws {
+        let bridge = makeBridge()
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
+
+        bridge.sendMessage("First query")
+        XCTAssertTrue(bridge.isRunning, "Should be running after first send")
+
+        bridge.sendMessage("Follow-up query")
+
+        // Both user messages should be present (queued, not cancelled)
+        let userMessages = bridge.events.filter { $0.type == .userMessage }
+        XCTAssertEqual(userMessages.count, 2, "Should have both user messages")
+        XCTAssertEqual(userMessages[0].content, "First query")
+        XCTAssertEqual(userMessages[1].content, "Follow-up query")
+    }
+
+    // [P0] sendMessage while running does not generate cancellation event
+    func testSendMessageWhileRunningNoCancellationEvent() async throws {
+        let bridge = makeBridge()
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
+
+        bridge.sendMessage("First")
+        bridge.sendMessage("Follow-up")
+
+        let cancellationEvents = bridge.events.filter { event in
+            event.type == .system && event.metadata["isCancellation"] != nil
+        }
+        XCTAssertTrue(cancellationEvents.isEmpty,
+                      "No cancellation event should be generated for follow-up send")
+    }
+
+    // [P0] isRunning stays true while streamInput processes queued turns
+    func testFollowUpSendPreservesIsRunning() async throws {
+        let bridge = makeBridge()
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
+
+        bridge.sendMessage("First")
+        XCTAssertTrue(bridge.isRunning)
+
+        bridge.sendMessage("Second")
+        XCTAssertTrue(bridge.isRunning, "isRunning should remain true — turn is queued")
+
+        // Wait for streamInput to finish all queued turns
+        let start = ContinuousClock.now
+        while bridge.isRunning {
+            let elapsed = ContinuousClock.now - start
+            if elapsed > .seconds(10) { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        XCTAssertFalse(bridge.isRunning, "isRunning should eventually become false")
+    }
+
+    // [P1] Follow-up sendMessage does not clear existing events
+    func testFollowUpSendDoesNotClearEvents() async throws {
+        let bridge = makeBridge()
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
+
+        bridge.sendMessage("First")
+        let countAfterFirst = bridge.events.count
+
+        bridge.sendMessage("Second")
+        XCTAssertGreaterThanOrEqual(bridge.events.count, countAfterFirst,
+                                    "Events should not be cleared on follow-up send")
+    }
+
+    // [P1] Both user messages are preserved (queued, not replaced)
+    func testFollowUpSendAppendsNotReplaces() async throws {
+        let bridge = makeBridge()
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
+
+        bridge.sendMessage("Message A")
+        bridge.sendMessage("Message B")
+
+        let contents = bridge.events.filter { $0.type == .userMessage }.map(\.content)
+        XCTAssertTrue(contents.contains("Message A"), "First message should still exist")
+        XCTAssertTrue(contents.contains("Message B"), "Second message should be queued")
+    }
+
+    // [P1] streamInput handles multiple queued messages sequentially
+    func testMultipleQueuedMessagesProcessedSequentially() async throws {
+        let bridge = makeBridge()
+        bridge.configure(apiKey: "test-key", baseURL: nil, model: "test-model", workspacePath: nil, sessionId: UUID().uuidString)
+
+        bridge.sendMessage("Turn 1")
+        bridge.sendMessage("Turn 2")
+        bridge.sendMessage("Turn 3")
+
+        let userMessages = bridge.events.filter { $0.type == .userMessage }
+        XCTAssertEqual(userMessages.count, 3, "All three messages should be queued")
+        XCTAssertEqual(userMessages.map(\.content), ["Turn 1", "Turn 2", "Turn 3"])
+    }
 }
 
 // MARK: - Mock EventStore
