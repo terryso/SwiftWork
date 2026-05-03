@@ -68,7 +68,7 @@ development_status:
   3-3-session-management-enhanced: done
   3-4-inspector-panel: done
   3-5-execution-plan-visualization: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # === Epic 4: 调试面板与应用外壳（开发者工具体验） ===
   epic-4: done

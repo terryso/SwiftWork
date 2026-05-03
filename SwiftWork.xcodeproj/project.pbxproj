@@ -135,6 +135,7 @@
 		DD01RS0000000001DD01RS01 /* RawEventStreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01RS0000000001DD01RS11 /* RawEventStreamView.swift */; };
 		DD01TS0000000001DD01TS01 /* TokenStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01TS0000000001DD01TS11 /* TokenStatsView.swift */; };
 		DD01TL0000000001DD01TL01 /* ToolLogListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01TL0000000001DD01TL11 /* ToolLogListView.swift */; };
+		BB01CB0000000001BB01CB01 /* CopyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB01CB0000000001BB01CB11 /* CopyButton.swift */; };
 		MM43MB0000000001MM43MB02 /* MenuBarCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43MB0000000001MM43MB01 /* MenuBarCommandsTests.swift */; };
 		MM43AI0000000001MM43AI02 /* AppStateIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43AI0000000001MM43AI01 /* AppStateIntegrationTests.swift */; };
 		MM43AS0000000001MM43AS02 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43AS0000000001MM43AS01 /* AppState.swift */; };
@@ -277,6 +278,7 @@
 		DD01RS0000000001DD01RS11 /* RawEventStreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RawEventStreamView.swift; sourceTree = "<group>"; };
 		DD01TS0000000001DD01TS11 /* TokenStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStatsView.swift; sourceTree = "<group>"; };
 		DD01TL0000000001DD01TL11 /* ToolLogListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolLogListView.swift; sourceTree = "<group>"; };
+		BB01CB0000000001BB01CB11 /* CopyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyButton.swift; sourceTree = "<group>"; };
 		MM43MB0000000001MM43MB01 /* MenuBarCommandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCommandsTests.swift; sourceTree = "<group>"; };
 		MM43AI0000000001MM43AI01 /* AppStateIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateIntegrationTests.swift; sourceTree = "<group>"; };
 		MM43AS0000000001MM43AS01 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -311,6 +313,7 @@
 		0282B52D50B7B6C7CAF2D0F8 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				BB01CB0000000001BB01CBG1 /* Common */,
 				11055AD9CE4AAEFAB5D93142 /* Onboarding */,
 				773D77C72D49BAE0261C2276 /* Permission */,
 				CE654D22CFF57D6B8A238EEF /* Settings */,
@@ -318,6 +321,14 @@
 				469B2497BE3379DB7CE74851 /* Workspace */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		BB01CB0000000001BB01CBG1 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				BB01CB0000000001BB01CB11 /* CopyButton.swift */,
+			);
+			path = Common;
 			sourceTree = "<group>";
 		};
 		080F5D7BF69B504EA8CC5060 /* Sidebar */ = {
@@ -969,6 +980,7 @@
 				DD01RS0000000001DD01RS01 /* RawEventStreamView.swift in Sources */,
 				DD01TS0000000001DD01TS01 /* TokenStatsView.swift in Sources */,
 				DD01TL0000000001DD01TL01 /* ToolLogListView.swift in Sources */,
+					BB01CB0000000001BB01CB01 /* CopyButton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

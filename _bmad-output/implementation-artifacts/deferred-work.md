@@ -40,6 +40,14 @@
 - ~~markSessionAsUnread marks selectedSession, not the actual result session~~ — **部分修复。** 改为多回调模式（`addOnResultCallback`），WorkspaceView 和 ContentView 各自注册回调，不再互相覆盖。但仍然使用 selectedSession，因为当前单会话执行模型下是正确的。
 - Sendable warnings in ContentView.swift:207 and ContentView.swift:215 — pre-existing from Story 4-3 (non-Sendable `saveWindowFrameThrottled` to `@Sendable` parameter). **处置决策：计划修复。** 后续清理时处理。
 
+## Deferred from: code review of 3-2-permission-config-rules (2026-05-02)
+
+- globalMode 持久化 `persistGlobalMode()` 写入失败时静默吞掉错误 — 默认值兜底，功能不受影响，但丢失了诊断信息。**处置决策：接受。** 影响极低，用户无感知。
+
+## Deferred from: code review of 3-4-inspector-panel (2026-05-03)
+
+- ~~CopyButton 定义在 ToolCardView.swift 中而非独立文件~~ — **已修复。** 提取为 `SwiftWork/Views/Common/CopyButton.swift`，4 个文件复用同一组件。
+
 ## Newly discovered during retrospective tech debt review (2026-05-03)
 
 - WorkspaceView.setupTitleGeneration() overwrites agentBridge.onResult callback — **已修复。** 改为多回调模式 `addOnResultCallback`，支持多个回调共存。

@@ -18,7 +18,7 @@ final class AgentEventTypeTests: XCTestCase {
             .unknown
         ]
 
-        XCTAssertEqual(AgentEventType.allCases.count, 20)
+        XCTAssertEqual(AgentEventType.allCases.count, expectedCases.count)
         for expected in expectedCases {
             XCTAssertNotNil(expected)
         }
