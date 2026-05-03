@@ -148,7 +148,7 @@ struct WorkspaceView: View {
         let model = settingsViewModel.selectedModel
         let baseURL = settingsViewModel.baseURL.isEmpty ? nil : settingsViewModel.baseURL
 
-        agentBridge.onResult = { [weak session] _ in
+        agentBridge.addOnResultCallback { [weak session] _ in
             guard let session, session.title == "新会话" else { return }
             let events = agentBridge.events
             Task {

@@ -52,7 +52,20 @@ final class AgentBridge {
         totalPersistedEvents > trimmedEventCount + events.count
     }
 
-    var onResult: ((String) -> Void)?
+    var hasEarlierEvents: Bool {
+        trimmedEventCount > 0
+    }
+
+    @ObservationIgnored
+    private var onResultCallbacks: [(String) -> Void] = []
+
+    func addOnResultCallback(_ callback: @escaping (String) -> Void) {
+        onResultCallbacks.append(callback)
+    }
+
+    func removeAllOnResultCallbacks() {
+        onResultCallbacks.removeAll()
+    }
 
     // MARK: - Permission System (Story 3-1)
 
@@ -97,9 +110,12 @@ final class AgentBridge {
             let total = try eventStore.totalEventCount(for: session.id)
             totalPersistedEvents = total
 
-            if total > 1000 {
-                let firstPage = try eventStore.fetchEvents(for: session.id, offset: 0, limit: pageSize)
-                events = firstPage
+            if total > pageSize {
+                // Load the LATEST events (end of the persisted array), not the oldest
+                let offset = max(0, total - pageSize)
+                let latestPage = try eventStore.fetchEvents(for: session.id, offset: offset, limit: pageSize)
+                events = latestPage
+                trimmedEventCount = offset
                 eventOrder = total
             } else {
                 let persisted = try eventStore.fetchEvents(for: session.id)
@@ -160,6 +176,25 @@ final class AgentBridge {
         }
     }
 
+    func loadEarlierEvents() {
+        guard let eventStore, let currentSession, trimmedEventCount > 0 else { return }
+
+        let limit = min(pageSize, trimmedEventCount)
+        let offset = trimmedEventCount - limit
+
+        do {
+            let earlierPage = try eventStore.fetchEvents(
+                for: currentSession.id,
+                offset: offset,
+                limit: limit
+            )
+            trimmedEventCount = offset
+            events.insert(contentsOf: earlierPage, at: 0)
+            rebuildToolContentMap()
+        } catch {
+        }
+    }
+
     // MARK: - Message Sending (streamInput multi-turn queue)
 
     func sendMessage(_ text: String) {
@@ -206,7 +241,9 @@ final class AgentBridge {
                 }
 
                 if event.type == .result {
-                    self.onResult?(event.content)
+                    for callback in self.onResultCallbacks {
+                        callback(event.content)
+                    }
                     self.pendingTurnCount -= 1
                     if self.pendingTurnCount <= 0 {
                         self.inputContinuation?.finish()
@@ -254,6 +291,7 @@ final class AgentBridge {
         eventOrder = 0
         totalPersistedEvents = 0
         trimmedEventCount = 0
+        onResultCallbacks.removeAll()
     }
 
     private func appendAndPersist(_ event: AgentEvent) {

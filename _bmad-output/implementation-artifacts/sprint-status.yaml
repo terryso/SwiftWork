@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-01
-last_updated: 2026-05-03T22:22:00
+last_updated: 2026-05-03T23:30:00
 project: swiftwork
 project_key: NOKEY
 tracking_system: file-system
@@ -76,4 +76,4 @@ development_status:
   4-2-app-settings: done
   4-3-menubar-shortcuts: done
   4-4-dock-badge-window-management: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done

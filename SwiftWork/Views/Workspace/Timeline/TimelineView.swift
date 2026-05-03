@@ -164,6 +164,13 @@ struct TimelineView: View {
     private var topPlaceholder: some View {
         let upper = max(0, visibleRange.lowerBound - virtualizationManager.renderBuffer)
         return Group {
+            if agentBridge.hasEarlierEvents {
+                Color.clear
+                    .frame(height: 1)
+                    .onAppear {
+                        agentBridge.loadEarlierEvents()
+                    }
+            }
             if upper > 0 && !visibleRange.isEmpty {
                 Spacer()
                     .frame(height: CGFloat(upper) * estimatedRowHeight)

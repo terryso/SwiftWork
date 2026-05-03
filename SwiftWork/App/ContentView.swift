@@ -121,7 +121,7 @@ struct ContentView: View {
         agentBridge.permissionHandler.setModelContext(modelContext)
 
         // Wire AgentBridge.onResult to AppState for dock badge updates
-        agentBridge.onResult = { [weak appState] _ in
+        agentBridge.addOnResultCallback { [weak appState] _ in
             Task { @MainActor in
                 guard let appState else { return }
                 if !NSApplication.shared.isActive,
