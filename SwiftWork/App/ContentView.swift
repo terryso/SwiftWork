@@ -120,6 +120,31 @@ struct ContentView: View {
 
         agentBridge.permissionHandler.setModelContext(modelContext)
 
+        // Wire AgentBridge.onResult to AppState for dock badge updates
+        agentBridge.onResult = { [weak appState] _ in
+            Task { @MainActor in
+                guard let appState else { return }
+                if !NSApplication.shared.isActive,
+                   let session = appState.sessionViewModel.selectedSession {
+                    appState.markSessionAsUnread(session)
+                }
+            }
+        }
+
+        // Wire session selection to clear unread marks
+        appState.sessionViewModel.onSessionSelected = { [weak appState] session in
+            Task { @MainActor in
+                appState?.clearUnreadForSession(session)
+            }
+        }
+
+        // Wire session deletion to clear unread marks
+        appState.sessionViewModel.onSessionCleared = { [weak appState] session in
+            Task { @MainActor in
+                appState?.clearUnreadForSession(session)
+            }
+        }
+
         // Restore selected session
         restoreSelectedSession()
 

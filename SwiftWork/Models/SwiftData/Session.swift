@@ -8,6 +8,8 @@ final class Session {
     var createdAt: Date
     var updatedAt: Date
     var workspacePath: String?
+    var hasUnreadResult: Bool = false
+
     @Relationship(deleteRule: .cascade, inverse: \Event.session)
     var events: [Event]
 

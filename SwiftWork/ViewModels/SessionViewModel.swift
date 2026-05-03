@@ -61,10 +61,19 @@ final class SessionViewModel {
     func selectSession(_ session: Session) {
         selectedSession = session
         appStateManager?.saveLastActiveSessionID(session.id)
+        onSessionSelected?(session)
     }
+
+    var onSessionSelected: ((Session) -> Void)?
+
+    /// Called when a session is deleted and its unread state needs cleanup.
+    var onSessionCleared: ((Session) -> Void)?
 
     func deleteSession(_ session: Session) {
         guard let modelContext else { return }
+        if session.hasUnreadResult {
+            onSessionCleared?(session)
+        }
         modelContext.delete(session)
         try? modelContext.save()
         sessions.removeAll { $0.id == session.id }
