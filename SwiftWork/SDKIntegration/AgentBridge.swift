@@ -20,10 +20,7 @@ final class AgentBridge {
     private var currentTask: _Concurrency.Task<Void, Never>?
 
     @ObservationIgnored
-    private var inputContinuation: AsyncStream<String>.Continuation?
-
-    @ObservationIgnored
-    private var pendingTurnCount: Int = 0
+    private var queuedMessages: [String] = []
 
     @ObservationIgnored
     private var eventStore: (any EventStoring)?
@@ -111,10 +108,23 @@ final class AgentBridge {
             totalPersistedEvents = total
 
             if total > pageSize {
-                // Load the LATEST events (end of the persisted array), not the oldest
-                let offset = max(0, total - pageSize)
-                let latestPage = try eventStore.fetchEvents(for: session.id, offset: offset, limit: pageSize)
-                events = latestPage
+                // Load the latest page, then backfill until the latest user prompt is included.
+                var offset = max(0, total - pageSize)
+                var latestWindow = try eventStore.fetchEvents(for: session.id, offset: offset, limit: pageSize)
+
+                while offset > 0 && !latestWindow.contains(where: { $0.type == .userMessage }) {
+                    let fetchLimit = min(pageSize, offset)
+                    let nextOffset = offset - fetchLimit
+                    let earlierPage = try eventStore.fetchEvents(
+                        for: session.id,
+                        offset: nextOffset,
+                        limit: fetchLimit
+                    )
+                    latestWindow.insert(contentsOf: earlierPage, at: 0)
+                    offset = nextOffset
+                }
+
+                events = latestWindow
                 trimmedEventCount = offset
                 eventOrder = total
             } else {
@@ -195,7 +205,7 @@ final class AgentBridge {
         }
     }
 
-    // MARK: - Message Sending (streamInput multi-turn queue)
+    // MARK: - Message Sending
 
     func sendMessage(_ text: String) {
         guard let agent, !text.isEmpty else { return }
@@ -208,22 +218,25 @@ final class AgentBridge {
         appendAndPersist(userEvent)
         errorMessage = nil
 
-        if !isRunning {
-            isRunning = true
-            startInputStream(agent)
-        }
+        queuedMessages.append(text)
 
-        pendingTurnCount += 1
-        inputContinuation?.yield(text)
+        guard !isRunning else { return }
+        isRunning = true
+        startNextQueuedMessage(using: agent)
     }
 
-    private func startInputStream(_ agent: Agent) {
-        let (inputStream, continuation) = AsyncStream<String>.makeStream()
-        self.inputContinuation = continuation
+    private func startNextQueuedMessage(using agent: Agent) {
+        guard !queuedMessages.isEmpty else {
+            currentTask = nil
+            isRunning = false
+            return
+        }
 
+        let text = queuedMessages.removeFirst()
         currentTask = _Concurrency.Task { [weak self] in
             guard let self else { return }
-            let sdkStream = agent.streamInput(inputStream)
+            var receivedResult = false
+            let sdkStream = agent.stream(text)
             for await message in sdkStream {
                 guard !_Concurrency.Task.isCancelled else { break }
 
@@ -241,32 +254,40 @@ final class AgentBridge {
                 }
 
                 if event.type == .result {
+                    receivedResult = true
                     for callback in self.onResultCallbacks {
                         callback(event.content)
-                    }
-                    self.pendingTurnCount -= 1
-                    if self.pendingTurnCount <= 0 {
-                        self.inputContinuation?.finish()
                     }
                 }
                 self.appendAndPersist(event)
             }
+
+            if !_Concurrency.Task.isCancelled && !receivedResult {
+                self.appendAndPersist(AgentEvent(
+                    type: .system,
+                    content: "Agent 流异常结束，未收到完整响应。",
+                    metadata: ["isError": true],
+                    timestamp: .now
+                ))
+            }
+
             self.finalizeToolContentMap()
             self.currentTask = nil
-            self.isRunning = false
-            self.pendingTurnCount = 0
-            self.inputContinuation = nil
+
+            if self.queuedMessages.isEmpty {
+                self.isRunning = false
+            } else {
+                self.startNextQueuedMessage(using: agent)
+            }
         }
     }
 
     func cancelExecution() {
-        inputContinuation?.finish()
+        queuedMessages.removeAll()
         agent?.interrupt()
         currentTask?.cancel()
         isRunning = false
         streamingText = ""
-        pendingTurnCount = 0
-        inputContinuation = nil
         finalizeToolContentMap()
 
         appendAndPersist(AgentEvent(
@@ -283,9 +304,7 @@ final class AgentBridge {
         errorMessage = nil
         isRunning = false
         toolContentMap = [:]
-        pendingTurnCount = 0
-        inputContinuation?.finish()
-        inputContinuation = nil
+        queuedMessages = []
         currentTask?.cancel()
         currentTask = nil
         eventOrder = 0

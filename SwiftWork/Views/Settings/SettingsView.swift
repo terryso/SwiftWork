@@ -2,7 +2,15 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
+    private enum SettingsTab: String, CaseIterable, Identifiable {
+        case general = "通用"
+        case permissions = "权限"
+
+        var id: Self { self }
+    }
+
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedTab: SettingsTab = .general
     let settingsViewModel: SettingsViewModel?
     let permissionHandler: PermissionHandler
 
@@ -17,22 +25,48 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        TabView {
-            generalTab
-                .tabItem {
-                    Label("通用", systemImage: "gearshape")
-                }
+        VStack(spacing: 0) {
+            tabPicker
 
-            permissionsTab
-                .tabItem {
-                    Label("权限", systemImage: "lock.shield")
-                }
+            Divider()
+
+            activeTabContent
         }
         .frame(minWidth: 520, minHeight: 450)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("关闭") { dismiss() }
             }
+        }
+    }
+
+    private var tabPicker: some View {
+        HStack {
+            Spacer()
+
+            Picker("设置分类", selection: $selectedTab) {
+                ForEach(SettingsTab.allCases) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 200)
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+    }
+
+    @ViewBuilder
+    private var activeTabContent: some View {
+        switch selectedTab {
+        case .general:
+            generalTab
+        case .permissions:
+            permissionsTab
         }
     }
 

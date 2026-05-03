@@ -79,7 +79,7 @@ struct TimelineView: View {
                     )
             }
         }
-        .scrollPosition(id: $scrollPositionId)
+        .scrollPosition(id: scrollPositionBinding)
         .coordinateSpace(name: "timelineScroll")
         .onPreferenceChange(BottomAnchorPreferenceKey.self) { bottomY in
             guard hasCompletedInitialScroll else { return }
@@ -105,16 +105,31 @@ struct TimelineView: View {
         }
         .task(id: agentBridge.events.first?.id) {
             hasCompletedInitialScroll = false
+            scrollPositionId = nil
             guard !agentBridge.events.isEmpty else { return }
             scrollModeManager.scrollMode = .followLatest
             visibleRange = 0..<0
             try? await Task.sleep(for: .milliseconds(150))
             guard !Task.isCancelled else { return }
-            let total = agentBridge.events.count
-            let lower = max(0, total - 50)
-            visibleRange = lower..<total
-            withAnimation {
-                proxy.scrollTo("bottom-anchor", anchor: .bottom)
+            let initialRange = 0..<agentBridge.events.count
+            visibleRange = initialRange
+            try? await Task.sleep(for: .milliseconds(50))
+            guard !Task.isCancelled else { return }
+
+            let renderedHeight = estimatedRenderableHeight(
+                in: initialRange,
+                allEvents: agentBridge.events
+            )
+            let contentExceedsViewport = scrollViewHeight == 0 || renderedHeight > scrollViewHeight
+            if shouldFocusLatestUserMessage(allEvents: agentBridge.events),
+               let latestUserMessage = latestUserMessage(in: 0..<agentBridge.events.count, allEvents: agentBridge.events) {
+                proxy.scrollTo(latestUserMessage.id, anchor: .top)
+            } else if contentExceedsViewport {
+                withAnimation {
+                    proxy.scrollTo("bottom-anchor", anchor: .bottom)
+                }
+            } else if let firstRenderableEvent = firstRenderableEvent(in: initialRange, allEvents: agentBridge.events) {
+                proxy.scrollTo(firstRenderableEvent.id, anchor: .top)
             }
             hasCompletedInitialScroll = true
         }
@@ -129,15 +144,19 @@ struct TimelineView: View {
                 }
             }
             updateVisibleRangeForCount(newCount)
-            if scrollModeManager.scrollMode == .followLatest {
+            if hasCompletedInitialScroll && scrollModeManager.scrollMode == .followLatest {
                 scrollToLast(proxy: proxy)
             }
         }
         .onChange(of: agentBridge.streamingText) { _, _ in
-            if scrollModeManager.scrollMode == .followLatest {
+            if hasCompletedInitialScroll && scrollModeManager.scrollMode == .followLatest {
                 scrollToLast(proxy: proxy)
             }
         }
+    }
+
+    private var scrollPositionBinding: Binding<UUID?> {
+        hasCompletedInitialScroll ? $scrollPositionId : .constant(nil)
     }
 
     // MARK: - Virtualization
@@ -145,6 +164,10 @@ struct TimelineView: View {
     private var virtualizedEvents: [AgentEvent] {
         let allEvents = agentBridge.events
         if allEvents.isEmpty { return [] }
+
+        if !hasCompletedInitialScroll {
+            return allEvents
+        }
 
         if visibleRange.isEmpty {
             let upper = allEvents.count
@@ -162,8 +185,9 @@ struct TimelineView: View {
     }
 
     private var topPlaceholder: some View {
+        guard hasCompletedInitialScroll else { return AnyView(EmptyView()) }
         let upper = max(0, visibleRange.lowerBound - virtualizationManager.renderBuffer)
-        return Group {
+        return AnyView(Group {
             if agentBridge.hasEarlierEvents {
                 Color.clear
                     .frame(height: 1)
@@ -173,24 +197,25 @@ struct TimelineView: View {
             }
             if upper > 0 && !visibleRange.isEmpty {
                 Spacer()
-                    .frame(height: CGFloat(upper) * estimatedRowHeight)
+                    .frame(height: estimatedRenderableHeight(in: 0..<upper, allEvents: agentBridge.events))
             }
-        }
+        })
     }
 
     private var bottomPlaceholder: some View {
+        guard hasCompletedInitialScroll else { return AnyView(EmptyView()) }
         let allEvents = agentBridge.events
         let lower = min(
             allEvents.count,
             visibleRange.upperBound + virtualizationManager.renderBuffer
         )
         let remaining = allEvents.count - lower
-        return Group {
+        return AnyView(Group {
             if remaining > 0 && !visibleRange.isEmpty {
                 Spacer()
-                    .frame(height: CGFloat(remaining) * estimatedRowHeight)
+                    .frame(height: estimatedRenderableHeight(in: lower..<allEvents.count, allEvents: allEvents))
             }
-        }
+        })
     }
 
     private func updateVisibleRangeForCount(_ count: Int) {
@@ -203,6 +228,41 @@ struct TimelineView: View {
             let lower = max(0, upper - 50)
             visibleRange = lower..<upper
         }
+    }
+
+    private func estimatedRenderableHeight(in range: Range<Int>, allEvents: [AgentEvent]) -> CGFloat {
+        let safeRange = virtualizationManager.clampedRange(range, totalCount: allEvents.count)
+        let renderableCount = allEvents[safeRange].reduce(into: 0) { count, event in
+            if isRenderable(event) {
+                count += 1
+            }
+        }
+        return CGFloat(renderableCount) * estimatedRowHeight
+    }
+
+    private func firstRenderableEvent(in range: Range<Int>, allEvents: [AgentEvent]) -> AgentEvent? {
+        let safeRange = virtualizationManager.clampedRange(range, totalCount: allEvents.count)
+        return allEvents[safeRange].first(where: isRenderable)
+    }
+
+    private func latestUserMessage(in range: Range<Int>, allEvents: [AgentEvent]) -> AgentEvent? {
+        let safeRange = virtualizationManager.clampedRange(range, totalCount: allEvents.count)
+        return allEvents[safeRange].last(where: { $0.type == .userMessage })
+    }
+
+    private func shouldFocusLatestUserMessage(allEvents: [AgentEvent]) -> Bool {
+        guard let latestUserMessageIndex = allEvents.lastIndex(where: { $0.type == .userMessage }) else {
+            return false
+        }
+
+        let trailingStart = min(allEvents.count, latestUserMessageIndex + 1)
+        let trailingRenderableCount = allEvents[trailingStart..<allEvents.count].reduce(into: 0) { count, event in
+            if isRenderable(event) {
+                count += 1
+            }
+        }
+
+        return trailingRenderableCount > 8
     }
 
     // MARK: - Return to Bottom Button
@@ -344,6 +404,18 @@ struct TimelineView: View {
             return agentBridge.toolContentMap[toolUseId] != nil
         }
         return false
+    }
+
+    private func isRenderable(_ event: AgentEvent) -> Bool {
+        switch event.type {
+        case .partialMessage:
+            return false
+        case .toolResult, .toolProgress:
+            let toolUseId = event.metadata["toolUseId"] as? String ?? ""
+            return agentBridge.toolContentMap[toolUseId] == nil
+        default:
+            return true
+        }
     }
 }
 

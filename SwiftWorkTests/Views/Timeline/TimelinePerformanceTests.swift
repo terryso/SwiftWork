@@ -275,6 +275,15 @@ final class TimelinePerformanceTests: XCTestCase {
         XCTAssertTrue(visible.isEmpty, "Empty events should return empty visible subset")
     }
 
+    // [P0] Clamping out-of-bounds range should never exceed the array size
+    func testVirtualizationClampsOutOfBoundsRange() {
+        let manager = TimelineVirtualizationManager()
+
+        XCTAssertEqual(manager.clampedRange(0..<30, totalCount: 8), 0..<8)
+        XCTAssertEqual(manager.clampedRange(5..<30, totalCount: 8), 5..<8)
+        XCTAssertEqual(manager.clampedRange(20..<30, totalCount: 8), 8..<8)
+    }
+
     // =========================================================================
     // MARK: - Task 3: Scroll Mode Management (AC #1)
     // =========================================================================
