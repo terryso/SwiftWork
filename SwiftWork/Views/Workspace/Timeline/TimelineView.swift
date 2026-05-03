@@ -113,12 +113,8 @@ struct TimelineView: View {
             let total = agentBridge.events.count
             let lower = max(0, total - 50)
             visibleRange = lower..<total
-            let estimatedHeight = CGFloat(total) * estimatedRowHeight
-            let contentExceedsViewport = scrollViewHeight == 0 || estimatedHeight > scrollViewHeight
-            if contentExceedsViewport {
-                withAnimation {
-                    proxy.scrollTo("bottom-anchor", anchor: .bottom)
-                }
+            withAnimation {
+                proxy.scrollTo("bottom-anchor", anchor: .bottom)
             }
             hasCompletedInitialScroll = true
         }
