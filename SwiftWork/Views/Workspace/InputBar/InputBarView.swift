@@ -9,9 +9,8 @@ struct InputBarView: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
             IMESafeTextView(text: $inputText, onSend: sendMessage)
-                .frame(minHeight: 36, maxHeight: 120)
                 .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.vertical, 2)
                 .focused($isFocused)
 
             // Send button (always visible when there is text)
