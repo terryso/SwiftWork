@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-01
-last_updated: 2026-05-03T23:30:00
+last_updated: 2026-05-03T23:45:00
 project: swiftwork
 project_key: NOKEY
 tracking_system: file-system
@@ -59,7 +59,7 @@ development_status:
   2-3-event-visual-system: done
   2-4-markdown-code-highlight: done
   2-5-timeline-performance: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   # === Epic 3: 权限控制与会话管理（用户掌控力） ===
   epic-3: done

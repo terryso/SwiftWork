@@ -32,18 +32,4 @@ struct BashToolRenderer: ToolRenderable {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    func summaryTitle(content: ToolContent) -> String {
-        guard !content.input.isEmpty,
-              let data = content.input.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let command = json["command"] as? String
-        else {
-            return content.toolName
-        }
-        return command
-    }
-
-    func subtitle(content: ToolContent) -> String? {
-        nil
-    }
 }

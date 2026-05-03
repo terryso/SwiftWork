@@ -32,18 +32,4 @@ struct ReadToolRenderer: ToolRenderable {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    func summaryTitle(content: ToolContent) -> String {
-        guard !content.input.isEmpty,
-              let data = content.input.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let filePath = json["file_path"] as? String
-        else {
-            return content.toolName
-        }
-        return filePath
-    }
-
-    func subtitle(content: ToolContent) -> String? {
-        nil
-    }
 }

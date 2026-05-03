@@ -29,7 +29,7 @@ extension ToolRenderable {
     static var icon: String { "wrench.and.screwdriver" }
 
     func summaryTitle(content: ToolContent) -> String {
-        content.toolName
+        content.summaryTitle
     }
 
     func subtitle(content: ToolContent) -> String? {

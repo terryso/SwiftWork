@@ -32,19 +32,6 @@ struct SearchToolRenderer: ToolRenderable {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    func summaryTitle(content: ToolContent) -> String {
-        guard !content.input.isEmpty,
-              let data = content.input.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else {
-            return content.toolName
-        }
-        if let pattern = json["pattern"] as? String {
-            return pattern
-        }
-        return content.toolName
-    }
-
     func subtitle(content: ToolContent) -> String? {
         guard !content.input.isEmpty,
               let data = content.input.data(using: .utf8),
