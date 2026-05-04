@@ -78,7 +78,8 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 hasEarlierEvents: true,
                 isLoadingEarlierEvents: false,
                 hasPendingPrepend: false,
-                triggerY: -40,
+                isFirstLoadedEventVisible: true,
+                topVisibleEventMinY: 40,
                 threshold: 120
             )
         )
@@ -89,7 +90,8 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 hasEarlierEvents: true,
                 isLoadingEarlierEvents: true,
                 hasPendingPrepend: false,
-                triggerY: -40,
+                isFirstLoadedEventVisible: true,
+                topVisibleEventMinY: 40,
                 threshold: 120
             )
         )
@@ -100,7 +102,8 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 hasEarlierEvents: true,
                 isLoadingEarlierEvents: false,
                 hasPendingPrepend: true,
-                triggerY: -40,
+                isFirstLoadedEventVisible: true,
+                topVisibleEventMinY: 40,
                 threshold: 120
             )
         )
@@ -111,7 +114,20 @@ final class TimelineViewRefactoredTests: XCTestCase {
                 hasEarlierEvents: true,
                 isLoadingEarlierEvents: false,
                 hasPendingPrepend: false,
-                triggerY: -160,
+                isFirstLoadedEventVisible: true,
+                topVisibleEventMinY: 160,
+                threshold: 120
+            )
+        )
+
+        XCTAssertFalse(
+            TimelineViewBehavior.shouldLoadEarlier(
+                hasCompletedInitialScroll: true,
+                hasEarlierEvents: true,
+                isLoadingEarlierEvents: false,
+                hasPendingPrepend: false,
+                isFirstLoadedEventVisible: false,
+                topVisibleEventMinY: 20,
                 threshold: 120
             )
         )

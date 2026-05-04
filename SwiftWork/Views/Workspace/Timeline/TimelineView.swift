@@ -59,8 +59,6 @@ struct TimelineView: View {
     private func timelineContent(proxy: ScrollViewProxy) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                topPaginationTrigger
-
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(virtualizedEvents) { event in
                         eventView(for: event)
@@ -116,9 +114,6 @@ struct TimelineView: View {
         .onPreferenceChange(EventFramePreferenceKey.self) { frames in
             updateTopVisibleEvent(with: frames)
         }
-        .onPreferenceChange(TopPaginationTriggerPreferenceKey.self) { triggerY in
-            maybeLoadEarlierEvents(triggerY: triggerY)
-        }
         .onPreferenceChange(BottomAnchorPreferenceKey.self) { bottomY in
             distanceFromBottom = max(0, bottomY - scrollViewHeight)
             guard hasCompletedInitialScroll else { return }
@@ -164,19 +159,6 @@ struct TimelineView: View {
             visibleRange: 0..<allEvents.count,
             allEvents: allEvents
         )
-    }
-
-    private var topPaginationTrigger: some View {
-        Color.clear
-            .frame(height: 1)
-            .background(
-                GeometryReader { topGeo in
-                    Color.clear.preference(
-                        key: TopPaginationTriggerPreferenceKey.self,
-                        value: topGeo.frame(in: .named("timelineScroll")).minY
-                    )
-                }
-            )
     }
 
     // MARK: - Return to Bottom Button
@@ -392,15 +374,19 @@ struct TimelineView: View {
             distanceFromBottom: distanceFromBottom,
             isProgrammatic: scrollModeManager.isProgrammaticScrollInFlight
         )
+
+        maybeLoadEarlierEventsIfNeeded()
     }
 
-    private func maybeLoadEarlierEvents(triggerY: CGFloat) {
+    private func maybeLoadEarlierEventsIfNeeded() {
+        let isFirstLoadedEventVisible = topVisibleEventId == agentBridge.events.first?.id
         guard TimelineViewBehavior.shouldLoadEarlier(
             hasCompletedInitialScroll: hasCompletedInitialScroll,
             hasEarlierEvents: agentBridge.hasEarlierEvents,
             isLoadingEarlierEvents: agentBridge.isLoadingEarlierEvents,
             hasPendingPrepend: pendingPrependAnchorId != nil,
-            triggerY: triggerY,
+            isFirstLoadedEventVisible: isFirstLoadedEventVisible,
+            topVisibleEventMinY: topVisibleEventMinY,
             threshold: topPaginationThreshold
         ) else { return }
 
@@ -513,13 +499,6 @@ private struct BottomAnchorPreferenceKey: PreferenceKey {
     }
 }
 
-private struct TopPaginationTriggerPreferenceKey: PreferenceKey {
-    nonisolated(unsafe) static var defaultValue: CGFloat = -.greatestFiniteMagnitude
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
 private struct EventFramePreferenceKey: PreferenceKey {
     nonisolated(unsafe) static var defaultValue: [UUID: CGRect] = [:]
     static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
@@ -560,14 +539,16 @@ enum TimelineViewBehavior {
         hasEarlierEvents: Bool,
         isLoadingEarlierEvents: Bool,
         hasPendingPrepend: Bool,
-        triggerY: CGFloat,
+        isFirstLoadedEventVisible: Bool,
+        topVisibleEventMinY: CGFloat,
         threshold: CGFloat
     ) -> Bool {
         hasCompletedInitialScroll &&
             hasEarlierEvents &&
             !isLoadingEarlierEvents &&
             !hasPendingPrepend &&
-            triggerY >= -threshold
+            isFirstLoadedEventVisible &&
+            topVisibleEventMinY <= threshold
     }
 }
 
