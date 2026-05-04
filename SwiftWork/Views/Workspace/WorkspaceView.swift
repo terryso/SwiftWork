@@ -34,22 +34,28 @@ struct WorkspaceView: View {
 
             // Inspector panel
             if isInspectorVisible {
-                InspectorView(
-                    selectedEvent: selectedEvent,
-                    toolContentMap: agentBridge.toolContentMap
-                )
-                .frame(width: 300)
-                .background(Color(nsColor: .controlBackgroundColor))
+                HStack(spacing: 0) {
+                    Divider()
+                    InspectorView(
+                        selectedEvent: selectedEvent,
+                        toolContentMap: agentBridge.toolContentMap
+                    )
+                    .frame(width: 300)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
 
             // Debug panel
             if isDebugPanelVisible {
                 if let debugViewModel {
-                    DebugView(debugViewModel: debugViewModel)
-                        .frame(width: 320)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    HStack(spacing: 0) {
+                        Divider()
+                        DebugView(debugViewModel: debugViewModel)
+                            .frame(width: 320)
+                            .background(Color(nsColor: .controlBackgroundColor))
+                    }
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
         }
