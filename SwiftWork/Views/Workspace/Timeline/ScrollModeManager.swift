@@ -9,6 +9,7 @@ enum ScrollMode: Equatable {
 @Observable
 final class ScrollModeManager {
     var scrollMode: ScrollMode = .followLatest
+    private(set) var isProgrammaticScrollInFlight = false
 
     var showReturnToBottomButton: Bool {
         scrollMode == .manualBrowse
@@ -25,7 +26,13 @@ final class ScrollModeManager {
     /// - Parameters:
     ///   - scrollDelta: Change in top-anchor position, negated so negative = scrolled up.
     ///   - distanceFromBottom: Distance from viewport bottom to content bottom in points.
-    func handleScrollChange(scrollDelta: CGFloat, distanceFromBottom: CGFloat) {
+    func handleScrollChange(
+        scrollDelta: CGFloat,
+        distanceFromBottom: CGFloat,
+        isProgrammatic: Bool = false
+    ) {
+        guard !isProgrammatic, !isProgrammaticScrollInFlight else { return }
+
         if distanceFromBottom <= nearBottomThreshold {
             scrollMode = .followLatest
             cumulativeUpwardDelta = 0
@@ -47,5 +54,20 @@ final class ScrollModeManager {
     func returnToBottom() {
         scrollMode = .followLatest
         cumulativeUpwardDelta = 0
+    }
+
+    func beginProgrammaticScroll() {
+        isProgrammaticScrollInFlight = true
+    }
+
+    func endProgrammaticScroll() {
+        isProgrammaticScrollInFlight = false
+        cumulativeUpwardDelta = 0
+    }
+
+    func resetForReload() {
+        scrollMode = .followLatest
+        cumulativeUpwardDelta = 0
+        isProgrammaticScrollInFlight = false
     }
 }

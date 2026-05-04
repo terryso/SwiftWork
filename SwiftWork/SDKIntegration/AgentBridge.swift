@@ -2,6 +2,21 @@ import Foundation
 import OpenAgentSDK
 import Observation
 
+struct TimelinePaginationState: Equatable, Sendable {
+    var sessionID: UUID?
+    var pageSize: Int
+    var totalPersistedEvents: Int
+    var leadingTrimmedCount: Int
+    var loadedEventCount: Int
+    var isLoadingEarlierEvents: Bool
+    var reloadID: UUID
+    var prependRevision: Int
+
+    var hasEarlierEvents: Bool {
+        leadingTrimmedCount > 0
+    }
+}
+
 @MainActor
 @Observable
 final class AgentBridge {
@@ -45,12 +60,27 @@ final class AgentBridge {
     @ObservationIgnored
     private var trimmedEventCount: Int = 0
 
+    var timelinePaginationState = TimelinePaginationState(
+        sessionID: nil,
+        pageSize: 50,
+        totalPersistedEvents: 0,
+        leadingTrimmedCount: 0,
+        loadedEventCount: 0,
+        isLoadingEarlierEvents: false,
+        reloadID: UUID(),
+        prependRevision: 0
+    )
+
     var hasMoreEvents: Bool {
         totalPersistedEvents > trimmedEventCount + events.count
     }
 
     var hasEarlierEvents: Bool {
         trimmedEventCount > 0
+    }
+
+    var isLoadingEarlierEvents: Bool {
+        timelinePaginationState.isLoadingEarlierEvents
     }
 
     @ObservationIgnored
@@ -100,6 +130,7 @@ final class AgentBridge {
     func loadEvents(for session: Session) {
         clearEvents()
         currentSession = session
+        updatePaginationState(sessionID: session.id, reloaded: true)
 
         guard let eventStore else { return }
 
@@ -133,6 +164,7 @@ final class AgentBridge {
                 eventOrder = persisted.count
             }
             rebuildToolContentMap()
+            updatePaginationState()
         } catch {
             errorMessage = AppError(
                 domain: .data,
@@ -140,12 +172,14 @@ final class AgentBridge {
                 message: error.localizedDescription,
                 underlying: error
             ).message
+            updatePaginationState()
         }
     }
 
     func loadInitialPage(for session: Session) {
         clearEvents()
         currentSession = session
+        updatePaginationState(sessionID: session.id, reloaded: true)
 
         guard let eventStore else { return }
 
@@ -156,6 +190,7 @@ final class AgentBridge {
             events = firstPage
             eventOrder = totalPersistedEvents
             rebuildToolContentMap()
+            updatePaginationState()
         } catch {
             errorMessage = AppError(
                 domain: .data,
@@ -163,6 +198,7 @@ final class AgentBridge {
                 message: error.localizedDescription,
                 underlying: error
             ).message
+            updatePaginationState()
         }
     }
 
@@ -182,15 +218,22 @@ final class AgentBridge {
             )
             events.append(contentsOf: nextPage)
             rebuildToolContentMap()
+            updatePaginationState()
         } catch {
         }
     }
 
     func loadEarlierEvents() {
-        guard let eventStore, let currentSession, trimmedEventCount > 0 else { return }
+        guard let eventStore,
+              let currentSession,
+              trimmedEventCount > 0,
+              !timelinePaginationState.isLoadingEarlierEvents
+        else { return }
 
         let limit = min(pageSize, trimmedEventCount)
         let offset = trimmedEventCount - limit
+        timelinePaginationState.isLoadingEarlierEvents = true
+        updatePaginationState()
 
         do {
             let earlierPage = try eventStore.fetchEvents(
@@ -201,7 +244,18 @@ final class AgentBridge {
             trimmedEventCount = offset
             events.insert(contentsOf: earlierPage, at: 0)
             rebuildToolContentMap()
+            timelinePaginationState.isLoadingEarlierEvents = false
+            timelinePaginationState.prependRevision += 1
+            updatePaginationState()
         } catch {
+            timelinePaginationState.isLoadingEarlierEvents = false
+            errorMessage = AppError(
+                domain: .data,
+                code: "LOAD_EARLIER_EVENTS_FAILED",
+                message: error.localizedDescription,
+                underlying: error
+            ).message
+            updatePaginationState()
         }
     }
 
@@ -311,6 +365,16 @@ final class AgentBridge {
         totalPersistedEvents = 0
         trimmedEventCount = 0
         onResultCallbacks.removeAll()
+        timelinePaginationState = TimelinePaginationState(
+            sessionID: currentSession?.id,
+            pageSize: pageSize,
+            totalPersistedEvents: 0,
+            leadingTrimmedCount: 0,
+            loadedEventCount: 0,
+            isLoadingEarlierEvents: false,
+            reloadID: UUID(),
+            prependRevision: 0
+        )
     }
 
     private func appendAndPersist(_ event: AgentEvent) {
@@ -329,6 +393,7 @@ final class AgentBridge {
         }
 
         trimOldEvents()
+        updatePaginationState()
     }
 
     private let maxInMemory = 500
@@ -346,6 +411,8 @@ final class AgentBridge {
                 toolContentMap.removeValue(forKey: toolUseId)
             }
         }
+
+        updatePaginationState()
     }
 
     // MARK: - Permission Callback (Story 3-1)
@@ -423,5 +490,17 @@ final class AgentBridge {
 
     func resolvePermission(_ result: PermissionDialogResult) {
         pendingPermissionRequest?.resolve(result)
+    }
+
+    private func updatePaginationState(sessionID: UUID? = nil, reloaded: Bool = false) {
+        timelinePaginationState.sessionID = sessionID ?? currentSession?.id
+        timelinePaginationState.pageSize = pageSize
+        timelinePaginationState.totalPersistedEvents = totalPersistedEvents
+        timelinePaginationState.leadingTrimmedCount = trimmedEventCount
+        timelinePaginationState.loadedEventCount = events.count
+        if reloaded {
+            timelinePaginationState.reloadID = UUID()
+            timelinePaginationState.prependRevision = 0
+        }
     }
 }

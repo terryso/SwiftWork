@@ -283,6 +283,113 @@ final class AgentBridgeTests: XCTestCase {
         XCTAssertEqual(bridge.events.first?.content, "previous response")
     }
 
+    func testLoadEventsLoadsLatestPageForLongSession() throws {
+        let bridge = makeBridge()
+        let session = Session(title: "Long Session")
+        let mockStore = MockEventStore()
+        mockStore.eventsToReturn = (0..<120).map { index in
+            AgentEvent(
+                type: index == 90 ? .userMessage : .assistant,
+                content: "event-\(index)",
+                timestamp: .now
+            )
+        }
+
+        bridge.configureEvents(store: mockStore, session: session)
+        bridge.loadEvents(for: session)
+
+        XCTAssertEqual(bridge.events.count, 50, "Long session should open on the latest page")
+        XCTAssertEqual(bridge.events.first?.content, "event-70")
+        XCTAssertEqual(bridge.events.last?.content, "event-119")
+        XCTAssertEqual(bridge.timelinePaginationState.leadingTrimmedCount, 70)
+        XCTAssertTrue(bridge.timelinePaginationState.hasEarlierEvents)
+    }
+
+    func testLoadEarlierEventsGuardsAgainstReentrantFetch() throws {
+        let bridge = makeBridge()
+        let session = Session(title: "Guarded Pagination")
+        let mockStore = MockEventStore()
+        mockStore.eventsToReturn = (0..<120).map { index in
+            AgentEvent(
+                type: index == 90 ? .userMessage : .assistant,
+                content: "event-\(index)",
+                timestamp: .now
+            )
+        }
+        mockStore.onPaginatedFetch = { offset, _ in
+            if offset == 20 {
+                bridge.loadEarlierEvents()
+            }
+        }
+
+        bridge.configureEvents(store: mockStore, session: session)
+        bridge.loadEvents(for: session)
+        bridge.loadEarlierEvents()
+
+        XCTAssertEqual(mockStore.paginatedFetchCallCount, 2, "Reentrant top pagination should be ignored")
+        XCTAssertEqual(bridge.timelinePaginationState.leadingTrimmedCount, 20)
+        XCTAssertFalse(bridge.timelinePaginationState.isLoadingEarlierEvents)
+    }
+
+    func testLoadEarlierEventsFailureClearsLoadingStateAndAllowsRetry() throws {
+        let bridge = makeBridge()
+        let session = Session(title: "Retry Pagination")
+        let mockStore = MockEventStore()
+        mockStore.eventsToReturn = (0..<120).map { index in
+            AgentEvent(
+                type: index == 90 ? .userMessage : .assistant,
+                content: "event-\(index)",
+                timestamp: .now
+            )
+        }
+
+        bridge.configureEvents(store: mockStore, session: session)
+        bridge.loadEvents(for: session)
+
+        mockStore.shouldThrowOnPaginatedFetch = true
+        bridge.loadEarlierEvents()
+
+        XCTAssertFalse(bridge.timelinePaginationState.isLoadingEarlierEvents)
+        XCTAssertNotNil(bridge.errorMessage)
+        XCTAssertEqual(bridge.timelinePaginationState.leadingTrimmedCount, 70)
+
+        mockStore.shouldThrowOnPaginatedFetch = false
+        bridge.loadEarlierEvents()
+
+        XCTAssertEqual(bridge.timelinePaginationState.leadingTrimmedCount, 20)
+        XCTAssertEqual(bridge.events.first?.content, "event-20")
+    }
+
+    func testLoadEventsResetsPaginationStateWhenSwitchingSessions() throws {
+        let bridge = makeBridge()
+        let firstSession = Session(title: "First")
+        let secondSession = Session(title: "Second")
+        let mockStore = MockEventStore()
+        mockStore.eventsToReturn = (0..<120).map { index in
+            AgentEvent(
+                type: index == 90 ? .userMessage : .assistant,
+                content: "first-\(index)",
+                timestamp: .now
+            )
+        }
+
+        bridge.configureEvents(store: mockStore, session: firstSession)
+        bridge.loadEvents(for: firstSession)
+        let firstReloadID = bridge.timelinePaginationState.reloadID
+
+        mockStore.eventsToReturn = (0..<10).map { index in
+            AgentEvent(type: .assistant, content: "second-\(index)", timestamp: .now)
+        }
+        bridge.configureEvents(store: mockStore, session: secondSession)
+        bridge.loadEvents(for: secondSession)
+
+        XCTAssertEqual(bridge.events.count, 10)
+        XCTAssertEqual(bridge.timelinePaginationState.sessionID, secondSession.id)
+        XCTAssertEqual(bridge.timelinePaginationState.leadingTrimmedCount, 0)
+        XCTAssertFalse(bridge.timelinePaginationState.hasEarlierEvents)
+        XCTAssertNotEqual(bridge.timelinePaginationState.reloadID, firstReloadID)
+    }
+
     func testLoadEventsSetsEventOrder() throws {
         let bridge = makeBridge()
         let session = Session(title: "Test")
@@ -452,7 +559,10 @@ final class AgentBridgeTests: XCTestCase {
 private final class MockEventStore: EventStoring, @unchecked Sendable {
     var eventsToReturn: [AgentEvent] = []
     var shouldThrow = false
+    var shouldThrowOnPaginatedFetch = false
     var persistedEvents: [AgentEvent] = []
+    var paginatedFetchCallCount = 0
+    var onPaginatedFetch: ((Int, Int) -> Void)?
 
     func persist(_ event: AgentEvent, session: Session, order: Int) throws {
         if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
@@ -465,7 +575,11 @@ private final class MockEventStore: EventStoring, @unchecked Sendable {
     }
 
     func fetchEvents(for sessionID: UUID, offset: Int, limit: Int) throws -> [AgentEvent] {
-        if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
+        if shouldThrow || shouldThrowOnPaginatedFetch {
+            throw AppError(domain: .data, code: "TEST_ERROR", message: "test error")
+        }
+        paginatedFetchCallCount += 1
+        onPaginatedFetch?(offset, limit)
         let start = min(offset, eventsToReturn.count)
         let end = min(offset + limit, eventsToReturn.count)
         return Array(eventsToReturn[start..<end])

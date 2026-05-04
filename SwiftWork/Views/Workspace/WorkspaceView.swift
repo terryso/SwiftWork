@@ -12,6 +12,7 @@ struct WorkspaceView: View {
     @State private var selectedEventId: UUID?
     @State private var eventLookup: [UUID: AgentEvent] = [:]
     @State private var debugViewModel: DebugViewModel?
+    @State private var timelineReloadToken = UUID()
 
     var body: some View {
         @Bindable var bridge = agentBridge
@@ -20,6 +21,7 @@ struct WorkspaceView: View {
             VStack(spacing: 0) {
                 TimelineView(
                     agentBridge: agentBridge,
+                    reloadToken: timelineReloadToken,
                     selectedEventId: $selectedEventId
                 )
                 .frame(maxHeight: .infinity)
@@ -140,6 +142,7 @@ struct WorkspaceView: View {
         guard let eventStore else { return }
         agentBridge.configureEvents(store: eventStore, session: session)
         agentBridge.loadEvents(for: session)
+        timelineReloadToken = UUID()
     }
 
     private func setupTitleGeneration() {

@@ -113,75 +113,74 @@ final class TimelinePerformanceTests: XCTestCase {
         XCTAssertNotNil(mirror, "SwiftDataEventStore should conform to EventStoring with paginated fetch")
     }
 
-    // [P0] AgentBridge.loadInitialPage loads first page only for large sessions
-    func testLoadInitialPageLoadsOnlyFirstPage() throws {
+    // [P0] AgentBridge.loadEvents opens large sessions on the latest page window
+    func testLoadEventsOpensLatestPageWindow() throws {
         let bridge = makeBridge()
         let session = Session(title: "Big Session")
         let mockStore = MockPaginatedEventStore()
         mockStore.allEvents = makeTestEvents(count: 1000)
 
         bridge.configureEvents(store: mockStore, session: session)
-        bridge.loadInitialPage(for: session)
+        bridge.loadEvents(for: session)
 
         XCTAssertLessThanOrEqual(
             bridge.events.count,
             50,
-            "loadInitialPage should load at most pageSize events (default 50)"
+            "loadEvents should open on the latest page window"
         )
-        XCTAssertEqual(
-            bridge.events.first?.content,
-            bridge.events.first?.content,
-            "First loaded event should be the earliest event"
-        )
-        XCTAssertTrue(bridge.hasMoreEvents, "Should have more events to load")
+        XCTAssertEqual(bridge.timelinePaginationState.leadingTrimmedCount, 950)
+        XCTAssertTrue(bridge.timelinePaginationState.hasEarlierEvents, "Should expose earlier pages above the latest window")
+        XCTAssertEqual(bridge.events.first?.content, mockStore.allEvents[950].content)
+        XCTAssertEqual(bridge.events.last?.content, mockStore.allEvents[999].content)
     }
 
-    // [P0] AgentBridge.loadMoreEvents appends next page
-    func testLoadMoreEventsAppendsNextPage() throws {
+    // [P0] AgentBridge.loadEarlierEvents prepends one older page from the latest window
+    func testLoadEarlierEventsPrependsOlderPage() throws {
         let bridge = makeBridge()
         let session = Session(title: "Paged Session")
         let mockStore = MockPaginatedEventStore()
         mockStore.allEvents = makeTestEvents(count: 200)
 
         bridge.configureEvents(store: mockStore, session: session)
-        bridge.loadInitialPage(for: session)
+        bridge.loadEvents(for: session)
 
         let initialCount = bridge.events.count
 
-        bridge.loadMoreEvents()
+        bridge.loadEarlierEvents()
 
         XCTAssertGreaterThan(
             bridge.events.count,
             initialCount,
-            "loadMoreEvents should append more events"
+            "loadEarlierEvents should prepend an additional page"
         )
         XCTAssertEqual(
             bridge.events.count,
-            initialCount + min(50, 200 - initialCount),
-            "Should append exactly one page of events"
+            100,
+            "Should load exactly one earlier page into memory"
         )
+        XCTAssertEqual(bridge.timelinePaginationState.leadingTrimmedCount, 100)
+        XCTAssertEqual(bridge.events.first?.content, mockStore.allEvents[100].content)
     }
 
-    // [P0] AgentBridge tracks hasMoreEvents correctly
-    func testHasMoreEventsFlag() throws {
+    // [P0] AgentBridge tracks whether earlier pages remain after prepending
+    func testHasEarlierEventsFlagAfterPrepending() throws {
         let bridge = makeBridge()
         let session = Session(title: "Flag Test")
         let mockStore = MockPaginatedEventStore()
         mockStore.allEvents = makeTestEvents(count: 100)
 
         bridge.configureEvents(store: mockStore, session: session)
-        bridge.loadInitialPage(for: session)
+        bridge.loadEvents(for: session)
 
         XCTAssertTrue(
-            bridge.hasMoreEvents,
-            "hasMoreEvents should be true when total events exceed loaded page"
+            bridge.timelinePaginationState.hasEarlierEvents,
+            "Large sessions should report earlier pages when opening on the latest page"
         )
 
-        // Load remaining pages
-        bridge.loadMoreEvents() // 50 + 50 = 100
+        bridge.loadEarlierEvents()
         XCTAssertFalse(
-            bridge.hasMoreEvents,
-            "hasMoreEvents should be false after loading all events"
+            bridge.timelinePaginationState.hasEarlierEvents,
+            "Earlier-page flag should clear after loading the remaining history"
         )
     }
 
@@ -273,6 +272,20 @@ final class TimelinePerformanceTests: XCTestCase {
         )
 
         XCTAssertTrue(visible.isEmpty, "Empty events should return empty visible subset")
+    }
+
+    func testConservativeVirtualizationReturnsFullLoadedRange() {
+        let allEvents = makeTestEvents(count: 120)
+        let manager = TimelineVirtualizationManager(strategy: .conservative)
+
+        let visible = manager.eventsToRender(
+            visibleRange: 40..<60,
+            allEvents: allEvents
+        )
+
+        XCTAssertEqual(visible.count, 120, "Conservative strategy should render the full loaded page")
+        XCTAssertEqual(visible.first?.content, allEvents.first?.content)
+        XCTAssertEqual(visible.last?.content, allEvents.last?.content)
     }
 
     // [P0] Clamping out-of-bounds range should never exceed the array size
@@ -396,6 +409,20 @@ final class TimelinePerformanceTests: XCTestCase {
             .followLatest,
             "returnToBottom should reset to followLatest"
         )
+    }
+
+    func testProgrammaticScrollDoesNotSwitchToManualBrowse() {
+        let manager = ScrollModeManager()
+        manager.beginProgrammaticScroll()
+
+        manager.handleScrollChange(
+            scrollDelta: -40,
+            distanceFromBottom: 320,
+            isProgrammatic: true
+        )
+
+        XCTAssertEqual(manager.scrollMode, .followLatest)
+        manager.endProgrammaticScroll()
     }
 
     // =========================================================================
