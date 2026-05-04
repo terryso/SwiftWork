@@ -31,8 +31,14 @@ struct RawEventStreamView: View {
     }
 
     private func rawEventRow(event: AgentEvent) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        let isExpanded = expandedEventIds.contains(event.id)
+
+        return VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.secondary)
+
                 Text(formattedTimestamp(event.timestamp))
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -47,24 +53,9 @@ struct RawEventStreamView: View {
                     .clipShape(Capsule())
 
                 Spacer()
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        if expandedEventIds.contains(event.id) {
-                            expandedEventIds.remove(event.id)
-                        } else {
-                            expandedEventIds.insert(event.id)
-                        }
-                    }
-                } label: {
-                    Image(systemName: expandedEventIds.contains(event.id) ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
             }
 
-            if expandedEventIds.contains(event.id) {
+            if isExpanded {
                 Text(debugViewModel.rawJSONString(for: event))
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -73,6 +64,16 @@ struct RawEventStreamView: View {
             }
         }
         .padding(.vertical, 3)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                if expandedEventIds.contains(event.id) {
+                    expandedEventIds.remove(event.id)
+                } else {
+                    expandedEventIds.insert(event.id)
+                }
+            }
+        }
     }
 
     private func colorForEventType(_ type: AgentEventType) -> Color {
