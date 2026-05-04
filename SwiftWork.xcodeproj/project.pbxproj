@@ -128,6 +128,8 @@
 		AA11RR0000000001AA11RR01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 010145D62FA623FE0034A429 /* Assets.xcassets */; };
 		PP01PS0000000001PP01PS02 /* PlanStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = PP01PS0000000001PP01PS01 /* PlanStep.swift */; };
 		PP01PV0000000001PP01PV02 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = PP01PV0000000001PP01PV01 /* PlanView.swift */; };
+		PP01PC0000000001PP01PC02 /* PermissionCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = PP01PC0000000001PP01PC01 /* PermissionCardView.swift */; };
+		PP01DL0000000001PP01DL02 /* DoomLoopWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = PP01DL0000000001PP01DL01 /* DoomLoopWarningView.swift */; };
 		DD01DB0000000001DD01DB02 /* DebugViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01DB0000000001DD01DB01 /* DebugViewModel.swift */; };
 		DD01DB0000000001DD01DB04 /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01DB0000000001DD01DB03 /* DebugView.swift */; };
 		DD01DB0000000001DD01DB06 /* DebugViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD01DB0000000001DD01DB05 /* DebugViewModelTests.swift */; };
@@ -271,6 +273,8 @@
 		FC489F9AD659EAE84527791A /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
 		PP01PS0000000001PP01PS01 /* PlanStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanStep.swift; sourceTree = "<group>"; };
 		PP01PV0000000001PP01PV01 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
+		PP01PC0000000001PP01PC01 /* PermissionCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionCardView.swift; sourceTree = "<group>"; };
+		PP01DL0000000001PP01DL01 /* DoomLoopWarningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoomLoopWarningView.swift; sourceTree = "<group>"; };
 		DD01DB0000000001DD01DB01 /* DebugViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewModel.swift; sourceTree = "<group>"; };
 		DD01DB0000000001DD01DB03 /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
 		DD01DB0000000001DD01DB05 /* DebugViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewModelTests.swift; sourceTree = "<group>"; };
@@ -688,6 +692,8 @@
 				CC44MD0000000001CC44MD13 /* MarkdownContentView.swift */,
 				CC22AB0000000001CC22AB51 /* ToolRenderers */,
 				PP01PV0000000001PP01PV01 /* PlanView.swift */,
+				PP01PC0000000001PP01PC01 /* PermissionCardView.swift */,
+				PP01DL0000000001PP01DL01 /* DoomLoopWarningView.swift */,
 			);
 			path = EventViews;
 			sourceTree = "<group>";
@@ -975,6 +981,8 @@
 				CC55VP0000000001CC55VP02 /* ScrollModeManager.swift in Sources */,
 				PP01PS0000000001PP01PS02 /* PlanStep.swift in Sources */,
 				PP01PV0000000001PP01PV02 /* PlanView.swift in Sources */,
+				PP01PC0000000001PP01PC02 /* PermissionCardView.swift in Sources */,
+				PP01DL0000000001PP01DL02 /* DoomLoopWarningView.swift in Sources */,
 				DD01DB0000000001DD01DB02 /* DebugViewModel.swift in Sources */,
 				DD01DB0000000001DD01DB04 /* DebugView.swift in Sources */,
 				DD01RS0000000001DD01RS01 /* RawEventStreamView.swift in Sources */,

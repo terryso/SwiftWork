@@ -129,6 +129,10 @@ final class PermissionHandler {
     // MARK: - Private Helpers
 
     private func evaluateManualReview(toolName: String, input: [String: Any]) -> PermissionDecision {
+        if Self.isReadOnlyTool(toolName) {
+            return .approved
+        }
+
         if let matchedRule = matchRule(toolName: toolName, input: input, rules: cachedRules) {
             switch matchedRule.decision {
             case .allow:
@@ -246,6 +250,11 @@ final class PermissionHandler {
 // MARK: - Tool Type Helpers
 
 extension PermissionHandler {
+    static func isReadOnlyTool(_ toolName: String) -> Bool {
+        let readOnlyTools: Set<String> = ["Read", "Glob", "Grep"]
+        return readOnlyTools.contains(toolName)
+    }
+
     static func toolTypeLabel(_ toolName: String) -> String {
         switch toolName {
         case "Bash": return "终端命令"

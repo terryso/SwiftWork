@@ -15,6 +15,7 @@ final class AgentEventTypeTests: XCTestCase {
             .authStatus, .filesPersisted, .localCommandOutput,
             .promptSuggestion, .toolUseSummary,
             .plan,
+            .permissionRequest, .doomLoopWarning,
             .unknown
         ]
 

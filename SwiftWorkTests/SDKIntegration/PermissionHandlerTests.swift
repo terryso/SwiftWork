@@ -119,17 +119,17 @@ final class PermissionHandlerTests: XCTestCase {
     func testSessionOverrideIsSessionScoped() {
         let handler = makeHandler(globalMode: .manualReview)
 
-        handler.addSessionOverride(toolName: "Read", decision: .approved)
+        handler.addSessionOverride(toolName: "Edit", decision: .approved)
 
         // Verify override is present
-        let decision = handler.evaluate(toolName: "Read", input: ["filePath": "/tmp/test.txt"])
+        let decision = handler.evaluate(toolName: "Edit", input: ["filePath": "/tmp/test.txt"])
         assertApproved(decision)
 
         // Clear session (simulate new session)
         handler.clearSessionOverrides()
 
         // Now it should require approval again
-        let newDecision = handler.evaluate(toolName: "Read", input: ["filePath": "/tmp/test.txt"])
+        let newDecision = handler.evaluate(toolName: "Edit", input: ["filePath": "/tmp/test.txt"])
         assertRequiresApproval(newDecision)
     }
 

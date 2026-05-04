@@ -15,7 +15,6 @@ struct WorkspaceView: View {
     @State private var timelineReloadToken = UUID()
 
     var body: some View {
-        @Bindable var bridge = agentBridge
         HStack(spacing: 0) {
             // Main content area
             VStack(spacing: 0) {
@@ -81,13 +80,6 @@ struct WorkspaceView: View {
                         .foregroundStyle(isDebugPanelVisible ? Color.accentColor : .secondary)
                 }
                 .help(isDebugPanelVisible ? "隐藏 Debug Panel" : "显示 Debug Panel")
-            }
-        }
-        .sheet(item: $bridge.pendingPermissionRequest, onDismiss: {
-            agentBridge.resolvePermission(.deny)
-        }) { request in
-            PermissionDialogView(request: request) { result in
-                agentBridge.resolvePermission(result)
             }
         }
         .task {

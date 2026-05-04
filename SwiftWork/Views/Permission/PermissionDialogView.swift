@@ -1,5 +1,6 @@
 import SwiftUI
 
+@available(*, deprecated, message: "Use PermissionCardView inline in Timeline instead")
 struct PermissionDialogView: View {
     let request: PendingPermissionRequest
     let onResult: (PermissionDialogResult) -> Void

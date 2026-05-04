@@ -217,6 +217,14 @@ struct TimelineView: View {
             systemOrThinking(event: event)
         case .plan:
             PlanView(event: event)
+        case .permissionRequest:
+            PermissionCardView(event: event) { result in
+                agentBridge.resolvePermission(eventId: event.id, result: result)
+            }
+        case .doomLoopWarning:
+            DoomLoopWarningView(event: event) { action in
+                agentBridge.resolveDoomLoop(eventId: event.id, action: action)
+            }
         case .hookStarted,
              .hookProgress,
              .hookResponse,

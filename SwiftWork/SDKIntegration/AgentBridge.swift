@@ -96,10 +96,23 @@ final class AgentBridge {
 
     // MARK: - Permission System (Story 3-1)
 
-    var pendingPermissionRequest: PendingPermissionRequest?
-
     @ObservationIgnored
     var permissionHandler: PermissionHandler
+
+    @ObservationIgnored
+    private var recentToolCalls: [(toolName: String, inputHash: String)] = []
+
+    @ObservationIgnored
+    private let maxRecentToolCalls = 20
+
+    @ObservationIgnored
+    private let doomLoopThreshold = 3
+
+    @ObservationIgnored
+    private var permissionContinuations: [UUID: CheckedContinuation<PermissionDialogResult, Never>] = [:]
+
+    @ObservationIgnored
+    private var doomLoopContinuations: [UUID: CheckedContinuation<DoomLoopAction, Never>] = [:]
 
     init(permissionHandler: PermissionHandler = PermissionHandler()) {
         self.permissionHandler = permissionHandler
@@ -164,6 +177,7 @@ final class AgentBridge {
                 eventOrder = persisted.count
             }
             rebuildToolContentMap()
+            markStalePermissionEvents()
             updatePaginationState()
         } catch {
             errorMessage = AppError(
@@ -190,6 +204,7 @@ final class AgentBridge {
             events = firstPage
             eventOrder = totalPersistedEvents
             rebuildToolContentMap()
+            markStalePermissionEvents()
             updatePaginationState()
         } catch {
             errorMessage = AppError(
@@ -365,6 +380,8 @@ final class AgentBridge {
         totalPersistedEvents = 0
         trimmedEventCount = 0
         onResultCallbacks.removeAll()
+        permissionHandler.clearSessionOverrides()
+        recentToolCalls.removeAll()
         timelinePaginationState = TimelinePaginationState(
             sessionID: currentSession?.id,
             pageSize: pageSize,
@@ -456,18 +473,34 @@ final class AgentBridge {
         parameters: [String: any Sendable],
         input: [String: Any]
     ) async -> CanUseToolResult {
-        let request = PendingPermissionRequest(
-            toolName: toolName,
-            description: description,
-            parameters: parameters,
-            input: input
-        )
+        let inputHash = Self.hashInput(input: input)
+        trackToolCall(toolName: toolName, inputHash: inputHash)
 
-        self.pendingPermissionRequest = request
+        if checkDoomLoop(toolName: toolName, inputHash: inputHash) {
+            let doomLoopResult = await presentDoomLoopWarning(
+                toolName: toolName,
+                callCount: countRecentCalls(toolName: toolName, inputHash: inputHash)
+            )
+            if doomLoopResult == .stop {
+                return .deny("用户停止死循环")
+            }
+        }
 
-        let dialogResult = await request.waitForResult()
+        let dialogResult: PermissionDialogResult = await withCheckedContinuation { cont in
+            let metadata: [String: any Sendable] = [
+                "toolName": toolName as any Sendable,
+                "parameters": parameters as any Sendable
+            ]
 
-        self.pendingPermissionRequest = nil
+            let permissionEvent = AgentEvent(
+                type: .permissionRequest,
+                content: description,
+                metadata: metadata,
+                timestamp: .now
+            )
+            permissionContinuations[permissionEvent.id] = cont
+            appendAndPersist(permissionEvent)
+        }
 
         switch dialogResult {
         case .allowOnce:
@@ -477,19 +510,93 @@ final class AgentBridge {
             )
             return .allow()
         case .alwaysAllow:
-            _ = permissionHandler.addPersistentRule(
+            permissionHandler.addSessionOverride(
                 toolName: toolName,
-                pattern: "*",
-                decision: .allow
+                decision: .approved
             )
             return .allow()
         case .deny:
+            permissionHandler.addSessionOverride(
+                toolName: toolName,
+                decision: .denied(reason: "用户拒绝")
+            )
             return .deny("用户拒绝")
         }
     }
 
-    func resolvePermission(_ result: PermissionDialogResult) {
-        pendingPermissionRequest?.resolve(result)
+    func resolvePermission(eventId: UUID, result: PermissionDialogResult) {
+        guard let cont = permissionContinuations.removeValue(forKey: eventId) else { return }
+        cont.resume(returning: result)
+    }
+
+    func resolveDoomLoop(eventId: UUID, action: DoomLoopAction) {
+        guard let cont = doomLoopContinuations.removeValue(forKey: eventId) else { return }
+        cont.resume(returning: action)
+    }
+
+    // MARK: - Stale Event Cleanup
+
+    private func markStalePermissionEvents() {
+        for index in events.indices {
+            let event = events[index]
+            guard event.type == .permissionRequest || event.type == .doomLoopWarning else { continue }
+            guard event.metadata["resolved"] == nil else { continue }
+
+            var staleMetadata = event.metadata
+            staleMetadata["resolved"] = "expired"
+            events[index] = AgentEvent(
+                id: event.id,
+                type: event.type,
+                content: event.content,
+                metadata: staleMetadata,
+                timestamp: event.timestamp
+            )
+        }
+    }
+
+    // MARK: - Doom Loop Detection
+
+    private static func hashInput(input: [String: Any]) -> String {
+        let sortedKeys = input.keys.sorted()
+        var parts: [String] = []
+        for key in sortedKeys {
+            parts.append("\(key)=\(String(describing: input[key]))")
+        }
+        return parts.joined(separator: "&")
+    }
+
+    private func trackToolCall(toolName: String, inputHash: String) {
+        recentToolCalls.append((toolName: toolName, inputHash: inputHash))
+        if recentToolCalls.count > maxRecentToolCalls {
+            recentToolCalls.removeFirst(recentToolCalls.count - maxRecentToolCalls)
+        }
+    }
+
+    private func checkDoomLoop(toolName: String, inputHash: String) -> Bool {
+        countRecentCalls(toolName: toolName, inputHash: inputHash) >= doomLoopThreshold
+    }
+
+    private func countRecentCalls(toolName: String, inputHash: String) -> Int {
+        recentToolCalls.filter { $0.toolName == toolName && $0.inputHash == inputHash }.count
+    }
+
+    @MainActor
+    private func presentDoomLoopWarning(toolName: String, callCount: Int) async -> DoomLoopAction {
+        await withCheckedContinuation { cont in
+            let metadata: [String: any Sendable] = [
+                "toolName": toolName as any Sendable,
+                "callCount": callCount as any Sendable
+            ]
+
+            let doomEvent = AgentEvent(
+                type: .doomLoopWarning,
+                content: "Agent 使用相同输入重复调用 \(toolName) 已达 \(callCount) 次",
+                metadata: metadata,
+                timestamp: .now
+            )
+            doomLoopContinuations[doomEvent.id] = cont
+            appendAndPersist(doomEvent)
+        }
     }
 
     private func updatePaginationState(sessionID: UUID? = nil, reloaded: Bool = false) {

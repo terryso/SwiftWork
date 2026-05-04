@@ -20,6 +20,8 @@ enum AgentEventType: String, Codable, CaseIterable, Sendable {
     case promptSuggestion
     case toolUseSummary
     case plan
+    case permissionRequest
+    case doomLoopWarning
     case unknown
 
     init(from decoder: Decoder) throws {
