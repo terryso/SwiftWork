@@ -4,80 +4,143 @@ struct InputBarView: View {
     let agentBridge: AgentBridge
 
     @State private var inputText: String = ""
+    @State private var autocompleteVM = SkillAutocompleteViewModel()
     @FocusState private var isFocused: Bool
 
     private var trimmedInputText: String {
         inputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var autocompleteEnabled: Bool {
+        !agentBridge.discoveredSkills.isEmpty
+    }
+
     var body: some View {
-        HStack(alignment: .bottom, spacing: InputBarComposerMetrics.controlSpacing) {
-            ZStack(alignment: .topLeading) {
-                IMESafeTextView(text: $inputText, onSend: sendMessage)
+        VStack(spacing: 0) {
+            // Autocomplete menu above the input bar
+            if autocompleteVM.isVisible {
+                SkillAutocompleteMenuView(viewModel: autocompleteVM) { selectedText in
+                    inputText = selectedText + " "
+                    autocompleteVM.dismiss()
+                }
+                .padding(.horizontal)
+                .padding(.top, 4)
+            }
+
+            HStack(alignment: .bottom, spacing: InputBarComposerMetrics.controlSpacing) {
+                ZStack(alignment: .topLeading) {
+                    IMESafeTextView(
+                        text: $inputText,
+                        onSend: sendMessage,
+                        onEscape: handleEscape,
+                        onArrowUp: handleArrowUp,
+                        onArrowDown: handleArrowDown,
+                        onEnterWithAutocomplete: handleEnterWithAutocomplete
+                    )
                     .focused($isFocused)
 
-                Text(InputBarComposerMetrics.placeholderText)
-                    .font(.system(size: InputBarComposerMetrics.fontSize))
-                    .foregroundStyle(.secondary)
-                    .opacity(InputBarComposerMetrics.showsPlaceholder(for: inputText) ? 1 : 0)
-                    .padding(.leading, InputBarComposerMetrics.placeholderLeadingPadding)
-                    .padding(.top, InputBarComposerMetrics.placeholderTopPadding)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(!InputBarComposerMetrics.showsPlaceholder(for: inputText))
+                    Text(InputBarComposerMetrics.placeholderText)
+                        .font(.system(size: InputBarComposerMetrics.fontSize))
+                        .foregroundStyle(.secondary)
+                        .opacity(InputBarComposerMetrics.showsPlaceholder(for: inputText) ? 1 : 0)
+                        .padding(.leading, InputBarComposerMetrics.placeholderLeadingPadding)
+                        .padding(.top, InputBarComposerMetrics.placeholderTopPadding)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(!InputBarComposerMetrics.showsPlaceholder(for: inputText))
+                }
+                .frame(
+                    minHeight: InputBarComposerMetrics.composerMinHeight,
+                    maxHeight: InputBarComposerMetrics.composerMaxHeight,
+                    alignment: .topLeading
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(InputBarComposerMetrics.composerPadding)
+                .fixedSize(horizontal: false, vertical: true)
+
+                // Send button (always visible when there is text)
+                if !trimmedInputText.isEmpty || !agentBridge.isRunning {
+                    Button {
+                        sendMessage()
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(trimmedInputText.isEmpty ? .gray : .blue)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(trimmedInputText.isEmpty)
+                    .padding(.trailing, InputBarComposerMetrics.controlTrailingPadding)
+                    .padding(.bottom, InputBarComposerMetrics.controlBottomPadding)
+                }
+
+                // Stop button (visible when agent is running)
+                if agentBridge.isRunning {
+                    Button {
+                        agentBridge.cancelExecution()
+                    } label: {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, InputBarComposerMetrics.controlTrailingPadding)
+                    .padding(.bottom, InputBarComposerMetrics.controlBottomPadding)
+                }
             }
-            .frame(
-                minHeight: InputBarComposerMetrics.composerMinHeight,
-                maxHeight: InputBarComposerMetrics.composerMaxHeight,
-                alignment: .topLeading
+            .background(.bar)
+            .clipShape(RoundedRectangle(cornerRadius: InputBarComposerMetrics.cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: InputBarComposerMetrics.cornerRadius)
+                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
             )
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(InputBarComposerMetrics.composerPadding)
-            .fixedSize(horizontal: false, vertical: true)
-
-            // Send button (always visible when there is text)
-            if !trimmedInputText.isEmpty || !agentBridge.isRunning {
-                Button {
-                    sendMessage()
-                } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(trimmedInputText.isEmpty ? .gray : .blue)
-                }
-                .buttonStyle(.plain)
-                .disabled(trimmedInputText.isEmpty)
-                .padding(.trailing, InputBarComposerMetrics.controlTrailingPadding)
-                .padding(.bottom, InputBarComposerMetrics.controlBottomPadding)
-            }
-
-            // Stop button (visible when agent is running)
-            if agentBridge.isRunning {
-                Button {
-                    agentBridge.cancelExecution()
-                } label: {
-                    Image(systemName: "stop.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.red)
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, InputBarComposerMetrics.controlTrailingPadding)
-                .padding(.bottom, InputBarComposerMetrics.controlBottomPadding)
+            .padding(.horizontal)
+            .padding(.vertical, InputBarComposerMetrics.outerVerticalPadding)
+        }
+        .onChange(of: inputText) { _, newValue in
+            guard autocompleteEnabled else { return }
+            autocompleteVM.updateQuery(newValue)
+        }
+        .onAppear {
+            if autocompleteEnabled {
+                autocompleteVM.skillsSource = agentBridge.discoveredSkills
             }
         }
-        .background(.bar)
-        .clipShape(RoundedRectangle(cornerRadius: InputBarComposerMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: InputBarComposerMetrics.cornerRadius)
-                .stroke(Color.primary.opacity(0.15), lineWidth: 1)
-        )
-        .padding(.horizontal)
-        .padding(.vertical, InputBarComposerMetrics.outerVerticalPadding)
     }
 
     private func sendMessage() {
         let text = trimmedInputText
         guard !text.isEmpty else { return }
 
+        autocompleteVM.dismiss()
         agentBridge.sendMessage(text)
         inputText = ""
+    }
+
+    private func handleEscape() -> Bool {
+        guard autocompleteVM.isVisible else { return false }
+        autocompleteVM.dismiss()
+        return true
+    }
+
+    private func handleArrowUp() -> Bool {
+        guard autocompleteVM.isVisible else { return false }
+        autocompleteVM.moveSelection(down: false)
+        return true
+    }
+
+    private func handleArrowDown() -> Bool {
+        guard autocompleteVM.isVisible else { return false }
+        autocompleteVM.moveSelection(down: true)
+        return true
+    }
+
+    private func handleEnterWithAutocomplete() -> Bool {
+        guard autocompleteVM.isVisible,
+              let index = autocompleteVM.selectedIndex,
+              let result = autocompleteVM.selectSkill(at: index) else {
+            return false
+        }
+        inputText = result + " "
+        autocompleteVM.dismiss()
+        return true
     }
 }

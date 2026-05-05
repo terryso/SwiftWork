@@ -142,6 +142,9 @@
 		MM43MB0000000001MM43MB02 /* MenuBarCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43MB0000000001MM43MB01 /* MenuBarCommandsTests.swift */; };
 		MM43AI0000000001MM43AI02 /* AppStateIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43AI0000000001MM43AI01 /* AppStateIntegrationTests.swift */; };
 		MM43AS0000000001MM43AS02 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = MM43AS0000000001MM43AS01 /* AppState.swift */; };
+		SA52VM0000000001SA52VM02 /* SkillAutocompleteViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA52VM0000000001SA52VM11 /* SkillAutocompleteViewModel.swift */; };
+		SA52MN0000000001SA52MN02 /* SkillAutocompleteMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA52MN0000000001SA52MN11 /* SkillAutocompleteMenuView.swift */; };
+		SA52TS0000000001SA52TS02 /* SkillAutocompleteViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA52TS0000000001SA52TS11 /* SkillAutocompleteViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -288,6 +291,9 @@
 		MM43MB0000000001MM43MB01 /* MenuBarCommandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCommandsTests.swift; sourceTree = "<group>"; };
 		MM43AI0000000001MM43AI01 /* AppStateIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateIntegrationTests.swift; sourceTree = "<group>"; };
 		MM43AS0000000001MM43AS01 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		SA52VM0000000001SA52VM11 /* SkillAutocompleteViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillAutocompleteViewModel.swift; sourceTree = "<group>"; };
+		SA52MN0000000001SA52MN11 /* SkillAutocompleteMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillAutocompleteMenuView.swift; sourceTree = "<group>"; };
+		SA52TS0000000001SA52TS11 /* SkillAutocompleteViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillAutocompleteViewModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -545,6 +551,8 @@
 		821E24528290645E7FB19A38 /* InputBar */ = {
 			isa = PBXGroup;
 			children = (
+					SA52VM0000000001SA52VM11 /* SkillAutocompleteViewModel.swift */,
+					SA52MN0000000001SA52MN11 /* SkillAutocompleteMenuView.swift */,
 				1C45DAE0F34EAB5699E7D9A6 /* InputBarView.swift */,
 				EE04IM0000000001EE04IM11 /* IMESafeTextView.swift */,
 			);
@@ -660,8 +668,17 @@
 			isa = PBXGroup;
 			children = (
 				EE03IG0000000001EE03IG01 /* Inspector */,
+				SA52TI0000000001SA52TI01 /* InputBar */,
 			);
 			path = Workspace;
+			sourceTree = "<group>";
+		};
+		SA52TI0000000001SA52TI01 /* InputBar */ = {
+			isa = PBXGroup;
+			children = (
+				SA52TS0000000001SA52TS11 /* SkillAutocompleteViewModelTests.swift */,
+			);
+			path = InputBar;
 			sourceTree = "<group>";
 		};
 		BECCCBA98C814AE0F963AB3A /* Services */ = {
@@ -908,6 +925,7 @@
 				DD01DB0000000001DD01DB08 /* DebugViewTests.swift in Sources */,
 				MM43MB0000000001MM43MB02 /* MenuBarCommandsTests.swift in Sources */,
 				MM43AI0000000001MM43AI02 /* AppStateIntegrationTests.swift in Sources */,
+				SA52TS0000000001SA52TS02 /* SkillAutocompleteViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -936,6 +954,8 @@
 				EB6953EBF4E408AB1C0734D0 /* Date+Formatting.swift in Sources */,
 				F5275B89F4726519289605F1 /* Event.swift in Sources */,
 				F3500D7F4FA48A50A21FA1AB /* InputBarView.swift in Sources */,
+				SA52VM0000000001SA52VM02 /* SkillAutocompleteViewModel.swift in Sources */,
+				SA52MN0000000001SA52MN02 /* SkillAutocompleteMenuView.swift in Sources */,
 				EE04IM0000000001EE04IM01 /* IMESafeTextView.swift in Sources */,
 				AD62AE9DC8686665CF4C57E8 /* InspectorView.swift in Sources */,
 				EE01DS0000000001EE01DS01 /* EventDetailSections.swift in Sources */,

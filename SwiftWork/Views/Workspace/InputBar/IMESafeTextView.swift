@@ -37,6 +37,10 @@ enum InputBarComposerMetrics {
 struct IMESafeTextView: NSViewRepresentable {
     @Binding var text: String
     var onSend: () -> Void
+    var onEscape: (() -> Bool)?
+    var onArrowUp: (() -> Bool)?
+    var onArrowDown: (() -> Bool)?
+    var onEnterWithAutocomplete: (() -> Bool)?
 
     @MainActor
     class Coordinator: NSObject, NSTextViewDelegate {
@@ -108,6 +112,10 @@ struct IMESafeTextView: NSViewRepresentable {
             scrollView.syncToTextViewState(resetScrollPosition: text.isEmpty)
         }
         tv.onSend = onSend
+        tv.onEscape = onEscape
+        tv.onArrowUp = onArrowUp
+        tv.onArrowDown = onArrowDown
+        tv.onEnterWithAutocomplete = onEnterWithAutocomplete
     }
 }
 
@@ -168,8 +176,40 @@ final class AutoSizingScrollView: NSScrollView {
 
 final class SendTextView: NSTextView {
     var onSend: (() -> Void)?
+    var onEscape: (() -> Bool)?
+    var onArrowUp: (() -> Bool)?
+    var onArrowDown: (() -> Bool)?
+    var onEnterWithAutocomplete: (() -> Bool)?
 
     override func keyDown(with event: NSEvent) {
+        // Escape key (keyCode 53)
+        if event.keyCode == 53 {
+            if let onEscape = onEscape, onEscape() {
+                return
+            }
+            super.keyDown(with: event)
+            return
+        }
+
+        // Up arrow (keyCode 126)
+        if event.keyCode == 126 {
+            if let onArrowUp = onArrowUp, onArrowUp() {
+                return
+            }
+            super.keyDown(with: event)
+            return
+        }
+
+        // Down arrow (keyCode 125)
+        if event.keyCode == 125 {
+            if let onArrowDown = onArrowDown, onArrowDown() {
+                return
+            }
+            super.keyDown(with: event)
+            return
+        }
+
+        // Enter key (keyCode 36)
         guard event.keyCode == 36 else {
             super.keyDown(with: event)
             return
@@ -183,6 +223,11 @@ final class SendTextView: NSTextView {
 
         if hasMarkedText() {
             super.keyDown(with: event)
+            return
+        }
+
+        // Try autocomplete selection first
+        if let onEnterWithAutocomplete = onEnterWithAutocomplete, onEnterWithAutocomplete() {
             return
         }
 
