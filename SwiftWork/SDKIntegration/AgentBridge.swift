@@ -1,6 +1,7 @@
 import Foundation
 import OpenAgentSDK
 import Observation
+import os
 
 struct TimelinePaginationState: Equatable, Sendable {
     var sessionID: UUID?
@@ -114,11 +115,35 @@ final class AgentBridge {
     @ObservationIgnored
     private var doomLoopContinuations: [UUID: CheckedContinuation<DoomLoopAction, Never>] = [:]
 
+    // MARK: - Skill System (Story 5-1)
+
+    @ObservationIgnored
+    private var skillRegistry: SkillRegistry?
+
+    var discoveredSkills: [Skill] {
+        skillRegistry?.allSkills.filter { $0.userInvocable } ?? []
+    }
+
     init(permissionHandler: PermissionHandler = PermissionHandler()) {
         self.permissionHandler = permissionHandler
     }
 
     func configure(apiKey: String, baseURL: String?, model: String, workspacePath: String?, sessionId: String) {
+        let registry = SkillRegistry()
+        registry.register(BuiltInSkills.commit)
+        registry.register(BuiltInSkills.review)
+        registry.register(BuiltInSkills.simplify)
+        registry.register(BuiltInSkills.debug)
+        registry.register(BuiltInSkills.test)
+
+        let discoveredCount = registry.registerDiscoveredSkills()
+        self.skillRegistry = registry
+
+        var tools = getAllBaseTools(tier: .core)
+        if !registry.allSkills.isEmpty {
+            tools.append(createSkillTool(registry: registry))
+        }
+
         let options = AgentOptions(
             apiKey: apiKey,
             model: model,
@@ -126,11 +151,17 @@ final class AgentBridge {
             maxTurns: 10,
             permissionMode: .default,
             cwd: workspacePath,
-            tools: getAllBaseTools(tier: .core),
+            tools: tools,
             sessionStore: sdkSessionStore,
             sessionId: sessionId,
+            skillRegistry: registry,
+            skillDirectories: [],
             persistSession: true
         )
+
+        let skillCount = registry.allSkills.count
+        os_log("SwiftWork SkillRegistry: %d skills registered (%d discovered from filesystem)", log: .default, type: .info, skillCount, discoveredCount)
+
         self.agent = createAgent(options: options)
         setupPermissionCallback()
     }

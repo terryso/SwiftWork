@@ -1,5 +1,5 @@
 # generated: 2026-05-01
-# last_updated: 2026-05-05T10:00:00
+# last_updated: 2026-05-05T13:00:00
 # project: swiftwork
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-01
-last_updated: 2026-05-05T10:00:00
+last_updated: 2026-05-05T13:00:00
 project: swiftwork
 project_key: NOKEY
 tracking_system: file-system
@@ -79,8 +79,8 @@ development_status:
   epic-4-retrospective: done
 
   # === Epic 5: Skill 系统（可扩展能力注入） ===
-  epic-5: backlog
-  5-1-sdk-skill-pipeline: backlog
+  epic-5: in-progress
+  5-1-sdk-skill-pipeline: done
   5-2-input-bar-slash-autocomplete: backlog
   5-3-skill-timeline-card-rendering: backlog
   5-4-skill-management-panel: backlog

@@ -52,3 +52,9 @@
 
 - WorkspaceView.setupTitleGeneration() overwrites agentBridge.onResult callback — **已修复。** 改为多回调模式 `addOnResultCallback`，支持多个回调共存。
 - loadEvents(for:) for large sessions (>1000) loaded oldest events instead of newest — **已修复。** 改为加载最新 pageSize 条事件，并跟踪 trimmedEventCount 以支持向上分页加载。
+
+## Deferred from: code review of 5-1-sdk-skill-pipeline (2026-05-05)
+
+- hashInput not collision-resistant — doom loop detection "hash" uses `String(describing:)` which may produce nondeterministic output for nested types and can collide for different inputs. Pre-existing design choice, acceptable for heuristic detection, not a correctness bug. [AgentBridge.swift:590-597]
+- nonisolated(unsafe) for input dict crossing actors — `setupPermissionCallback` uses `nonisolated(unsafe)` to pass the SDK's input dictionary across actor boundaries. SDK contract is that input dicts are immutable in practice, but the pattern suppresses concurrency safety checks. [AgentBridge.swift:473]
+- Dead code: PendingPermissionRequest and PermissionDialogView — These files are no longer referenced after the inline permission card migration. `PermissionDialogView` is marked deprecated but still compiles. Cleanup task for a future story. [PendingPermissionRequest.swift, PermissionDialogView.swift]

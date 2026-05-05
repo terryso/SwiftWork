@@ -41,6 +41,7 @@
 		AABB00112233445566778803 /* WorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778804 /* WorkspaceView.swift */; };
 		AABB00112233445566778805 /* EventMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778806 /* EventMapperTests.swift */; };
 		AABB00112233445566778807 /* AgentBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778808 /* AgentBridgeTests.swift */; };
+		AABB001122334455667788FF /* AgentBridgeSkillTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB001122334455667788FE /* AgentBridgeSkillTests.swift */; };
 		AABB00112233445566778809 /* MessageInputAgentExecutionIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778810 /* MessageInputAgentExecutionIntegrationTests.swift */; };
 		AABB00112233445566778820 /* EventSerializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778821 /* EventSerializer.swift */; };
 		AABB00112233445566778822 /* EventStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778823 /* EventStore.swift */; };
@@ -200,6 +201,7 @@
 		AABB00112233445566778804 /* WorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceView.swift; sourceTree = "<group>"; };
 		AABB00112233445566778806 /* EventMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMapperTests.swift; sourceTree = "<group>"; };
 		AABB00112233445566778808 /* AgentBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBridgeTests.swift; sourceTree = "<group>"; };
+		AABB001122334455667788FE /* AgentBridgeSkillTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBridgeSkillTests.swift; sourceTree = "<group>"; };
 		AABB00112233445566778810 /* MessageInputAgentExecutionIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageInputAgentExecutionIntegrationTests.swift; sourceTree = "<group>"; };
 		AABB00112233445566778821 /* EventSerializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSerializer.swift; sourceTree = "<group>"; };
 		AABB00112233445566778823 /* EventStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStore.swift; sourceTree = "<group>"; };
@@ -617,6 +619,7 @@
 			children = (
 				AABB00112233445566778806 /* EventMapperTests.swift */,
 				AABB00112233445566778808 /* AgentBridgeTests.swift */,
+				AABB001122334455667788FE /* AgentBridgeSkillTests.swift */,
 				CC01TS0000000001AA01TS17 /* EventSerializerTests.swift */,
 				CC33TC0000000001CC33TC11 /* ToolContentPairingTests.swift */,
 				CC33TC0000000001CC33TC14 /* ToolRendererRegistryTests.swift */,
@@ -862,6 +865,7 @@
 				83ADD06F7DDADF4A5456C344 /* EventModelTests.swift in Sources */,
 				AABB00112233445566778805 /* EventMapperTests.swift in Sources */,
 				AABB00112233445566778807 /* AgentBridgeTests.swift in Sources */,
+				AABB001122334455667788FF /* AgentBridgeSkillTests.swift in Sources */,
 				AABB00112233445566778809 /* MessageInputAgentExecutionIntegrationTests.swift in Sources */,
 				3291499AE94ABC7287F14F5E /* KeychainManagerTests.swift in Sources */,
 				E3D0234EC2164A469F763F0B /* ColorEventTypeTests.swift in Sources */,
