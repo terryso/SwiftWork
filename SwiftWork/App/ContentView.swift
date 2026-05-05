@@ -43,7 +43,8 @@ struct ContentView: View {
                                 isDebugPanelVisible: Binding(
                                     get: { appState.isDebugPanelVisible },
                                     set: { appState.isDebugPanelVisible = $0 }
-                                )
+                                ),
+                                onOpenSettings: { appState.isSettingsPresented = true }
                             )
                         } else {
                             Text("选择或创建一个会话")

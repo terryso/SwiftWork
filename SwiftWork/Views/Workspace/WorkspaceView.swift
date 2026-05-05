@@ -9,6 +9,8 @@ struct WorkspaceView: View {
     @Binding var isInspectorVisible: Bool
     @Binding var isDebugPanelVisible: Bool
 
+    var onOpenSettings: (() -> Void)?
+
     @State private var selectedEventId: UUID?
     @State private var eventLookup: [UUID: AgentEvent] = [:]
     @State private var debugViewModel: DebugViewModel?
@@ -28,6 +30,10 @@ struct WorkspaceView: View {
                 Divider()
 
                 InputBarView(agentBridge: agentBridge)
+
+                if agentBridge.permissionHandler.globalMode == .autoApprove {
+                    autoApproveWarningBar
+                }
             }
             .background(Color(nsColor: .textBackgroundColor))
 
@@ -108,6 +114,25 @@ struct WorkspaceView: View {
             loadPersistedEvents()
             setupTitleGeneration()
         }
+    }
+
+    private var autoApproveWarningBar: some View {
+        Button {
+            onOpenSettings?()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 10))
+                Text("自动批准已开启 — 所有工具调用无需确认")
+                    .font(.system(size: 11))
+            }
+            .foregroundStyle(.orange)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.08))
+        }
+        .buttonStyle(.plain)
     }
 
     private var selectedEvent: AgentEvent? {

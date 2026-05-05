@@ -40,7 +40,25 @@ struct PermissionRulesView: View {
             Text(modeDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            if permissionHandler.globalMode == .autoApprove {
+                autoApproveWarningBanner
+            }
         }
+    }
+
+    private var autoApproveWarningBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            Text("自动批准模式下所有工具调用无需确认，请确保你信任当前 Agent 的行为")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private var modeDescription: String {
@@ -134,6 +152,17 @@ struct PermissionRulesView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
+
+            Button {
+                ruleToDelete = rule
+                showDeleteConfirmation = true
+            } label: {
+                Image(systemName: "trash")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("删除规则")
         }
         .padding(.vertical, 4)
     }
