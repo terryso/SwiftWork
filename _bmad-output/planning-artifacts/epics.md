@@ -67,6 +67,10 @@ This document provides the complete epic and story breakdown for SwiftWork, deco
 - FR47: 系统可以在 Dock 栏显示未读会话数量 badge
 - FR48: 用户可以在应用设置中管理 API Key、模型选择和权限配置
 - FR49: 系统可以在首次启动时引导用户完成 API Key 配置
+- FR-SKILL-1: Agent 启动时自动发现并加载本地 Skill（SkillLoader + SkillRegistry + SkillTool 注入）
+- FR-SKILL-2: 用户通过 `/` 斜杠命令触发 Skill，带自动补全菜单
+- FR-SKILL-3: Timeline 渲染 Skill 调用卡片（toolUse + toolResult 专用 View）
+- FR-SKILL-4: 用户在设置面板中浏览和管理已注册的 Skill 列表
 
 ### NonFunctional Requirements
 
@@ -164,6 +168,10 @@ FR46: Epic 4 - 键盘快捷键
 FR47: Epic 4 - Dock Badge 未读会话数
 FR48: Epic 4 - 应用设置管理
 FR49: Epic 1 - 首次启动 API Key 引导
+FR-SKILL-1: Epic 5 - Agent 启动时自动发现并加载 Skill
+FR-SKILL-2: Epic 5 - 用户通过 / 斜杠命令触发 Skill
+FR-SKILL-3: Epic 5 - Timeline 渲染 Skill 调用卡片
+FR-SKILL-4: Epic 5 - 用户浏览和管理已注册的 Skill
 
 ## Epic List
 
@@ -186,6 +194,11 @@ FR49: Epic 1 - 首次启动 API Key 引导
 用户可以调试 Agent 行为（原始事件流、Token 统计、工具日志）、管理应用设置（API Key、模型、权限）、使用 macOS 原生集成（菜单栏、快捷键、Dock Badge）。
 **FRs covered:** FR38, FR39, FR40, FR45, FR46, FR47, FR48
 **ARCHs covered:** ARCH-14
+
+### Epic 5: Skill 系统（可扩展能力注入）
+用户通过斜杠命令调用预定义和自定义 Skill，并在 UI 中管理和浏览可用 Skill。SDK 已提供完整 Skill 基础设施（SkillRegistry、SkillLoader、SkillTool、BuiltInSkills），本 Epic 负责接入和 UI 层实现。
+**FRs covered:** FR-SKILL-1, FR-SKILL-2, FR-SKILL-3, FR-SKILL-4
+**ARCHs covered:** ARCH-5, ARCH-9, ARCH-13
 
 ## Epic 1: 首次启动与基础交互（SDK→UI 闭环）
 
@@ -690,3 +703,115 @@ So that 我可以像使用其他 macOS 应用一样使用 SwiftWork。
 **Then** UI 正确适配，布局不变形（NFR18）
 
 **FRs:** FR47
+
+## Epic 5: Skill 系统（可扩展能力注入）
+
+用户通过斜杠命令调用预定义和自定义 Skill，并在 UI 中管理和浏览可用 Skill。SDK 已提供完整 Skill 基础设施（SkillRegistry、SkillLoader、SkillTool、BuiltInSkills），本 Epic 负责接入和 UI 层实现。
+
+### Story 5.1: SDK Skill 管线打通
+
+As a 用户,
+I want Agent 启动时自动发现并加载本地 Skill,
+So that LLM 可以通过 SkillTool 调用已注册的 skill，skill 列表自动注入系统提示。
+
+**Acceptance Criteria:**
+
+**Given** 用户配置了 API Key 并发送第一条消息
+**When** AgentBridge 创建 AgentOptions
+**Then** `skillDirectories` 使用 SDK 默认目录，`skillRegistry` 通过 `autoDiscoverSkills()` 自动填充
+
+**Given** 项目目录下存在 `.claude/skills/*/SKILL.md`
+**When** Agent 启动
+**Then** SkillLoader 扫描并注册所有发现的 skill，日志输出发现数量
+
+**Given** SkillRegistry 中有已注册 skill
+**When** Agent 发送系统提示
+**Then** `formatSkillsForPrompt()` 的输出被包含在提示中，LLM 可以看到可用 skill 列表
+
+**Given** LLM 调用 `Skill(skill: "commit")`
+**When** skill 存在于 registry
+**Then** SkillTool 返回 skill 的 promptTemplate 和元数据，LLM 按模板执行
+
+**Given** BuiltInSkills（commit/review/simplify/debug/test）
+**When** Agent 启动
+**Then** 这些预置 skill 也被注册到 registry，与文件系统发现的 skill 共存
+
+**FRs:** FR-SKILL-1
+
+### Story 5.2: 输入框斜杠命令自动补全
+
+As a 用户,
+I want 在输入框输入 `/` 时看到可用 skill 的自动补全列表,
+So that 我可以快速发现和调用 skill，而无需记住完整的 skill 名称。
+
+**Acceptance Criteria:**
+
+**Given** 输入框为空
+**When** 用户输入 `/`
+**Then** 在光标下方弹出浮动菜单，显示所有 user-invocable skill，每项显示 name + description 摘要
+
+**Given** 自动补全菜单已弹出
+**When** 用户继续输入 `/co`
+**Then** 菜单过滤为匹配 "co" 的 skill（如 "commit"），模糊匹配 name 和 alias
+
+**Given** 自动补全菜单已弹出
+**When** 用户按 ↑↓ 键选择一项并按 Enter
+**Then** 输入框替换为选中的 skill 名称（如 `/commit`），自动补全关闭
+
+**Given** 自动补全菜单已弹出
+**When** 用户按 Escape 或点击菜单外区域
+**Then** 菜单关闭，输入文本保持不变
+
+**Given** 用户输入 `/` 后跟不匹配任何 skill 的文本（如 `/hello`）
+**When** 用户按 Enter 发送
+**Then** `/hello` 作为普通文本发送给 Agent
+
+**FRs:** FR-SKILL-2
+
+### Story 5.3: Skill 调用 Timeline 卡片渲染
+
+As a 用户,
+I want 在 Timeline 中看到 Skill 调用的可视化卡片,
+So that 我可以清楚了解 Agent 使用了哪个 skill、传了什么参数、执行结果如何。
+
+**Acceptance Criteria:**
+
+**Given** Agent 调用 `Skill(skill: "review", args: "check auth code")`
+**When** toolUse 事件到达 Timeline
+**Then** 渲染为 Skill 专用卡片，显示 skill 名称 "review"、参数 "check auth code"
+
+**Given** Skill 调用卡片已渲染
+**When** toolResult 事件到达
+**Then** 卡片更新为完成状态，显示 skill 执行结果摘要（成功/失败）
+
+**Given** Skill 调用卡片已展开
+**When** 用户查看详情
+**Then** 显示 skill 的 promptTemplate 摘要和实际执行参数
+
+**Given** 多个 Skill 调用连续发生
+**When** 在 Timeline 中查看
+**Then** 每个 Skill 调用独立渲染为卡片，与普通 toolUse 卡片视觉区分（使用不同图标或标签色）
+
+**FRs:** FR-SKILL-3
+
+### Story 5.4: Skill 管理面板
+
+As a 用户,
+I want 在设置或独立面板中查看所有已发现的 Skill 列表,
+So that 我可以了解当前有哪些 skill 可用、它们的来源和功能描述。
+
+**Acceptance Criteria:**
+
+**Given** 用户打开设置面板
+**When** 切换到 "Skills" 标签页
+**Then** 显示所有已注册 skill 的列表，按来源分组（Built-in / Project / User）
+
+**Given** Skill 列表已显示
+**When** 用户点击某个 skill
+**Then** 展开显示详细信息：name、description、aliases、whenToUse、argumentHint、toolRestrictions、baseDir、supportingFiles
+
+**Given** Skill 来自文件系统
+**When** 用户点击 "Open in Finder" 按钮
+**Then** 在 Finder 中打开 skill 所在目录
+
+**FRs:** FR-SKILL-4
