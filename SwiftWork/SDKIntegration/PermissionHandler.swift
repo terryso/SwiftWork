@@ -108,6 +108,15 @@ final class PermissionHandler {
         return true
     }
 
+    // MARK: - Rule Editing
+
+    func updateRule(_ rule: PermissionRule, pattern: String? = nil, decision: Decision? = nil) {
+        if let pattern { rule.pattern = pattern }
+        if let decision { rule.decision = decision }
+        try? modelContext?.save()
+        reloadRules()
+    }
+
     // MARK: - Rule Deletion
 
     func deleteRule(_ rule: PermissionRule) {
