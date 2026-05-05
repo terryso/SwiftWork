@@ -145,6 +145,8 @@
 		SA52VM0000000001SA52VM02 /* SkillAutocompleteViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA52VM0000000001SA52VM11 /* SkillAutocompleteViewModel.swift */; };
 		SA52MN0000000001SA52MN02 /* SkillAutocompleteMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA52MN0000000001SA52MN11 /* SkillAutocompleteMenuView.swift */; };
 		SA52TS0000000001SA52TS02 /* SkillAutocompleteViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA52TS0000000001SA52TS11 /* SkillAutocompleteViewModelTests.swift */; };
+		SA53SR0000000001SA53SR02 /* SkillToolRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA53SR0000000001SA53SR11 /* SkillToolRenderer.swift */; };
+		SA53ST0000000001SA53ST02 /* SkillToolRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA53ST0000000001SA53ST11 /* SkillToolRendererTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -294,6 +296,8 @@
 		SA52VM0000000001SA52VM11 /* SkillAutocompleteViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillAutocompleteViewModel.swift; sourceTree = "<group>"; };
 		SA52MN0000000001SA52MN11 /* SkillAutocompleteMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillAutocompleteMenuView.swift; sourceTree = "<group>"; };
 		SA52TS0000000001SA52TS11 /* SkillAutocompleteViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillAutocompleteViewModelTests.swift; sourceTree = "<group>"; };
+		SA53SR0000000001SA53SR11 /* SkillToolRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillToolRenderer.swift; sourceTree = "<group>"; };
+		SA53ST0000000001SA53ST11 /* SkillToolRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillToolRendererTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -737,6 +741,7 @@
 				CC01TS0000000001AA01TS15 /* TimelineViewRefactoredTests.swift */,
 				CC33TC0000000001CC33TC12 /* ToolCardViewTests.swift */,
 				CC33TC0000000001CC33TC13 /* ToolCardTimelineIntegrationTests.swift */,
+				SA53ST0000000001SA53ST11 /* SkillToolRendererTests.swift */,
 				CC44MD0000000001CC44MD16 /* MarkdownContentViewTests.swift */,
 				CC44MD0000000001CC44MD17 /* MarkdownRenderingIntegrationTests.swift */,
 				CC55VP0000000001CC55VP31 /* TimelinePerformanceTests.swift */,
@@ -752,6 +757,7 @@
 				CC22AB0000000001CC22AB15 /* SearchToolRenderer.swift */,
 				CC22AB0000000001CC22AB16 /* ReadToolRenderer.swift */,
 				CC22AB0000000001CC22AB17 /* WriteToolRenderer.swift */,
+				SA53SR0000000001SA53SR11 /* SkillToolRenderer.swift */,
 			);
 			path = ToolRenderers;
 			sourceTree = "<group>";
@@ -909,6 +915,7 @@
 				CC33TC0000000001CC33TC02 /* ToolCardViewTests.swift in Sources */,
 				CC33TC0000000001CC33TC03 /* ToolCardTimelineIntegrationTests.swift in Sources */,
 				CC33TC0000000001CC33TC04 /* ToolRendererRegistryTests.swift in Sources */,
+				SA53ST0000000001SA53ST02 /* SkillToolRendererTests.swift in Sources */,
 				CC44MD0000000001CC44MD04 /* MarkdownRendererTests.swift in Sources */,
 				CC44MD0000000001CC44MD05 /* CodeHighlighterTests.swift in Sources */,
 				CC44MD0000000001CC44MD06 /* MarkdownContentViewTests.swift in Sources */,
@@ -994,6 +1001,7 @@
 				CC22AB0000000001CC22AB05 /* SearchToolRenderer.swift in Sources */,
 				CC22AB0000000001CC22AB06 /* ReadToolRenderer.swift in Sources */,
 				CC22AB0000000001CC22AB07 /* WriteToolRenderer.swift in Sources */,
+				SA53SR0000000001SA53SR02 /* SkillToolRenderer.swift in Sources */,
 				CC22AB0000000001CC22AB08 /* ToolRenderable.swift in Sources */,
 				CC22AB0000000001CC22AB09 /* ToolRendererRegistry.swift in Sources */,
 				CC22AB0000000001CC22AB0A /* AppStateManager.swift in Sources */,

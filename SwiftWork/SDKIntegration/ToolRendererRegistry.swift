@@ -12,6 +12,7 @@ final class ToolRendererRegistry {
         register(SearchToolRenderer())
         register(ReadToolRenderer())
         register(WriteToolRenderer())
+        register(SkillToolRenderer())
     }
 
     func register(_ renderer: any ToolRenderable) {
