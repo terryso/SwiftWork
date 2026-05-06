@@ -18,6 +18,35 @@ struct TimelinePaginationState: Equatable, Sendable {
     }
 }
 
+struct ExplicitSlashSkillInvocation: Equatable, Sendable {
+    let canonicalName: String
+    let invokedName: String
+    let args: String?
+}
+
+enum MessageSendOutcome: Equatable, Sendable {
+    case ignored
+    case sentPlainText
+    case sentSlashSkill(ExplicitSlashSkillInvocation)
+    case rejectedUnavailableSkill(ExplicitSlashSkillInvocation)
+}
+
+private struct QueuedMessageRequest {
+    let userFacingText: String
+    let payload: Payload
+
+    enum Payload {
+        case plainText(String)
+        case explicitSlashSkill(ExplicitSlashSkillInvocation)
+    }
+}
+
+private enum PreparedMessageRequest {
+    case plainText(QueuedMessageRequest)
+    case explicitSlashSkill(QueuedMessageRequest, ExplicitSlashSkillInvocation)
+    case unavailableSkill(ExplicitSlashSkillInvocation)
+}
+
 @MainActor
 @Observable
 final class AgentBridge {
@@ -36,7 +65,7 @@ final class AgentBridge {
     private var currentTask: _Concurrency.Task<Void, Never>?
 
     @ObservationIgnored
-    private var queuedMessages: [String] = []
+    private var queuedMessages: [QueuedMessageRequest] = []
 
     @ObservationIgnored
     private var eventStore: (any EventStoring)?
@@ -49,6 +78,9 @@ final class AgentBridge {
 
     @ObservationIgnored
     private var eventOrder: Int = 0
+
+    @ObservationIgnored
+    private var configuredWorkspacePath: String?
 
     // MARK: - Pagination State (Story 2-5)
 
@@ -120,9 +152,8 @@ final class AgentBridge {
     @ObservationIgnored
     private var skillRegistry: SkillRegistry?
 
-    var discoveredSkills: [Skill] {
-        skillRegistry?.allSkills.filter { $0.userInvocable } ?? []
-    }
+    var discoveredSkills: [Skill] = []
+    var discoveredSkillsRevision: Int = 0
 
     /// All registered skills, including non-user-invocable ones.
     /// Used by the Settings Skills panel to display every registered skill.
@@ -135,6 +166,7 @@ final class AgentBridge {
     }
 
     func configure(apiKey: String, baseURL: String?, model: String, workspacePath: String?, sessionId: String) {
+        configuredWorkspacePath = workspacePath
         let registry = SkillRegistry()
         registry.register(BuiltInSkills.commit)
         registry.register(BuiltInSkills.review)
@@ -144,6 +176,7 @@ final class AgentBridge {
 
         let discoveredCount = registry.registerDiscoveredSkills()
         self.skillRegistry = registry
+        refreshDiscoveredSkills()
 
         var tools = getAllBaseTools(tier: .core)
         if !registry.allSkills.isEmpty {
@@ -313,18 +346,52 @@ final class AgentBridge {
 
     // MARK: - Message Sending
 
-    func sendMessage(_ text: String) {
-        guard let agent, !text.isEmpty else { return }
+    @discardableResult
+    func sendMessage(_ text: String) -> MessageSendOutcome {
+        guard let agent, !text.isEmpty else { return .ignored }
 
+        switch prepareMessageRequest(for: text) {
+        case .unavailableSkill(let invocation):
+            errorMessage = "Skill /\(invocation.canonicalName) 当前不可用，未发送消息。"
+            return .rejectedUnavailableSkill(invocation)
+        case .plainText(let request):
+            enqueue(request, using: agent)
+            return .sentPlainText
+        case .explicitSlashSkill(let request, let invocation):
+            enqueue(request, using: agent)
+            return .sentSlashSkill(invocation)
+        }
+    }
+
+    func resolveExplicitSlashSkillInvocation(in text: String) -> ExplicitSlashSkillInvocation? {
+        if case .explicitSlashSkill(_, let invocation) = prepareMessageRequest(for: text) {
+            return invocation
+        }
+        return nil
+    }
+
+    func registerSkill(_ skill: Skill) {
+        if skillRegistry == nil {
+            skillRegistry = SkillRegistry()
+        }
+        skillRegistry?.register(skill)
+        refreshDiscoveredSkills()
+    }
+
+    func refreshDiscoveredSkillsSnapshot() {
+        refreshDiscoveredSkills()
+    }
+
+    private func enqueue(_ request: QueuedMessageRequest, using agent: Agent) {
         let userEvent = AgentEvent(
             type: .userMessage,
-            content: text,
+            content: request.userFacingText,
             timestamp: .now
         )
         appendAndPersist(userEvent)
         errorMessage = nil
 
-        queuedMessages.append(text)
+        queuedMessages.append(request)
 
         guard !isRunning else { return }
         isRunning = true
@@ -338,11 +405,27 @@ final class AgentBridge {
             return
         }
 
-        let text = queuedMessages.removeFirst()
+        let request = queuedMessages.removeFirst()
         currentTask = _Concurrency.Task { [weak self] in
             guard let self else { return }
             var receivedResult = false
-            let sdkStream = agent.stream(text)
+            let outboundText: String
+            switch request.payload {
+            case .plainText(let text):
+                outboundText = text
+            case .explicitSlashSkill(let invocation):
+                guard let resolved = await self.resolveExplicitSlashSkillRequest(invocation) else {
+                    self.currentTask = nil
+                    if self.queuedMessages.isEmpty {
+                        self.isRunning = false
+                    } else {
+                        self.startNextQueuedMessage(using: agent)
+                    }
+                    return
+                }
+                outboundText = resolved
+            }
+            let sdkStream = agent.stream(outboundText)
             for await message in sdkStream {
                 guard !_Concurrency.Task.isCancelled else { break }
 
@@ -385,6 +468,185 @@ final class AgentBridge {
             } else {
                 self.startNextQueuedMessage(using: agent)
             }
+        }
+    }
+
+    private func prepareMessageRequest(for text: String) -> PreparedMessageRequest {
+        if let resolution = resolveSlashSkillRequest(in: text) {
+            switch resolution {
+            case .available(let invocation):
+                return .explicitSlashSkill(
+                    QueuedMessageRequest(
+                        userFacingText: text,
+                        payload: .explicitSlashSkill(invocation)
+                    ),
+                    invocation
+                )
+            case .unavailable(let invocation):
+                return .unavailableSkill(invocation)
+            }
+        }
+
+        return .plainText(
+            QueuedMessageRequest(userFacingText: text, payload: .plainText(text))
+        )
+    }
+
+    private enum SlashSkillResolution {
+        case available(ExplicitSlashSkillInvocation)
+        case unavailable(ExplicitSlashSkillInvocation)
+    }
+
+    private func resolveSlashSkillRequest(in text: String) -> SlashSkillResolution? {
+        refreshDiscoveredSkills()
+
+        guard let parsedInvocation = parseSlashCommand(in: text),
+              let skill = resolveUserInvocableSkill(named: parsedInvocation.invokedName) else {
+            return nil
+        }
+
+        let invocation = ExplicitSlashSkillInvocation(
+            canonicalName: skill.name,
+            invokedName: parsedInvocation.invokedName,
+            args: parsedInvocation.args
+        )
+
+        guard skill.isAvailable() else {
+            return .unavailable(invocation)
+        }
+        return .available(invocation)
+    }
+
+    private func parseSlashCommand(in text: String) -> (invokedName: String, args: String?)? {
+        let trimmedLeading = String(text.drop(while: { $0.isWhitespace }))
+        guard trimmedLeading.hasPrefix("/") else { return nil }
+
+        let commandLine = String(trimmedLeading.dropFirst())
+        guard !commandLine.isEmpty else { return nil }
+
+        if let whitespaceIndex = commandLine.firstIndex(where: { $0.isWhitespace }) {
+            let invokedName = String(commandLine[..<whitespaceIndex])
+            guard !invokedName.isEmpty else { return nil }
+            let remaining = String(commandLine[whitespaceIndex...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return (invokedName, remaining.isEmpty ? nil : remaining)
+        }
+
+        return (commandLine, nil)
+    }
+
+    private func resolveUserInvocableSkill(named invokedName: String) -> Skill? {
+        let normalized = invokedName.lowercased()
+        return skillRegistry?.allSkills.first(where: { skill in
+            guard skill.userInvocable else { return false }
+            if skill.name.lowercased() == normalized {
+                return true
+            }
+            return skill.aliases.contains(where: { $0.lowercased() == normalized })
+        })
+    }
+
+    private func resolveExplicitSlashSkillRequest(_ invocation: ExplicitSlashSkillInvocation) async -> String? {
+        guard let registry = skillRegistry else { return nil }
+
+        let inputPayload: [String: String] = [
+            "skill": invocation.canonicalName,
+            "args": invocation.args ?? ""
+        ]
+        let inputText = serializeJSON(inputPayload)
+        let toolUseId = UUID().uuidString
+
+        appendAndPersist(AgentEvent(
+            type: .toolUse,
+            content: "Skill",
+            metadata: [
+                "toolName": "Skill",
+                "toolUseId": toolUseId,
+                "input": inputText
+            ],
+            timestamp: .now
+        ))
+
+        let tool = createSkillTool(registry: registry)
+        let context = ToolContext(
+            cwd: configuredWorkspacePath ?? FileManager.default.currentDirectoryPath,
+            toolUseId: toolUseId,
+            skillRegistry: registry,
+            restrictionStack: ToolRestrictionStack()
+        )
+        let result = await tool.call(input: inputPayload, context: context)
+
+        appendAndPersist(AgentEvent(
+            type: .toolResult,
+            content: result.content,
+            metadata: [
+                "toolUseId": toolUseId,
+                "isError": result.isError
+            ],
+            timestamp: .now
+        ))
+
+        guard !result.isError,
+              let resolved = parseResolvedSkillResult(result.content, invocation: invocation) else {
+            errorMessage = "Skill /\(invocation.canonicalName) 执行准备失败，未发送消息。"
+            return nil
+        }
+
+        errorMessage = nil
+        return resolved
+    }
+
+    private func parseResolvedSkillResult(
+        _ content: String,
+        invocation: ExplicitSlashSkillInvocation
+    ) -> String? {
+        guard let data = content.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let prompt = json["prompt"] as? String else {
+            return nil
+        }
+
+        let metadata: [String: Any] = [
+            "canonicalName": invocation.canonicalName,
+            "invokedName": invocation.invokedName,
+            "args": invocation.args ?? "",
+            "allowedTools": json["allowedTools"] as? [String] ?? [],
+            "model": json["model"] as? String ?? "",
+            "baseDir": json["baseDir"] as? String ?? "",
+            "supportingFiles": json["supportingFiles"] as? [String] ?? []
+        ]
+        let payload: [String: Any] = [
+            "slashSkill": metadata,
+            "skillPrompt": prompt
+        ]
+
+        return """
+        The user explicitly selected a slash skill. The skill resolution step has already completed, so do not decide whether to use a skill for this request.
+
+        Resolved slash skill payload:
+        ```json
+        \(serializeJSON(payload))
+        ```
+
+        Follow the `skillPrompt` field as the authoritative instructions for this turn, using the resolved `slashSkill.args` exactly as provided.
+        """
+    }
+
+    private func serializeJSON(_ object: Any) -> String {
+        guard JSONSerialization.isValidJSONObject(object),
+              let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]),
+              let string = String(data: data, encoding: .utf8) else {
+            return "{}"
+        }
+        return string
+    }
+
+    private func refreshDiscoveredSkills() {
+        let refreshed = skillRegistry?.userInvocableSkills ?? []
+        let currentNames = discoveredSkills.map(\.name)
+        let refreshedNames = refreshed.map(\.name)
+        discoveredSkills = refreshed
+        if currentNames != refreshedNames {
+            discoveredSkillsRevision += 1
         }
     }
 

@@ -11,10 +11,34 @@ import OpenAgentSDK
 @MainActor
 final class AgentBridgeSkillTests: XCTestCase {
 
+    private final class AvailabilityBox: @unchecked Sendable {
+        var isAvailable: Bool
+
+        init(isAvailable: Bool) {
+            self.isAvailable = isAvailable
+        }
+    }
+
     // MARK: - Test Helpers
 
     private func makeBridge() -> AgentBridge {
         AgentBridge()
+    }
+
+    private func makeSkill(
+        name: String,
+        aliases: [String] = [],
+        userInvocable: Bool = true,
+        available: @escaping @Sendable () -> Bool = { true }
+    ) -> Skill {
+        Skill(
+            name: name,
+            description: "Test skill \(name)",
+            aliases: aliases,
+            userInvocable: userInvocable,
+            isAvailable: available,
+            promptTemplate: "Template for \(name)"
+        )
     }
 
     // MARK: - AC#1: AgentOptions enables Skill discovery
@@ -392,5 +416,178 @@ final class AgentBridgeSkillTests: XCTestCase {
 
         XCTAssertEqual(firstCount, secondCount,
             "Re-configure should produce same BuiltInSkills count")
+    }
+
+    func testResolveExplicitSlashSkillInvocationByCanonicalName() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
+
+        let invocation = bridge.resolveExplicitSlashSkillInvocation(in: "/polyv-live-cli 获取最新5个频道")
+
+        XCTAssertEqual(invocation?.canonicalName, "polyv-live-cli")
+        XCTAssertEqual(invocation?.invokedName, "polyv-live-cli")
+        XCTAssertEqual(invocation?.args, "获取最新5个频道")
+    }
+
+    func testResolveExplicitSlashSkillInvocationByAlias() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
+
+        let invocation = bridge.resolveExplicitSlashSkillInvocation(in: "/polyv 获取最新5个频道")
+
+        XCTAssertEqual(invocation?.canonicalName, "polyv-live-cli")
+        XCTAssertEqual(invocation?.invokedName, "polyv")
+        XCTAssertEqual(invocation?.args, "获取最新5个频道")
+    }
+
+    func testExplicitSlashSkillSendUsesSlashRoute() async {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
+
+        let outcome = bridge.sendMessage("/polyv-live-cli 获取最新5个频道")
+
+        guard case .sentSlashSkill(let invocation) = outcome else {
+            return XCTFail("Expected explicit slash invocation to route through slash skill handling")
+        }
+        XCTAssertEqual(invocation.canonicalName, "polyv-live-cli")
+        XCTAssertEqual(invocation.args, "获取最新5个频道")
+
+        try? await _Concurrency.Task.sleep(nanoseconds: 50_000_000)
+
+        let toolUseEvent = bridge.events.first(where: {
+            $0.type == .toolUse && ($0.metadata["toolName"] as? String) == "Skill"
+        })
+        XCTAssertNotNil(toolUseEvent, "Explicit slash send should emit a Skill toolUse event")
+
+        let toolResultEvent = bridge.events.first(where: { $0.type == .toolResult })
+        XCTAssertNotNil(toolResultEvent, "Explicit slash send should emit a Skill toolResult event")
+        XCTAssertTrue(toolResultEvent?.content.contains("\"commandName\":\"polyv-live-cli\"") == true)
+    }
+
+    func testUnknownSlashFallsBackToPlainTextSend() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        let outcome = bridge.sendMessage("/unknown do something")
+
+        XCTAssertEqual(outcome, .sentPlainText)
+        XCTAssertEqual(bridge.events.first?.type, .userMessage)
+        XCTAssertEqual(bridge.events.first?.content, "/unknown do something")
+    }
+
+    func testUnavailableSlashSkillIsRejectedBeforeSending() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"], available: { false }))
+
+        let outcome = bridge.sendMessage("/polyv 获取最新5个频道")
+
+        guard case .rejectedUnavailableSkill(let invocation) = outcome else {
+            return XCTFail("Expected unavailable slash skill to be rejected")
+        }
+        XCTAssertEqual(invocation.canonicalName, "polyv-live-cli")
+        XCTAssertTrue(bridge.events.isEmpty, "Rejected slash invocation should not append a user event")
+        XCTAssertEqual(bridge.errorMessage, "Skill /polyv-live-cli 当前不可用，未发送消息。")
+    }
+
+    func testSlashResolutionIsCaseInsensitive() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
+
+        let invocation = bridge.resolveExplicitSlashSkillInvocation(in: "/POLYV 获取最新5个频道")
+
+        XCTAssertEqual(invocation?.canonicalName, "polyv-live-cli")
+        XCTAssertEqual(invocation?.invokedName, "POLYV")
+    }
+
+    func testHiddenSlashSkillFallsBackToPlainText() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(name: "internal-polyv", userInvocable: false))
+
+        let outcome = bridge.sendMessage("/internal-polyv do something")
+
+        XCTAssertEqual(outcome, .sentPlainText)
+        XCTAssertEqual(bridge.events.first?.content, "/internal-polyv do something")
+    }
+
+    func testRefreshingDiscoveredSkillsReflectsAvailabilityChanges() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        let availability = AvailabilityBox(isAvailable: false)
+        bridge.registerSkill(makeSkill(name: "polyv-live-cli", available: { availability.isAvailable }))
+        XCTAssertFalse(bridge.discoveredSkills.contains(where: { $0.name == "polyv-live-cli" }))
+
+        availability.isAvailable = true
+        bridge.refreshDiscoveredSkillsSnapshot()
+
+        XCTAssertTrue(bridge.discoveredSkills.contains(where: { $0.name == "polyv-live-cli" }))
+    }
+
+    func testNonSlashTextDoesNotResolveAsSkillInvocation() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
+
+        XCTAssertNil(bridge.resolveExplicitSlashSkillInvocation(in: "please run /polyv"))
     }
 }

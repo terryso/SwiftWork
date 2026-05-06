@@ -67,8 +67,9 @@ final class SkillAutocompleteViewModelTests: XCTestCase {
     func testSlashWithNoSkillsDoesNotShowMenu() {
         let vm = makeViewModel(skills: [])
         vm.updateQuery("/")
-        XCTAssertFalse(vm.isVisible, "Menu should not be visible when no skills available")
+        XCTAssertTrue(vm.isVisible, "Menu should stay visible to show the empty slash state")
         XCTAssertTrue(vm.filteredSkills.isEmpty, "Filtered skills should be empty")
+        XCTAssertEqual(vm.menuState, .noAvailableSkills)
     }
 
     // [P1] Menu appears with correct initial selection
@@ -104,8 +105,9 @@ final class SkillAutocompleteViewModelTests: XCTestCase {
     func testNoMatchHidesMenu() {
         let vm = makeViewModel(skills: sampleSkills)
         vm.updateQuery("/xyz")
-        XCTAssertFalse(vm.isVisible, "Menu should hide when no skills match")
+        XCTAssertTrue(vm.isVisible, "Menu should stay visible to show the no-match state")
         XCTAssertTrue(vm.filteredSkills.isEmpty)
+        XCTAssertEqual(vm.menuState, .noMatches(query: "xyz"))
     }
 
     // [P1] Prefix matches sorted before contains matches
@@ -233,8 +235,9 @@ final class SkillAutocompleteViewModelTests: XCTestCase {
     func testNonMatchingSlashTextDoesNotTriggerAutocomplete() {
         let vm = makeViewModel(skills: sampleSkills)
         vm.updateQuery("/hello")
-        XCTAssertFalse(vm.isVisible,
-            "Non-matching '/hello' should not show autocomplete menu")
+        XCTAssertTrue(vm.isVisible,
+            "Non-matching '/hello' should still show slash empty state")
+        XCTAssertEqual(vm.menuState, .noMatches(query: "hello"))
     }
 
     // [P1] Non-matching text with slash prefix has empty filtered skills
@@ -289,8 +292,9 @@ final class SkillAutocompleteViewModelTests: XCTestCase {
         XCTAssertTrue(vm.isVisible)
 
         vm.updateQuery("/xyz")
-        XCTAssertFalse(vm.isVisible,
-            "Changing from matching to non-matching query should dismiss menu")
+        XCTAssertTrue(vm.isVisible,
+            "Changing from matching to non-matching query should show a no-match state")
+        XCTAssertEqual(vm.menuState, .noMatches(query: "xyz"))
     }
 
     // [P1] Updating query from non-slash to slash triggers menu
@@ -308,9 +312,10 @@ final class SkillAutocompleteViewModelTests: XCTestCase {
     func testEmptySkillsSourceShowsNoMenu() {
         let vm = makeViewModel(skills: [])
         vm.updateQuery("/")
-        XCTAssertFalse(vm.isVisible)
+        XCTAssertTrue(vm.isVisible)
         vm.updateQuery("/co")
-        XCTAssertFalse(vm.isVisible)
+        XCTAssertTrue(vm.isVisible)
+        XCTAssertEqual(vm.menuState, .noAvailableSkills)
     }
 
     // [P1] Skills with special characters in name are handled
@@ -334,5 +339,25 @@ final class SkillAutocompleteViewModelTests: XCTestCase {
         let result = vm.selectSkill(at: 0)
         XCTAssertEqual(result, "/review",
             "After filtering to '/re', first match should be '/review'")
+    }
+
+    func testRefreshingSkillsSourceWhileSlashMenuActiveShowsNewSkills() {
+        let vm = makeViewModel(skills: [])
+        vm.updateQuery("/")
+        XCTAssertEqual(vm.menuState, .noAvailableSkills)
+
+        vm.updateSkillsSource(sampleSkills, currentText: "/")
+
+        XCTAssertEqual(vm.menuState, .results)
+        XCTAssertEqual(vm.filteredSkills.count, sampleSkills.count)
+        XCTAssertEqual(vm.selectedIndex, 0)
+    }
+
+    func testSlashCommandWithArgumentsStillMatchesCommandToken() {
+        let vm = makeViewModel(skills: sampleSkills)
+        vm.updateQuery("/commit add release notes")
+
+        XCTAssertEqual(vm.menuState, .results)
+        XCTAssertEqual(vm.filteredSkills.map(\.name), ["commit"])
     }
 }

@@ -8,23 +8,41 @@ struct SkillAutocompleteMenuView: View {
     var body: some View {
         if viewModel.isVisible {
             VStack(spacing: 0) {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(viewModel.filteredSkills.enumerated()), id: \.element.name) { index, skill in
-                            SkillRowView(
-                                skill: skill,
-                                isSelected: index == viewModel.selectedIndex
-                            )
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                if let result = viewModel.selectSkill(at: index) {
-                                    onSelect(result)
+                if viewModel.filteredSkills.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let title = viewModel.emptyStateTitle {
+                            Text(title)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.primary)
+                        }
+                        if let message = viewModel.emptyStateMessage {
+                            Text(message)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(viewModel.filteredSkills.enumerated()), id: \.element.name) { index, skill in
+                                SkillRowView(
+                                    skill: skill,
+                                    isSelected: index == viewModel.selectedIndex
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if let result = viewModel.selectSkill(at: index) {
+                                        onSelect(result)
+                                    }
                                 }
                             }
                         }
                     }
+                    .frame(maxHeight: 200)
                 }
-                .frame(maxHeight: 200)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.regularMaterial)

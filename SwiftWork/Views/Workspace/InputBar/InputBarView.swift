@@ -11,10 +11,6 @@ struct InputBarView: View {
         inputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var autocompleteEnabled: Bool {
-        !agentBridge.discoveredSkills.isEmpty
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             // Autocomplete menu above the input bar
@@ -94,15 +90,22 @@ struct InputBarView: View {
             )
             .padding(.horizontal)
             .padding(.vertical, InputBarComposerMetrics.outerVerticalPadding)
+
+            inlineErrorMessage
         }
         .onChange(of: inputText) { _, newValue in
-            guard autocompleteEnabled else { return }
+            if agentBridge.errorMessage != nil {
+                agentBridge.errorMessage = nil
+            }
+            agentBridge.refreshDiscoveredSkillsSnapshot()
             autocompleteVM.updateQuery(newValue)
         }
         .onAppear {
-            if autocompleteEnabled {
-                autocompleteVM.skillsSource = agentBridge.discoveredSkills
-            }
+            agentBridge.refreshDiscoveredSkillsSnapshot()
+            autocompleteVM.updateSkillsSource(agentBridge.discoveredSkills, currentText: inputText)
+        }
+        .onChange(of: agentBridge.discoveredSkillsRevision) { _, _ in
+            autocompleteVM.updateSkillsSource(agentBridge.discoveredSkills, currentText: inputText)
         }
     }
 
@@ -111,8 +114,24 @@ struct InputBarView: View {
         guard !text.isEmpty else { return }
 
         autocompleteVM.dismiss()
-        agentBridge.sendMessage(text)
-        inputText = ""
+        let outcome = agentBridge.sendMessage(text)
+        switch outcome {
+        case .ignored, .sentPlainText, .sentSlashSkill:
+            inputText = ""
+        case .rejectedUnavailableSkill:
+            break
+        }
+    }
+
+    @ViewBuilder
+    private var inlineErrorMessage: some View {
+        if let error = agentBridge.errorMessage, !error.isEmpty {
+            Text(error)
+                .font(.caption)
+                .foregroundStyle(.red)
+                .padding(.horizontal)
+                .padding(.top, 2)
+        }
     }
 
     private func handleEscape() -> Bool {
