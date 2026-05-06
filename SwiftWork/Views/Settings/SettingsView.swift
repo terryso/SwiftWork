@@ -1,10 +1,12 @@
 import SwiftUI
 import SwiftData
+import OpenAgentSDK
 
 struct SettingsView: View {
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "通用"
         case permissions = "权限"
+        case skills = "Skills"
 
         var id: Self { self }
     }
@@ -13,15 +15,30 @@ struct SettingsView: View {
     @State private var selectedTab: SettingsTab = .general
     let settingsViewModel: SettingsViewModel?
     let permissionHandler: PermissionHandler
+    let agentBridge: AgentBridge?
 
     init(settingsViewModel: SettingsViewModel, permissionHandler: PermissionHandler) {
         self.settingsViewModel = settingsViewModel
         self.permissionHandler = permissionHandler
+        self.agentBridge = nil
     }
 
     init(permissionHandler: PermissionHandler) {
         self.settingsViewModel = nil
         self.permissionHandler = permissionHandler
+        self.agentBridge = nil
+    }
+
+    init(settingsViewModel: SettingsViewModel, permissionHandler: PermissionHandler, agentBridge: AgentBridge) {
+        self.settingsViewModel = settingsViewModel
+        self.permissionHandler = permissionHandler
+        self.agentBridge = agentBridge
+    }
+
+    init(permissionHandler: PermissionHandler, agentBridge: AgentBridge) {
+        self.settingsViewModel = nil
+        self.permissionHandler = permissionHandler
+        self.agentBridge = agentBridge
     }
 
     var body: some View {
@@ -51,7 +68,7 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(width: 200)
+            .frame(width: 260)
 
             Spacer()
         }
@@ -67,6 +84,8 @@ struct SettingsView: View {
             generalTab
         case .permissions:
             permissionsTab
+        case .skills:
+            skillsTab
         }
     }
 
@@ -100,6 +119,20 @@ struct SettingsView: View {
                 PermissionRulesView(permissionHandler: permissionHandler)
             }
             .padding(20)
+        }
+    }
+
+    // MARK: - Skills Tab
+
+    private var skillsTab: some View {
+        Group {
+            if let bridge = agentBridge {
+                SkillsListView(skills: bridge.allRegisteredSkills)
+            } else {
+                Text("Skill 列表不可用")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
     }
 }

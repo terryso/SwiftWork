@@ -69,7 +69,7 @@ struct ContentView: View {
             get: { appState.isSettingsPresented },
             set: { appState.isSettingsPresented = $0 }
         )) {
-            SettingsView(settingsViewModel: appState.settingsViewModel, permissionHandler: agentBridge.permissionHandler)
+            SettingsView(settingsViewModel: appState.settingsViewModel, permissionHandler: agentBridge.permissionHandler, agentBridge: agentBridge)
                 .frame(minWidth: 520, minHeight: 450)
         }
         .task {
