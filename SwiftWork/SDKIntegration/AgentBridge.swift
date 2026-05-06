@@ -124,6 +124,12 @@ final class AgentBridge {
         skillRegistry?.allSkills.filter { $0.userInvocable } ?? []
     }
 
+    /// All registered skills, including non-user-invocable ones.
+    /// Used by the Settings Skills panel to display every registered skill.
+    var allRegisteredSkills: [Skill] {
+        skillRegistry?.allSkills ?? []
+    }
+
     init(permissionHandler: PermissionHandler = PermissionHandler()) {
         self.permissionHandler = permissionHandler
     }
@@ -535,10 +541,6 @@ final class AgentBridge {
 
         switch dialogResult {
         case .allowOnce:
-            permissionHandler.addSessionOverride(
-                toolName: toolName,
-                decision: .approved
-            )
             return .allow()
         case .alwaysAllow:
             permissionHandler.addSessionOverride(
