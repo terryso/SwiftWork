@@ -353,11 +353,32 @@ final class SkillAutocompleteViewModelTests: XCTestCase {
         XCTAssertEqual(vm.selectedIndex, 0)
     }
 
-    func testSlashCommandWithArgumentsStillMatchesCommandToken() {
+    func testSlashCommandWithArgumentsDismissesAutocomplete() {
         let vm = makeViewModel(skills: sampleSkills)
         vm.updateQuery("/commit add release notes")
 
+        XCTAssertEqual(vm.menuState, .hidden)
+        XCTAssertFalse(vm.isVisible)
+        XCTAssertTrue(vm.filteredSkills.isEmpty)
+    }
+
+    func testSlashCommandWithTrailingSpaceDismissesAutocomplete() {
+        let vm = makeViewModel(skills: sampleSkills)
+        vm.updateQuery("/commit ")
+
+        XCTAssertEqual(vm.menuState, .hidden)
+        XCTAssertFalse(vm.isVisible)
+    }
+
+    func testDeletingBackToCommandTokenReopensAutocomplete() {
+        let vm = makeViewModel(skills: sampleSkills)
+        vm.updateQuery("/commit args")
+        XCTAssertEqual(vm.menuState, .hidden)
+
+        vm.updateQuery("/commit")
+
         XCTAssertEqual(vm.menuState, .results)
         XCTAssertEqual(vm.filteredSkills.map(\.name), ["commit"])
+        XCTAssertEqual(vm.selectedIndex, 0)
     }
 }

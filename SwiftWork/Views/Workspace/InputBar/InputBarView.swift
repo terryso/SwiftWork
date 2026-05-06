@@ -4,6 +4,7 @@ struct InputBarView: View {
     let agentBridge: AgentBridge
 
     @State private var inputText: String = ""
+    @State private var selectionRequest: NSRange?
     @State private var autocompleteVM = SkillAutocompleteViewModel()
     @FocusState private var isFocused: Bool
 
@@ -16,8 +17,7 @@ struct InputBarView: View {
             // Autocomplete menu above the input bar
             if autocompleteVM.isVisible {
                 SkillAutocompleteMenuView(viewModel: autocompleteVM) { selectedText in
-                    inputText = selectedText + " "
-                    autocompleteVM.dismiss()
+                    applyAutocomplete(selectedText)
                 }
                 .padding(.horizontal)
                 .padding(.top, 4)
@@ -27,11 +27,12 @@ struct InputBarView: View {
                 ZStack(alignment: .topLeading) {
                     IMESafeTextView(
                         text: $inputText,
+                        selectionRequest: $selectionRequest,
                         onSend: sendMessage,
                         onEscape: handleEscape,
                         onArrowUp: handleArrowUp,
                         onArrowDown: handleArrowDown,
-                        onEnterWithAutocomplete: handleEnterWithAutocomplete
+                        onTabWithAutocomplete: handleTabWithAutocomplete
                     )
                     .focused($isFocused)
 
@@ -152,14 +153,20 @@ struct InputBarView: View {
         return true
     }
 
-    private func handleEnterWithAutocomplete() -> Bool {
+    private func handleTabWithAutocomplete() -> Bool {
         guard autocompleteVM.isVisible,
               let index = autocompleteVM.selectedIndex,
               let result = autocompleteVM.selectSkill(at: index) else {
             return false
         }
-        inputText = result + " "
-        autocompleteVM.dismiss()
+        applyAutocomplete(result)
         return true
+    }
+
+    private func applyAutocomplete(_ selectedText: String) {
+        let completedText = selectedText + " "
+        inputText = completedText
+        selectionRequest = selectionRangeAtEnd(of: completedText)
+        autocompleteVM.dismiss()
     }
 }

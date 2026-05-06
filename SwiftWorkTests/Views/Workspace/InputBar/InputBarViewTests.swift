@@ -1,4 +1,5 @@
 import XCTest
+import AppKit
 @testable import SwiftWork
 
 // ATDD Red Phase -- Story 3.3: 会话管理增强
@@ -13,6 +14,23 @@ final class InputBarViewTests: XCTestCase {
 
     private func makeBridge() -> AgentBridge {
         AgentBridge()
+    }
+
+    private func makeKeyEvent(keyCode: UInt16, characters: String, modifiers: NSEvent.ModifierFlags = []) -> NSEvent {
+        let event = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: modifiers,
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: characters,
+            charactersIgnoringModifiers: characters,
+            isARepeat: false,
+            keyCode: keyCode
+        )
+        XCTAssertNotNil(event)
+        return event!
     }
 
     // MARK: - AC#3: Agent 执行中发送追加消息
@@ -203,5 +221,60 @@ final class InputBarViewTests: XCTestCase {
         XCTAssertEqual(userMessage?.type, .userMessage)
         XCTAssertEqual(userMessage?.content, "first line\nsecond line",
                        "Multi-line text should be sent as-is when Enter is pressed")
+    }
+
+    func testSelectionRangeAtEndPlacesCaretAfterCompletedSkill() {
+        let completedText = "/commit "
+        XCTAssertEqual(
+            selectionRangeAtEnd(of: completedText),
+            NSRange(location: (completedText as NSString).length, length: 0)
+        )
+    }
+
+    func testResolvedSelectionRangePrefersProgrammaticAutocompleteSelection() {
+        let completedText = "/commit "
+        let selection = resolvedSelectionRange(
+            existingSelection: NSRange(location: 2, length: 3),
+            requestedSelection: selectionRangeAtEnd(of: completedText),
+            textLength: (completedText as NSString).length
+        )
+
+        XCTAssertEqual(selection, NSRange(location: (completedText as NSString).length, length: 0))
+    }
+
+    func testSendTextViewTabAcceptsAutocompleteWithoutSending() {
+        let textView = SendTextView()
+        var didAutocomplete = false
+        var sendCount = 0
+        textView.onTabWithAutocomplete = {
+            didAutocomplete = true
+            return true
+        }
+        textView.onSend = {
+            sendCount += 1
+        }
+
+        textView.keyDown(with: makeKeyEvent(keyCode: 48, characters: "\t"))
+
+        XCTAssertTrue(didAutocomplete)
+        XCTAssertEqual(sendCount, 0)
+    }
+
+    func testSendTextViewEnterSendsMessageWithoutAutocompleteInterception() {
+        let textView = SendTextView()
+        var didAutocomplete = false
+        var sendCount = 0
+        textView.onTabWithAutocomplete = {
+            didAutocomplete = true
+            return true
+        }
+        textView.onSend = {
+            sendCount += 1
+        }
+
+        textView.keyDown(with: makeKeyEvent(keyCode: 36, characters: "\r"))
+
+        XCTAssertFalse(didAutocomplete)
+        XCTAssertEqual(sendCount, 1)
     }
 }

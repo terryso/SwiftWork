@@ -50,13 +50,17 @@ final class SkillAutocompleteViewModel {
     }
 
     func updateQuery(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.hasPrefix("/") else {
+        guard let slashCommand = slashCommandText(from: text) else {
             dismiss()
             return
         }
 
-        let query = commandFragment(from: trimmed).lowercased()
+        guard isCommandCompletionPhase(slashCommand) else {
+            dismiss()
+            return
+        }
+
+        let query = commandFragment(from: slashCommand).lowercased()
 
         guard !skillsSource.isEmpty else {
             filteredSkills = []
@@ -117,5 +121,15 @@ final class SkillAutocompleteViewModel {
             return afterSlash
         }
         return String(afterSlash[..<whitespaceIndex])
+    }
+
+    private func slashCommandText(from text: String) -> String? {
+        let trimmedLeading = text.drop(while: { $0.isWhitespace })
+        guard trimmedLeading.first == "/" else { return nil }
+        return String(trimmedLeading)
+    }
+
+    private func isCommandCompletionPhase(_ text: String) -> Bool {
+        !text.dropFirst().contains(where: { $0.isWhitespace })
     }
 }

@@ -1,6 +1,17 @@
 import SwiftUI
 import AppKit
 
+func selectionRangeAtEnd(of text: String) -> NSRange {
+    NSRange(location: (text as NSString).length, length: 0)
+}
+
+func resolvedSelectionRange(existingSelection: NSRange, requestedSelection: NSRange?, textLength: Int) -> NSRange {
+    let baseSelection = requestedSelection ?? existingSelection
+    let location = min(baseSelection.location, textLength)
+    let length = min(baseSelection.length, max(textLength - location, 0))
+    return NSRange(location: location, length: length)
+}
+
 enum InputBarComposerMetrics {
     static let placeholderText = "输入消息发送给 Agent..."
     static let fontSize = NSFont.systemFontSize
@@ -36,11 +47,12 @@ enum InputBarComposerMetrics {
 
 struct IMESafeTextView: NSViewRepresentable {
     @Binding var text: String
+    @Binding var selectionRequest: NSRange?
     var onSend: () -> Void
     var onEscape: (() -> Bool)?
     var onArrowUp: (() -> Bool)?
     var onArrowDown: (() -> Bool)?
-    var onEnterWithAutocomplete: (() -> Bool)?
+    var onTabWithAutocomplete: (() -> Bool)?
 
     @MainActor
     class Coordinator: NSObject, NSTextViewDelegate {
@@ -103,19 +115,26 @@ struct IMESafeTextView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: AutoSizingScrollView, context: Context) {
         guard let tv = scrollView.documentView as? SendTextView else { return }
-        if !tv.hasMarkedText() && tv.string != text {
-            let existingSelection = tv.selectedRange()
+        if !tv.hasMarkedText() && (tv.string != text || selectionRequest != nil) {
+            let selection = resolvedSelectionRange(
+                existingSelection: tv.selectedRange(),
+                requestedSelection: selectionRequest,
+                textLength: (text as NSString).length
+            )
             tv.string = text
-            let selectionLocation = min(existingSelection.location, tv.string.count)
-            let selectionLength = min(existingSelection.length, max(tv.string.count - selectionLocation, 0))
-            tv.setSelectedRange(NSRange(location: selectionLocation, length: selectionLength))
+            tv.setSelectedRange(selection)
             scrollView.syncToTextViewState(resetScrollPosition: text.isEmpty)
+            if selectionRequest != nil {
+                DispatchQueue.main.async {
+                    self.selectionRequest = nil
+                }
+            }
         }
         tv.onSend = onSend
         tv.onEscape = onEscape
         tv.onArrowUp = onArrowUp
         tv.onArrowDown = onArrowDown
-        tv.onEnterWithAutocomplete = onEnterWithAutocomplete
+        tv.onTabWithAutocomplete = onTabWithAutocomplete
     }
 }
 
@@ -179,9 +198,11 @@ final class SendTextView: NSTextView {
     var onEscape: (() -> Bool)?
     var onArrowUp: (() -> Bool)?
     var onArrowDown: (() -> Bool)?
-    var onEnterWithAutocomplete: (() -> Bool)?
+    var onTabWithAutocomplete: (() -> Bool)?
 
     override func keyDown(with event: NSEvent) {
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
         // Escape key (keyCode 53)
         if event.keyCode == 53 {
             if let onEscape = onEscape, onEscape() {
@@ -209,13 +230,27 @@ final class SendTextView: NSTextView {
             return
         }
 
+        // Tab key (keyCode 48)
+        if event.keyCode == 48 {
+            if hasMarkedText() || !mods.isEmpty {
+                super.keyDown(with: event)
+                return
+            }
+
+            if let onTabWithAutocomplete = onTabWithAutocomplete, onTabWithAutocomplete() {
+                return
+            }
+
+            super.keyDown(with: event)
+            return
+        }
+
         // Enter key (keyCode 36)
         guard event.keyCode == 36 else {
             super.keyDown(with: event)
             return
         }
 
-        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if mods.contains(.shift) || mods.contains(.option) {
             super.keyDown(with: event)
             return
@@ -223,11 +258,6 @@ final class SendTextView: NSTextView {
 
         if hasMarkedText() {
             super.keyDown(with: event)
-            return
-        }
-
-        // Try autocomplete selection first
-        if let onEnterWithAutocomplete = onEnterWithAutocomplete, onEnterWithAutocomplete() {
             return
         }
 
