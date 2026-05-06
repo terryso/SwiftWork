@@ -322,7 +322,6 @@
 		DEE31509E08AAA6CF8174F66 /* AppEntryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEntryTests.swift; sourceTree = "<group>"; };
 		DFAB428712665EF76B429884 /* BashToolRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BashToolRenderer.swift; sourceTree = "<group>"; };
 		E15297C90DBB0B4B30655751 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
-		E244F1C15A40ADEA53BC86DB /* SwiftWork.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwiftWork.entitlements; sourceTree = "<group>"; };
 		E32465203BA8A93F26F15F25 /* DebugViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewTests.swift; sourceTree = "<group>"; };
 		E5287CBA92EEDD0CCD994BE3 /* PermissionRulesViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionRulesViewTests.swift; sourceTree = "<group>"; };
 		E636129EDE8669B152A296BD /* EventTypeVisualStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTypeVisualStyleTests.swift; sourceTree = "<group>"; };
@@ -748,7 +747,6 @@
 				4E5870B129AD3186C0AADE97 /* ViewModels */,
 				0282B52D50B7B6C7CAF2D0F8 /* Views */,
 				C3769130408C33713CDC97D9 /* Assets.xcassets */,
-				E244F1C15A40ADEA53BC86DB /* SwiftWork.entitlements */,
 			);
 			path = SwiftWork;
 			sourceTree = "<group>";
@@ -1244,7 +1242,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = SwiftWork/SwiftWork.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = manual;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -1279,7 +1276,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = SwiftWork/SwiftWork.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = manual;
 				COMBINE_HIDPI_IMAGES = YES;

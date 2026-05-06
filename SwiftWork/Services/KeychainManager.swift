@@ -1,5 +1,4 @@
 import Foundation
-import Security
 
 // MARK: - KeychainManaging Protocol
 
@@ -28,111 +27,133 @@ extension KeychainManaging {
 
 // MARK: - KeychainManager
 
+/// Legacy name kept for compatibility. Storage is backed by the app sandbox,
+/// not the macOS Keychain.
 struct KeychainManager: KeychainManaging, Sendable {
     private let service: String
+    private let baseDirectory: URL?
 
-    init(service: String = KeychainConstants.service) {
+    init(service: String = KeychainConstants.service, baseDirectory: URL? = nil) {
         self.service = service
+        self.baseDirectory = baseDirectory
     }
 
-    // MARK: - Core CRUD
-
     func save(key: String, data: Data) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
-        ]
-
-        let addAttributes = query.merging([
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
-        ]) { _, new in new }
-
-        let addStatus = SecItemAdd(addAttributes as CFDictionary, nil)
-
-        if addStatus == errSecDuplicateItem {
-            let updateStatus = SecItemUpdate(query as CFDictionary, [
-                kSecValueData as String: data
-            ] as CFDictionary)
-            guard updateStatus == errSecSuccess else {
-                throw AppError(
-                    domain: .security,
-                    code: "KEYCHAIN_SAVE_FAILED",
-                    message: "Failed to update existing Keychain item",
-                    underlying: NSError(domain: "com.swiftwork.keychain", code: Int(updateStatus), userInfo: [
-                        NSLocalizedDescriptionKey: "SecItemUpdate failed with OSStatus \(updateStatus)"
-                    ])
-                )
-            }
-            return
-        }
-
-        guard addStatus == errSecSuccess else {
-            throw AppError(
-                domain: .security,
-                code: "KEYCHAIN_SAVE_FAILED",
-                message: "Failed to save to Keychain",
-                underlying: NSError(domain: "com.swiftwork.keychain", code: Int(addStatus), userInfo: [
-                    NSLocalizedDescriptionKey: "SecItemAdd failed with OSStatus \(addStatus)"
-                ])
-            )
-        }
+        var entries = try loadEntries()
+        entries[key] = data
+        try persist(entries)
     }
 
     func load(key: String) throws -> Data? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        if status == errSecItemNotFound {
-            return nil
-        }
-
-        guard status == errSecSuccess else {
-            throw AppError(
-                domain: .security,
-                code: "KEYCHAIN_LOAD_FAILED",
-                message: "Failed to load from Keychain",
-                underlying: NSError(domain: "com.swiftwork.keychain", code: Int(status), userInfo: [
-                    NSLocalizedDescriptionKey: "SecItemCopyMatching failed with OSStatus \(status)"
-                ])
-            )
-        }
-
-        return result as? Data
+        let entries = try loadEntries()
+        return entries[key]
     }
 
     func delete(key: String) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
-        ]
+        var entries = try loadEntries()
+        entries.removeValue(forKey: key)
+        try persist(entries)
+    }
 
-        let status = SecItemDelete(query as CFDictionary)
-
-        if status == errSecItemNotFound {
-            return
+    private func loadEntries() throws -> [String: Data] {
+        let fileURL = try storageFileURL()
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return [:]
         }
 
-        guard status == errSecSuccess else {
+        do {
+            let data = try Data(contentsOf: fileURL)
+            guard !data.isEmpty else { return [:] }
+
+            let propertyList = try PropertyListSerialization.propertyList(
+                from: data,
+                options: [],
+                format: nil
+            )
+
+            guard let entries = propertyList as? [String: Data] else {
+                throw AppError(
+                    domain: .data,
+                    code: "SANDBOX_STORE_INVALID_FORMAT",
+                    message: "Sandbox credential store is corrupted"
+                )
+            }
+
+            return entries
+        } catch let error as AppError {
+            throw error
+        } catch {
             throw AppError(
-                domain: .security,
-                code: "KEYCHAIN_DELETE_FAILED",
-                message: "Failed to delete from Keychain",
-                underlying: NSError(domain: "com.swiftwork.keychain", code: Int(status), userInfo: [
-                    NSLocalizedDescriptionKey: "SecItemDelete failed with OSStatus \(status)"
-                ])
+                domain: .data,
+                code: "SANDBOX_STORE_READ_FAILED",
+                message: "Failed to read sandbox credential store",
+                underlying: error
             )
         }
     }
 
+    private func persist(_ entries: [String: Data]) throws {
+        let fileURL = try storageFileURL()
+        let directoryURL = fileURL.deletingLastPathComponent()
+
+        do {
+            try FileManager.default.createDirectory(
+                at: directoryURL,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+
+            if entries.isEmpty {
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    try FileManager.default.removeItem(at: fileURL)
+                }
+                return
+            }
+
+            let data = try PropertyListSerialization.data(
+                fromPropertyList: entries,
+                format: .binary,
+                options: 0
+            )
+            try data.write(to: fileURL, options: .atomic)
+        } catch let error as AppError {
+            throw error
+        } catch {
+            throw AppError(
+                domain: .data,
+                code: "SANDBOX_STORE_WRITE_FAILED",
+                message: "Failed to write sandbox credential store",
+                underlying: error
+            )
+        }
+    }
+
+    private func storageFileURL() throws -> URL {
+        if let baseDirectory {
+            return sanitizedStorageFileURL(in: baseDirectory)
+        }
+
+        guard let appSupportDirectory = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else {
+            throw AppError(
+                domain: .data,
+                code: "SANDBOX_STORE_DIRECTORY_UNAVAILABLE",
+                message: "Application Support directory is unavailable"
+            )
+        }
+
+        return sanitizedStorageFileURL(in: appSupportDirectory.appendingPathComponent(Constants.appName, isDirectory: true))
+    }
+
+    private func sanitizedStorageFileURL(in directory: URL) -> URL {
+        let allowedCharacters = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-")
+        let sanitizedService = String(service.unicodeScalars.map { scalar in
+            allowedCharacters.contains(scalar) ? Character(scalar) : "-"
+        })
+        return directory
+            .appendingPathComponent("Secrets", isDirectory: true)
+            .appendingPathComponent("\(sanitizedService).plist")
+    }
 }

@@ -27,6 +27,29 @@ packages:
     url: https://github.com/sparkle-project/Sparkle
     from: "2.0.0"
 
+schemes:
+  SwiftWork:
+    build:
+      targets:
+        SwiftWork: all
+        SwiftWorkTests: [test]
+    run:
+      config: Debug
+      executable: SwiftWork
+    test:
+      config: Debug
+      targets:
+        - SwiftWorkTests
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+    profile:
+      config: Release
+    management:
+      shared: true
+      isShown: true
+
 targets:
   SwiftWork:
     type: application
@@ -42,7 +65,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.swiftwork.app
         INFOPLIST_KEY_CFBundleDisplayName: SwiftWork
-        CODE_SIGN_ENTITLEMENTS: SwiftWork/SwiftWork.entitlements
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: manual
         ENABLE_PREVIEWS: true

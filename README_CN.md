@@ -43,7 +43,7 @@ macOS 原生 AI 工作台，用于可视化和交互 AI Agent。SwiftWork 提供
 
 ### 引导与配置
 - 首次启动引导向导
-- 通过 macOS Keychain 管理 API Key
+- 通过应用沙盒存储管理 API Key
 - 模型选择界面
 
 ## 技术栈

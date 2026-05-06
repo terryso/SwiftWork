@@ -43,7 +43,7 @@ Built with [Open Agent SDK (Swift)](https://github.com/terryso/open-agent-sdk-sw
 
 ### Onboarding & Configuration
 - First-launch setup wizard
-- API key management via macOS Keychain
+- API key management via app sandbox storage
 - Model selection interface
 
 ## Tech Stack

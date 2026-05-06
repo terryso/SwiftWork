@@ -130,7 +130,6 @@ struct WorkspaceView: View {
             .padding(.vertical, 4)
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.orange.opacity(0.08))
         }
         .buttonStyle(.plain)
     }

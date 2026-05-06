@@ -3,6 +3,12 @@ import SwiftData
 import OpenAgentSDK
 
 struct SettingsView: View {
+    private enum Layout {
+        static let minWidth: CGFloat = 520
+        static let minHeight: CGFloat = 450
+        static let fixedHeight: CGFloat = 620
+    }
+
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "通用"
         case permissions = "权限"
@@ -49,7 +55,12 @@ struct SettingsView: View {
 
             activeTabContent
         }
-        .frame(minWidth: 520, minHeight: 450)
+        .frame(
+            minWidth: Layout.minWidth,
+            minHeight: Layout.minHeight,
+            idealHeight: Layout.fixedHeight,
+            maxHeight: Layout.fixedHeight
+        )
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("关闭") { dismiss() }
@@ -128,6 +139,7 @@ struct SettingsView: View {
         Group {
             if let bridge = agentBridge {
                 SkillsListView(skills: bridge.allRegisteredSkills)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 Text("Skill 列表不可用")
                     .foregroundStyle(.secondary)
