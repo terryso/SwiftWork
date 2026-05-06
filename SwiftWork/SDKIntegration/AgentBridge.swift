@@ -87,8 +87,18 @@ final class AgentBridge {
     private var configuredWorkspaceState: SessionWorkspaceState = .unbound
     @ObservationIgnored
     private let workspaceService = SessionWorkspaceService()
+    private static var builtInSkillCatalog: [Skill] {
+        [
+            BuiltInSkills.commit,
+            BuiltInSkills.review,
+            BuiltInSkills.simplify,
+            BuiltInSkills.debug,
+            BuiltInSkills.test,
+        ]
+    }
+
     @ObservationIgnored
-    private var slashSkillCatalog: [Skill] = []
+    private var slashSkillCatalog: [Skill] = AgentBridge.builtInSkillCatalog
 
     // MARK: - Pagination State (Story 2-5)
 
@@ -166,7 +176,7 @@ final class AgentBridge {
     /// All registered skills, including non-user-invocable ones.
     /// Used by the Settings Skills panel to display every registered skill.
     var allRegisteredSkills: [Skill] {
-        skillRegistry?.allSkills ?? []
+        slashSkillCatalog
     }
 
     var activeWorkspaceRoot: String? {
@@ -193,11 +203,7 @@ final class AgentBridge {
         configuredWorkspacePath = resolvedWorkspaceState.workspacePath
 
         let fullRegistry = SkillRegistry()
-        fullRegistry.register(BuiltInSkills.commit)
-        fullRegistry.register(BuiltInSkills.review)
-        fullRegistry.register(BuiltInSkills.simplify)
-        fullRegistry.register(BuiltInSkills.debug)
-        fullRegistry.register(BuiltInSkills.test)
+        runtimeAwareBuiltInSkills(for: activeWorkspaceRoot).forEach(fullRegistry.register)
 
         let skillDirectories = workspaceService.skillSearchDirectories(for: resolvedWorkspaceState)
         let discoveredCount = fullRegistry.registerDiscoveredSkills(from: skillDirectories)
@@ -539,7 +545,7 @@ final class AgentBridge {
             return .workspaceRequired(invocation)
         }
 
-        guard skill.isAvailable() else {
+        guard isSkillAvailableInCurrentWorkspace(skill) else {
             return .unavailable(invocation)
         }
         return .available(invocation)
@@ -677,7 +683,9 @@ final class AgentBridge {
     }
 
     private func refreshDiscoveredSkills() {
-        let refreshed = skillRegistry?.userInvocableSkills ?? []
+        let refreshed = (skillRegistry?.allSkills ?? []).filter { skill in
+            skill.userInvocable && isSkillAvailableInCurrentWorkspace(skill)
+        }
         let currentNames = discoveredSkills.map(\.name)
         let refreshedNames = refreshed.map(\.name)
         discoveredSkills = refreshed
@@ -704,6 +712,59 @@ final class AgentBridge {
             true
         case .unbound, .needsRepair:
             !skillRequiresWorkspace(skill)
+        }
+    }
+
+    private func isSkillAvailableInCurrentWorkspace(_ skill: Skill) -> Bool {
+        if skill.name == "test", SkillSource.from(skill, workspaceRoot: activeWorkspaceRoot) == .builtIn {
+            return workspaceHasTestFrameworkIndicators()
+        }
+
+        return skill.isAvailable()
+    }
+
+    private func runtimeAwareBuiltInSkills(for workspaceRoot: String?) -> [Skill] {
+        Self.builtInSkillCatalog.map { skill in
+            guard skill.name == "test" else { return skill }
+
+            return Skill(
+                name: skill.name,
+                description: skill.description,
+                aliases: skill.aliases,
+                userInvocable: skill.userInvocable,
+                toolRestrictions: skill.toolRestrictions,
+                modelOverride: skill.modelOverride,
+                isAvailable: { AgentBridge.workspaceHasTestFrameworkIndicators(in: workspaceRoot) },
+                promptTemplate: skill.promptTemplate,
+                whenToUse: skill.whenToUse,
+                argumentHint: skill.argumentHint,
+                baseDir: skill.baseDir,
+                supportingFiles: skill.supportingFiles
+            )
+        }
+    }
+
+    private func workspaceHasTestFrameworkIndicators() -> Bool {
+        Self.workspaceHasTestFrameworkIndicators(in: activeWorkspaceRoot)
+    }
+
+    nonisolated private static func workspaceHasTestFrameworkIndicators(in workspaceRoot: String?) -> Bool {
+        let fileManager = FileManager.default
+        let testIndicators = [
+            "Package.swift",     // Swift PM
+            "pytest.ini",        // Python pytest
+            "jest.config",       // JavaScript Jest
+            "vitest.config",     // JavaScript Vitest
+            "Cargo.toml",        // Rust cargo test
+            "go.mod",            // Go test
+        ]
+
+        guard let workspaceRoot, !workspaceRoot.isEmpty else {
+            return false
+        }
+
+        return testIndicators.contains { indicator in
+            fileManager.fileExists(atPath: workspaceRoot + "/" + indicator)
         }
     }
 

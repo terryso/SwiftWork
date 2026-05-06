@@ -29,6 +29,18 @@ final class AgentBridgeSkillTests: XCTestCase {
         FileManager.default.currentDirectoryPath
     }
 
+    private func withCurrentDirectory<T>(
+        _ path: String,
+        perform: () throws -> T
+    ) throws -> T {
+        let previous = FileManager.default.currentDirectoryPath
+        XCTAssertTrue(FileManager.default.changeCurrentDirectoryPath(path))
+        defer {
+            XCTAssertTrue(FileManager.default.changeCurrentDirectoryPath(previous))
+        }
+        return try perform()
+    }
+
     private func makeSkill(
         name: String,
         aliases: [String] = [],
@@ -316,6 +328,41 @@ final class AgentBridgeSkillTests: XCTestCase {
             "discoveredSkills should not be empty after configure()")
     }
 
+    // [P0] allRegisteredSkills exposes built-in skills even before configure()
+    func testAllRegisteredSkillsExposeBuiltInsBeforeConfigure() {
+        let bridge = makeBridge()
+
+        let skillNames = Set(bridge.allRegisteredSkills.map(\.name))
+
+        XCTAssertTrue(skillNames.contains("commit"))
+        XCTAssertTrue(skillNames.contains("review"))
+        XCTAssertTrue(skillNames.contains("simplify"))
+        XCTAssertTrue(skillNames.contains("debug"))
+        XCTAssertTrue(skillNames.contains("test"))
+    }
+
+    // [P0] allRegisteredSkills keeps workspace-dependent built-ins visible when unbound
+    func testAllRegisteredSkillsIncludeWorkspaceBuiltInsWhenWorkspaceUnbound() {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        let allSkillNames = Set(bridge.allRegisteredSkills.map(\.name))
+        let discoveredSkillNames = Set(bridge.discoveredSkills.map(\.name))
+
+        XCTAssertTrue(allSkillNames.contains("commit"),
+            "Settings-visible catalog should still include /commit when workspace is unbound")
+        XCTAssertTrue(allSkillNames.contains("review"),
+            "Settings-visible catalog should still include /review when workspace is unbound")
+        XCTAssertFalse(discoveredSkillNames.contains("commit"),
+            "Slash autocomplete/runtime registry should still hide workspace-dependent skills when unbound")
+    }
+
     // [P0] discoveredSkills reflects current registry state (not stale)
     func testDiscoveredSkillsReflectsCurrentState() {
         let bridge = makeBridge()
@@ -351,6 +398,62 @@ final class AgentBridgeSkillTests: XCTestCase {
             XCTAssertTrue(skill.userInvocable,
                 "discoveredSkills should only contain user-invocable skills, found non-invocable: \(skill.name)")
         }
+    }
+
+    func testTestSkillAvailabilityUsesWorkspaceRootInsteadOfProcessCWD() throws {
+        let fileManager = FileManager.default
+        let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let workspaceURL = tempRoot.appendingPathComponent("workspace")
+        let sandboxCWDURL = tempRoot.appendingPathComponent("sandbox-cwd")
+
+        try fileManager.createDirectory(at: workspaceURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: sandboxCWDURL, withIntermediateDirectories: true)
+        fileManager.createFile(
+            atPath: workspaceURL.appendingPathComponent("Package.swift").path,
+            contents: Data("".utf8)
+        )
+        defer { try? fileManager.removeItem(at: tempRoot) }
+
+        try withCurrentDirectory(sandboxCWDURL.path) {
+            let bridge = makeBridge()
+            bridge.configure(
+                apiKey: "test-key",
+                baseURL: nil,
+                model: "test-model",
+                workspacePath: workspaceURL.path,
+                sessionId: UUID().uuidString
+            )
+
+            XCTAssertTrue(bridge.discoveredSkills.contains(where: { $0.name == "test" }),
+                "Test skill should be available when the bound workspace contains Package.swift")
+            XCTAssertNotNil(bridge.resolveExplicitSlashSkillInvocation(in: "/test"),
+                "Explicit /test should resolve against the bound workspace, not the app process cwd")
+            guard case .sentSlashSkill(let invocation) = bridge.sendMessage("/test") else {
+                return XCTFail("Expected /test to send successfully when workspace contains Package.swift")
+            }
+            XCTAssertEqual(invocation.canonicalName, "test")
+        }
+    }
+
+    func testTestSkillAvailabilityDoesNotLeakFromProcessCWDIntoWorkspace() throws {
+        let fileManager = FileManager.default
+        let workspaceURL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try fileManager.createDirectory(at: workspaceURL, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: workspaceURL) }
+
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: workspaceURL.path,
+            sessionId: UUID().uuidString
+        )
+
+        XCTAssertFalse(bridge.discoveredSkills.contains(where: { $0.name == "test" }),
+            "Test skill should stay hidden when the bound workspace has no test framework indicators")
+        XCTAssertNil(bridge.resolveExplicitSlashSkillInvocation(in: "/test"),
+            "Explicit /test should not resolve when the workspace itself has no test framework indicators")
     }
 
     // MARK: - Regression: existing AgentBridge behavior preserved
