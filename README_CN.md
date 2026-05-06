@@ -36,6 +36,17 @@ macOS 原生 AI 工作台，用于可视化和交互 AI Agent。SwiftWork 提供
 - 实时进度指示器，支持展开/折叠查看详细结果
 - 可扩展的 `ToolRenderable` 协议，便于添加新工具类型
 
+### 权限控制
+- 时间线内联审批卡片——在上下文中批准、会话允许或拒绝工具调用
+- 模板驱动的规则创建与内联编辑
+- 自动批准模式，附带视觉警告指示器
+- 权限规则管理——查看、编辑、删除规则
+
+### Skill 技能系统
+- 输入框斜杠命令自动补全——输入 `/` 即可发现可用技能
+- Skill 时间线卡片——技能执行事件的专属渲染
+- 设置中的技能管理面板——按来源分组浏览（Built-in / Project / User）
+
 ### Inspector 面板
 - 三栏布局（侧边栏 + 工作区 + 检查面板）
 - 详细事件检查面板
@@ -76,14 +87,19 @@ SwiftWork/
 │   ├── Sidebar/                      # 会话列表
 │   ├── Workspace/
 │   │   ├── Timeline/EventViews/      # 各事件类型视图
+│   │   │   └── ToolRenderers/        # Skill、Bash 等工具卡片
 │   │   ├── Inspector/                # 事件详情面板
-│   │   └── InputBar/                 # 消息输入框
-│   └── Settings/                     # 设置界面
+│   │   └── InputBar/                 # 消息输入 + Skill 自动补全
+│   ├── Permission/                   # 内联审批卡片
+│   └── Settings/                     # 设置 + 技能管理
 ├── SDKIntegration/
-│   ├── AgentBridge.swift             # SDK ↔ ViewModel 桥接
+│   ├── AgentBridge.swift             # SDK ↔ ViewModel 桥接 + Skill 管道
 │   ├── EventMapper.swift             # SDKMessage → AgentEvent 映射
+│   ├── PermissionHandler.swift       # 工具调用审批逻辑
 │   ├── ToolRenderable.swift          # 工具渲染协议
 │   └── ToolRendererRegistry.swift    # 可扩展工具注册表
+├── Services/
+│   └── KeychainManager.swift         # 安全凭证存储
 └── Utils/
     └── Extensions/                   # 颜色、日期格式化等工具
 ```
@@ -142,39 +158,28 @@ xattr -cr /Applications/SwiftWork.app
 | Epic | 描述 | 状态 |
 |---|---|---|
 | Epic 1 | 首次启动与基础交互（SDK→UI 闭环） | 已完成 |
-| Epic 2 | Agent 执行可视化（Tool Card 体验） | 进行中 |
-| Epic 3 | 权限控制与会话管理（用户掌控力） | 待开发 |
-| Epic 4 | 调试面板与应用外壳（开发者工具体验） | 待开发 |
+| Epic 2 | Agent 执行可视化（Tool Card 体验） | 已完成 |
+| Epic 3 | 权限控制与会话管理（用户掌控力） | 已完成 |
+| Epic 4 | 调试面板与应用外壳（开发者工具体验） | 已完成 |
+| Epic 5 | 技能系统（斜杠命令、卡片渲染、管理面板） | 已完成 |
 
 **Epic 1**（已完成）：项目初始化、引导配置、会话管理、消息输入、事件时间线、状态恢复。
 
-**Epic 2**（进行中）：工具可视化架构、工具卡片体验、事件视觉系统、Markdown/代码高亮、时间线性能优化。
+**Epic 2**（已完成）：工具可视化架构、工具卡片体验、事件视觉系统、Markdown/代码高亮、时间线性能优化。
+
+**Epic 3**（已完成）：内联权限审批卡片、权限规则增删改查、自动批准模式、会话管理、Inspector 面板、执行计划可视化。
+
+**Epic 4**（已完成）：调试面板、多标签设置、macOS 菜单栏、Dock Badge。
+
+**Epic 5**（已完成）：SDK Skill 管道、斜杠命令自动补全、Skill 时间线卡片渲染、技能管理面板。
 
 ## 路线图
 
-### 进行中 — Epic 2：Agent 执行可视化
-- [ ] 事件视觉系统 — 颜色/图标区分事件类型，错误高亮
-- [ ] Markdown 渲染 — 标题、列表、粗体/斜体、行内代码、表格
-- [ ] 代码语法高亮 — Swift、Python、JavaScript、Bash（基于 Splash）
-- [ ] 长文本折叠/展开
-- [ ] Timeline 性能优化 — 懒加载、虚拟化，支持 1000+ 事件
-
-### 计划中 — Epic 3：权限控制与会话管理
-- [ ] 权限系统 — 原生 macOS 弹窗审批工具调用（允许一次 / 始终允许 / 拒绝）
-- [ ] 权限规则管理 — 在设置中查看、编辑、删除规则
-- [ ] 全局权限模式 — 自动批准、手动审批、全部拒绝
-- [ ] 会话管理 — 级联删除会话、内联重命名
-- [ ] Agent 执行中追加消息
-- [ ] Inspector Panel — 完整事件详情（JSON、耗时、Token 用量）
-- [ ] 执行计划可视化 — 步骤列表、状态与依赖关系
-
-### 计划中 — Epic 4：调试面板与应用外壳
-- [ ] 调试面板 — 原始 SDK 事件流、Token 消耗统计、工具执行日志
-- [ ] 应用设置 — API Key 管理、模型选择、权限配置
-- [ ] macOS 菜单栏 — File / Edit / View / Window / Help 菜单
-- [ ] 键盘快捷键 — Cmd+N、Cmd+W、Cmd+,
-- [ ] Dock Badge — 未读会话数
-- [ ] macOS 标准窗口管理 — 全屏、分屏、Stage Manager
+### 计划中 — 下一步
+- [ ] 死循环检测——识别并警告 Agent 陷入重复循环
+- [ ] 多 Agent 支持——在不同 Agent 配置之间切换
+- [ ] 插件系统——第三方工具渲染器和技能扩展
+- [ ] 会话导出——将对话记录保存为 Markdown 或 JSON
 
 ## 许可证
 

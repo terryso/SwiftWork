@@ -36,6 +36,17 @@ Built with [Open Agent SDK (Swift)](https://github.com/terryso/open-agent-sdk-sw
 - Real-time progress indicators with expand/collapse for detailed results
 - Extensible `ToolRenderable` protocol for adding new tool types
 
+### Permission Control
+- Inline approval cards in the timeline — approve, allow for session, or deny tool calls in context
+- Template-driven rule creation with inline editing in Settings
+- Auto-approve mode with visual warning indicator
+- Permission rule management — view, edit, delete rules
+
+### Skill System
+- Slash command autocomplete in input bar — type `/` to discover available skills
+- Skill timeline cards — dedicated rendering for skill execution events
+- Skill management panel in Settings — browse skills grouped by source (Built-in / Project / User)
+
 ### Inspector Panel
 - Three-panel layout (Sidebar + Workspace + Inspector)
 - Detailed event inspection panel
@@ -76,14 +87,19 @@ SwiftWork/
 │   ├── Sidebar/                      # Session list
 │   ├── Workspace/
 │   │   ├── Timeline/EventViews/      # Per-event-type views
+│   │   │   └── ToolRenderers/        # Skill, Bash, etc. tool cards
 │   │   ├── Inspector/                # Event detail panel
-│   │   └── InputBar/                 # Message input
-│   └── Settings/                     # Settings interface
+│   │   └── InputBar/                 # Message input + skill autocomplete
+│   ├── Permission/                   # Inline approval cards
+│   └── Settings/                     # Settings + skill management
 ├── SDKIntegration/
-│   ├── AgentBridge.swift             # SDK ↔ ViewModel bridge
+│   ├── AgentBridge.swift             # SDK ↔ ViewModel bridge + skill pipeline
 │   ├── EventMapper.swift             # SDKMessage → AgentEvent
+│   ├── PermissionHandler.swift       # Tool call approval logic
 │   ├── ToolRenderable.swift          # Tool rendering protocol
 │   └── ToolRendererRegistry.swift    # Extensible tool registry
+├── Services/
+│   └── KeychainManager.swift         # Secure credential storage
 └── Utils/
     └── Extensions/                   # Color, Date formatting helpers
 ```
@@ -142,39 +158,28 @@ xattr -cr /Applications/SwiftWork.app
 | Epic | Description | Status |
 |---|---|---|
 | Epic 1 | First launch & basic interaction (SDK→UI loop) | Done |
-| Epic 2 | Agent execution visualization (Tool Cards) | In Progress |
-| Epic 3 | Permission control & session management | Backlog |
-| Epic 4 | Debug panel & app shell | Backlog |
+| Epic 2 | Agent execution visualization (Tool Cards) | Done |
+| Epic 3 | Permission control & session management | Done |
+| Epic 4 | Debug panel & app shell | Done |
+| Epic 5 | Skill system (slash commands, cards, management) | Done |
 
 **Epic 1** (done): Project init, onboarding, session management, message input, event timeline, state restore.
 
-**Epic 2** (in progress): Tool visualization architecture, tool card experience, event visual system, markdown/code highlighting, timeline performance.
+**Epic 2** (done): Tool visualization architecture, tool card experience, event visual system, markdown/code highlighting, timeline performance.
+
+**Epic 3** (done): Inline permission approval cards, permission rules CRUD, auto-approve mode, session management, inspector panel, execution plan visualization.
+
+**Epic 4** (done): Debug panel, multi-tab settings, macOS menu bar, dock badge.
+
+**Epic 5** (done): SDK skill pipeline, slash command autocomplete, skill timeline card rendering, skill management panel.
 
 ## Roadmap
 
-### In Progress — Epic 2: Agent Execution Visualization
-- [ ] Event visual system — color/icon differentiation by event type, error highlighting
-- [ ] Markdown rendering — headings, lists, bold/italic, inline code, tables
-- [ ] Code syntax highlighting — Swift, Python, JavaScript, Bash via Splash
-- [ ] Long text collapse/expand
-- [ ] Timeline performance — lazy loading, virtualization for 1000+ events
-
-### Planned — Epic 3: Permission Control & Session Management
-- [ ] Permission system — native macOS dialogs for tool call approval (Allow Once / Always Allow / Deny)
-- [ ] Permission rules management — view, edit, delete rules in settings
-- [ ] Global permission modes — auto-approve, manual review, deny all
-- [ ] Session management — delete sessions with cascade, inline rename
-- [ ] Follow-up messages during agent execution
-- [ ] Inspector Panel — full event details (JSON, timing, token usage)
-- [ ] Execution plan visualization — step list with status and dependencies
-
-### Planned — Epic 4: Debug Panel & App Shell
-- [ ] Debug Panel — raw SDK event stream, token consumption stats, tool execution logs
-- [ ] App settings — API Key management, model selection, permission configuration
-- [ ] macOS menu bar — File / Edit / View / Window / Help menus
-- [ ] Keyboard shortcuts — Cmd+N, Cmd+W, Cmd+,
-- [ ] Dock badge — unread session count
-- [ ] Standard macOS window management — fullscreen, split view, Stage Manager
+### Planned — Next
+- [ ] Doom loop detection — identify and warn when agent is stuck in repetitive cycles
+- [ ] Multi-agent support — switch between different agent configurations
+- [ ] Plugin system — third-party tool renderers and skill extensions
+- [ ] Export sessions — save conversation transcripts as Markdown or JSON
 
 ## License
 
