@@ -65,6 +65,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.swiftwork.app
         INFOPLIST_KEY_CFBundleDisplayName: SwiftWork
+        MARKETING_VERSION: 0.2.2
+        CURRENT_PROJECT_VERSION: 7
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: manual
         ENABLE_PREVIEWS: true

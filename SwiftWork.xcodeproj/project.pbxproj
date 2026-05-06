@@ -1253,12 +1253,14 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 7;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = SwiftWork;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftwork.app;
 				SDKROOT = macosx;
 			};
@@ -1287,12 +1289,14 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 7;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = SwiftWork;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swiftwork.app;
 				SDKROOT = macosx;
 			};
