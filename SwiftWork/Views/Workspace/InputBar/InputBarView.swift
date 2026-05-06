@@ -119,7 +119,7 @@ struct InputBarView: View {
         switch outcome {
         case .ignored, .sentPlainText, .sentSlashSkill:
             inputText = ""
-        case .rejectedUnavailableSkill:
+        case .rejectedUnavailableSkill, .requiresWorkspaceBinding:
             break
         }
     }

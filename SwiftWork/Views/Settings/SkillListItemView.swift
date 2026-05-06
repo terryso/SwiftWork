@@ -5,6 +5,7 @@ import OpenAgentSDK
 struct SkillListItemView: View {
     let skill: Skill
     let isExpanded: Bool
+    let workspaceRoot: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -53,7 +54,7 @@ struct SkillListItemView: View {
     // MARK: - Source Badge
 
     private var sourceBadge: some View {
-        let source = SkillSource.from(skill)
+        let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
         return Text(sourceLabel(source))
             .font(.caption2)
             .fontWeight(.medium)

@@ -66,9 +66,12 @@ final class SessionModelTests: XCTestCase {
         let session = Session(title: "No Workspace")
 
         XCTAssertNil(session.workspacePath)
+        XCTAssertNil(session.workspaceBookmark)
+        XCTAssertEqual(session.workspaceBindingMode, .unbound)
 
         session.workspacePath = "/Users/test/project"
         XCTAssertEqual(session.workspacePath, "/Users/test/project")
+        XCTAssertEqual(session.workspaceBindingMode, .bound)
     }
 
     // [P1] Session is a SwiftData @Model class (PersistentModel)

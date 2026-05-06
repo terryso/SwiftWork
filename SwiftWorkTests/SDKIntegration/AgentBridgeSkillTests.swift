@@ -25,6 +25,10 @@ final class AgentBridgeSkillTests: XCTestCase {
         AgentBridge()
     }
 
+    private var workspacePath: String {
+        FileManager.default.currentDirectoryPath
+    }
+
     private func makeSkill(
         name: String,
         aliases: [String] = [],
@@ -50,7 +54,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: "/tmp/test-workspace",
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -78,10 +82,10 @@ final class AgentBridgeSkillTests: XCTestCase {
 
         // If skillDirectories was nil, autoDiscoverSkills would be a no-op.
         // BuiltInSkills are registered directly, so they should always be present.
-        let skills = bridge.discoveredSkills
-        XCTAssertTrue(
-            skills.contains(where: { $0.name == "commit" }),
-            "BuiltInSkills.commit should be registered after configure()"
+        XCTAssertNil(bridge.activeWorkspaceRoot)
+        XCTAssertFalse(
+            bridge.discoveredSkills.contains(where: { $0.name == "commit" }),
+            "Unbound sessions should not expose workspace-dependent built-in skills"
         )
     }
 
@@ -97,15 +101,15 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
         // At minimum, BuiltInSkills should be present even without filesystem skills.
         // The key assertion: the skill discovery pipeline is wired up.
         let skills = bridge.discoveredSkills
-        XCTAssertGreaterThanOrEqual(skills.count, 5,
-            "Should have at least 5 BuiltInSkills (commit, review, simplify, debug, test)")
+        XCTAssertGreaterThanOrEqual(skills.count, 4,
+            "Should have built-in workspace skills when a workspace is bound")
     }
 
     // MARK: - AC#3: Skill list injected into system prompt
@@ -211,7 +215,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -237,7 +241,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -302,7 +306,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -323,7 +327,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -338,7 +342,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -358,7 +362,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -378,7 +382,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         let initialSkillCount = bridge.discoveredSkills.count
@@ -400,7 +404,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "key1",
             baseURL: nil,
             model: "model1",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         let firstCount = bridge.discoveredSkills.count
@@ -409,7 +413,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "key2",
             baseURL: nil,
             model: "model2",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         let secondCount = bridge.discoveredSkills.count
@@ -424,7 +428,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
@@ -442,7 +446,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
@@ -454,13 +458,32 @@ final class AgentBridgeSkillTests: XCTestCase {
         XCTAssertEqual(invocation?.args, "获取最新5个频道")
     }
 
-    func testExplicitSlashSkillSendUsesSlashRoute() async {
+    func testUnboundSessionRejectsWorkspaceDependentSlashSkill() {
         let bridge = makeBridge()
         bridge.configure(
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
             workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        let outcome = bridge.sendMessage("/commit")
+
+        guard case .requiresWorkspaceBinding(let invocation) = outcome else {
+            return XCTFail("Expected unbound workspace-dependent slash skill to be rejected")
+        }
+        XCTAssertEqual(invocation.canonicalName, "commit")
+        XCTAssertEqual(bridge.errorMessage, "Skill /commit 需要先绑定工作目录。")
+    }
+
+    func testExplicitSlashSkillSendUsesSlashRoute() async {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
@@ -491,7 +514,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -508,7 +531,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"], available: { false }))
@@ -529,7 +552,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
@@ -546,7 +569,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         bridge.registerSkill(makeSkill(name: "internal-polyv", userInvocable: false))
@@ -563,7 +586,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
 
@@ -583,7 +606,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             apiKey: "test-key",
             baseURL: nil,
             model: "test-model",
-            workspacePath: nil,
+            workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
         bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))

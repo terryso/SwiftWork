@@ -4,11 +4,12 @@ import OpenAgentSDK
 /// Displays all registered skills grouped by source (Built-in / Project / User).
 struct SkillsListView: View {
     let skills: [Skill]
+    let workspaceRoot: String?
 
     @State private var expandedSkillIDs: Set<String> = []
 
     private var groupedSkills: [(source: SkillSource, skills: [Skill])] {
-        let grouped = Dictionary(grouping: skills, by: { SkillSource.from($0) })
+        let grouped = Dictionary(grouping: skills, by: { SkillSource.from($0, workspaceRoot: workspaceRoot) })
         return SkillSource.allCases.compactMap { source in
             guard let list = grouped[source], !list.isEmpty else { return nil }
             return (source: source, skills: list)
@@ -26,7 +27,8 @@ struct SkillsListView: View {
                             ForEach(group.skills, id: \.name) { skill in
                                 SkillListItemView(
                                     skill: skill,
-                                    isExpanded: expandedSkillIDs.contains(skill.name)
+                                    isExpanded: expandedSkillIDs.contains(skill.name),
+                                    workspaceRoot: workspaceRoot
                                 )
                                 .onTapGesture {
                                     toggleExpansion(of: skill.name)

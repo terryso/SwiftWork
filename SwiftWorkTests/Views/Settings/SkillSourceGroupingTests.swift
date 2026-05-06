@@ -24,7 +24,7 @@ final class SkillSourceGroupingTests: XCTestCase {
         )
     }
 
-    private var cwd: String {
+    private var workspaceRoot: String {
         FileManager.default.currentDirectoryPath
     }
 
@@ -34,17 +34,17 @@ final class SkillSourceGroupingTests: XCTestCase {
     func testSkillSourceBuiltInWhenBaseDirIsNil() {
         let skill = makeSkill(name: "commit", baseDir: nil)
 
-        let source = SkillSource.from(skill)
+        let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
         XCTAssertEqual(source, .builtIn,
             "Skill with nil baseDir should be classified as Built-in")
     }
 
     // [P0] Project skill: baseDir starts with CWD -> .project
     func testSkillSourceProjectWhenBaseDirUnderCWD() {
-        let projectPath = cwd + "/.claude/skills/my-skill"
+        let projectPath = workspaceRoot + "/.claude/skills/my-skill"
         let skill = makeSkill(name: "my-skill", baseDir: projectPath)
 
-        let source = SkillSource.from(skill)
+        let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
         XCTAssertEqual(source, .project,
             "Skill with baseDir under project CWD should be classified as Project")
     }
@@ -54,7 +54,7 @@ final class SkillSourceGroupingTests: XCTestCase {
         let userPath = "/Users/nick/.claude/skills/custom-skill"
         let skill = makeSkill(name: "custom-skill", baseDir: userPath)
 
-        let source = SkillSource.from(skill)
+        let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
         XCTAssertEqual(source, .user,
             "Skill with baseDir outside project CWD should be classified as User")
     }
@@ -64,12 +64,10 @@ final class SkillSourceGroupingTests: XCTestCase {
         let homeSkillPath = NSHomeDirectory() + "/.claude/skills/global-skill"
         let skill = makeSkill(name: "global-skill", baseDir: homeSkillPath)
 
-        let source = SkillSource.from(skill)
-        // Home directory is not the CWD (unless running from home), so this should be .user
-        // Edge case: if CWD == home, this would be .project instead
-        if cwd == NSHomeDirectory() {
+        let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
+        if workspaceRoot == NSHomeDirectory() {
             XCTAssertEqual(source, .project,
-                "When CWD is home directory, home-based skill should be Project")
+                "When workspace root is home directory, home-based skill should be Project")
         } else {
             XCTAssertEqual(source, .user,
                 "Skill with baseDir in home directory should be classified as User")
@@ -87,7 +85,7 @@ final class SkillSourceGroupingTests: XCTestCase {
         ]
 
         for skill in builtInSkills {
-            let source = SkillSource.from(skill)
+            let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
             XCTAssertEqual(source, .builtIn,
                 "BuiltIn skill '\(skill.name)' should be classified as Built-in, got \(source)")
         }
@@ -97,12 +95,12 @@ final class SkillSourceGroupingTests: XCTestCase {
     func testGroupingMixedSkills() {
         let skills: [Skill] = [
             makeSkill(name: "commit", baseDir: nil),
-            makeSkill(name: "project-skill", baseDir: cwd + "/.claude/skills/ps"),
+            makeSkill(name: "project-skill", baseDir: workspaceRoot + "/.claude/skills/ps"),
             makeSkill(name: "user-skill", baseDir: "/Users/nick/.claude/skills/us"),
             makeSkill(name: "review", baseDir: nil),
         ]
 
-        let grouped = Dictionary(grouping: skills, by: { SkillSource.from($0) })
+        let grouped = Dictionary(grouping: skills, by: { SkillSource.from($0, workspaceRoot: workspaceRoot) })
 
         XCTAssertEqual(grouped[.builtIn]?.count, 2,
             "Should have 2 Built-in skills")
@@ -114,9 +112,9 @@ final class SkillSourceGroupingTests: XCTestCase {
 
     // [P2] Edge case: baseDir is exactly the CWD itself (not under it)
     func testSkillSourceWhenBaseDirEqualsCWD() {
-        let skill = makeSkill(name: "edge-skill", baseDir: cwd)
+        let skill = makeSkill(name: "edge-skill", baseDir: workspaceRoot)
 
-        let source = SkillSource.from(skill)
+        let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
         // hasPrefix(cwd) will match when baseDir == cwd, so it's .project
         XCTAssertEqual(source, .project,
             "Skill with baseDir exactly equal to CWD should be classified as Project")
@@ -127,10 +125,10 @@ final class SkillSourceGroupingTests: XCTestCase {
         // e.g., CWD = /Users/nick/projects/myproject
         // baseDir = /Users/nick/projects/myproject-other/skills/skill
         // hasPrefix check should NOT match this
-        let fakePath = cwd + "-suffix/skills/skill"
+        let fakePath = workspaceRoot + "-suffix/skills/skill"
         let skill = makeSkill(name: "tricky-skill", baseDir: fakePath)
 
-        let source = SkillSource.from(skill)
+        let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
         // This depends on whether hasPrefix matches "/path-suffix" for "/path"
         // String.hasPrefix would match if cwd has no trailing slash
         // e.g. "/foo".hasPrefix("/foo-suffix") == false

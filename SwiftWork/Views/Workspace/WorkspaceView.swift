@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct WorkspaceView: View {
@@ -15,11 +16,13 @@ struct WorkspaceView: View {
     @State private var eventLookup: [UUID: AgentEvent] = [:]
     @State private var debugViewModel: DebugViewModel?
     @State private var timelineReloadToken = UUID()
+    @State private var workspaceState: SessionWorkspaceState = .unbound
 
     var body: some View {
         HStack(spacing: 0) {
             // Main content area
             VStack(spacing: 0) {
+                workspaceStatusBanner
                 TimelineView(
                     agentBridge: agentBridge,
                     reloadToken: timelineReloadToken,
@@ -90,7 +93,7 @@ struct WorkspaceView: View {
         }
         .task {
             debugViewModel = DebugViewModel(agentBridge: agentBridge)
-            configureAgent()
+            refreshWorkspaceContext()
             loadPersistedEvents()
             setupTitleGeneration()
         }
@@ -107,12 +110,42 @@ struct WorkspaceView: View {
             }
         }
         .onChange(of: session.id) { _, _ in
+            sessionViewModel.deactivateActiveWorkspace()
             agentBridge.clearEvents()
             selectedEventId = nil
             eventLookup.removeAll()
-            configureAgent()
+            refreshWorkspaceContext()
             loadPersistedEvents()
             setupTitleGeneration()
+        }
+        .onChange(of: session.workspacePath) { _, _ in
+            refreshWorkspaceContext()
+        }
+        .onChange(of: session.workspaceBookmark) { _, _ in
+            refreshWorkspaceContext()
+        }
+        .onDisappear {
+            sessionViewModel.deactivateActiveWorkspace()
+        }
+    }
+
+    @ViewBuilder
+    private var workspaceStatusBanner: some View {
+        switch workspaceState {
+        case .ready:
+            EmptyView()
+        case .unbound:
+            workspaceBanner(
+                icon: "folder.badge.questionmark",
+                title: "此会话尚未绑定工作目录",
+                detail: "你仍可继续普通对话；文件、终端和项目级 Skill 需要先绑定目录。"
+            )
+        case .needsRepair(let path):
+            workspaceBanner(
+                icon: "exclamationmark.triangle.fill",
+                title: "工作目录不可用",
+                detail: "无法访问 \(path)。请重新选择目录后再使用文件、终端和项目级 Skill。"
+            )
         }
     }
 
@@ -139,7 +172,12 @@ struct WorkspaceView: View {
         return eventLookup[id]
     }
 
-    private func configureAgent() {
+    private func refreshWorkspaceContext() {
+        workspaceState = sessionViewModel.activateWorkspace(for: session)
+        configureAgent(for: workspaceState)
+    }
+
+    private func configureAgent(for state: SessionWorkspaceState) {
         let keychainManager = KeychainManager()
         let apiKey: String
         do {
@@ -156,7 +194,8 @@ struct WorkspaceView: View {
             baseURL: baseURL,
             model: model,
             workspacePath: session.workspacePath,
-            sessionId: session.id.uuidString
+            sessionId: session.id.uuidString,
+            workspaceState: state
         )
     }
 
@@ -186,6 +225,50 @@ struct WorkspaceView: View {
                     sessionViewModel.updateSessionTitle(session, title: title)
                 }
             }
+        }
+    }
+
+    private func workspaceBanner(icon: String, title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: icon)
+                .font(.headline)
+
+            Text(detail)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                if sessionViewModel.mostRecentWorkspaceBinding(excluding: session) != nil {
+                    Button("使用最近目录") {
+                        if sessionViewModel.useMostRecentWorkspace(for: session) {
+                            refreshWorkspaceContext()
+                        }
+                    }
+                }
+
+                Button("选择文件夹") {
+                    chooseWorkspace()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+        .background(Color(nsColor: .controlBackgroundColor))
+    }
+
+    private func chooseWorkspace() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "绑定"
+        panel.message = "选择此会话的工作目录"
+
+        if panel.runModal() == .OK, let url = panel.url,
+           sessionViewModel.updateWorkspace(session, to: url) {
+            refreshWorkspaceContext()
         }
     }
 }

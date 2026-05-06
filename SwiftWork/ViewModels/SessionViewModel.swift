@@ -10,6 +10,11 @@ final class SessionViewModel {
 
     private var modelContext: ModelContext?
     private(set) var appStateManager: AppStateManager?
+    @ObservationIgnored private let workspaceService: SessionWorkspaceService
+
+    init(workspaceService: SessionWorkspaceService = SessionWorkspaceService()) {
+        self.workspaceService = workspaceService
+    }
 
     func setAppStateManager(_ manager: AppStateManager) {
         appStateManager = manager
@@ -40,7 +45,11 @@ final class SessionViewModel {
 
     func createSession() {
         guard let modelContext else { return }
-        let session = Session()
+        let inheritedWorkspace = workspaceService.mostRecentValidWorkspace(in: sessions)
+        let session = Session(
+            workspacePath: inheritedWorkspace?.path,
+            workspaceBookmark: inheritedWorkspace?.bookmarkData
+        )
         modelContext.insert(session)
         do {
             try modelContext.save()
@@ -88,5 +97,76 @@ final class SessionViewModel {
         session.updatedAt = .now
         try? modelContext.save()
         sessions.sort { $0.updatedAt > $1.updatedAt }
+    }
+
+    func workspaceState(for session: Session) -> SessionWorkspaceState {
+        workspaceService.resolveState(for: session)
+    }
+
+    func mostRecentWorkspaceBinding(excluding session: Session? = nil) -> SessionWorkspaceBinding? {
+        workspaceService.mostRecentValidWorkspace(in: sessions, excluding: session?.id)
+    }
+
+    @discardableResult
+    func activateWorkspace(for session: Session) -> SessionWorkspaceState {
+        workspaceService.activateWorkspace(for: session)
+    }
+
+    func deactivateActiveWorkspace() {
+        workspaceService.releaseActiveWorkspaceAccess()
+    }
+
+    @discardableResult
+    func updateWorkspace(_ session: Session, to url: URL) -> Bool {
+        guard let modelContext else { return false }
+        let oldPath = session.workspacePath
+        let oldBookmark = session.workspaceBookmark
+        let oldUpdatedAt = session.updatedAt
+        do {
+            try workspaceService.bindWorkspace(session, to: url)
+            session.updatedAt = .now
+            try modelContext.save()
+            sessions.sort { $0.updatedAt > $1.updatedAt }
+            errorMessage = nil
+            return true
+        } catch {
+            session.workspacePath = oldPath
+            session.workspaceBookmark = oldBookmark
+            session.updatedAt = oldUpdatedAt
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func useMostRecentWorkspace(for session: Session) -> Bool {
+        guard let modelContext else { return false }
+        guard let binding = mostRecentWorkspaceBinding(excluding: session) else {
+            errorMessage = "没有可继承的最近工作目录。"
+            return false
+        }
+
+        let oldPath = session.workspacePath
+        let oldBookmark = session.workspaceBookmark
+        let oldUpdatedAt = session.updatedAt
+        workspaceService.apply(binding, to: session)
+        session.updatedAt = .now
+        do {
+            try modelContext.save()
+            sessions.sort { $0.updatedAt > $1.updatedAt }
+            errorMessage = nil
+            return true
+        } catch {
+            session.workspacePath = oldPath
+            session.workspaceBookmark = oldBookmark
+            session.updatedAt = oldUpdatedAt
+            errorMessage = AppError(
+                domain: .data,
+                code: "UPDATE_WORKSPACE_FAILED",
+                message: error.localizedDescription,
+                underlying: error
+            ).message
+            return false
+        }
     }
 }

@@ -138,7 +138,10 @@ struct SettingsView: View {
     private var skillsTab: some View {
         Group {
             if let bridge = agentBridge {
-                SkillsListView(skills: bridge.allRegisteredSkills)
+                SkillsListView(
+                    skills: bridge.allRegisteredSkills,
+                    workspaceRoot: bridge.activeWorkspaceRoot
+                )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 Text("Skill 列表不可用")

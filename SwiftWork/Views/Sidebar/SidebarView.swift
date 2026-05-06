@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SidebarView: View {
@@ -94,6 +95,14 @@ struct SidebarView: View {
             } label: {
                 Label("重命名", systemImage: "pencil")
             }
+            Button {
+                chooseWorkspace(for: session)
+            } label: {
+                Label(
+                    session.workspaceBindingMode == .bound ? "切换工作目录" : "绑定工作目录",
+                    systemImage: "folder"
+                )
+            }
             Divider()
             Button(role: .destructive) {
                 sessionToDelete = session
@@ -105,6 +114,16 @@ struct SidebarView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            if let session = sessionViewModel.selectedSession {
+                Button {
+                    chooseWorkspace(for: session)
+                } label: {
+                    Image(systemName: "folder")
+                }
+                .help("选择或切换工作目录")
+            }
+        }
         ToolbarItem(placement: .primaryAction) {
             Button {
                 sessionViewModel.createSession()
@@ -131,5 +150,18 @@ struct SidebarView: View {
     private func cancelRename() {
         renamingSessionID = nil
         renameText = ""
+    }
+
+    private func chooseWorkspace(for session: Session) {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "绑定"
+        panel.message = "选择此会话的工作目录"
+
+        if panel.runModal() == .OK, let url = panel.url {
+            _ = sessionViewModel.updateWorkspace(session, to: url)
+        }
     }
 }

@@ -151,6 +151,86 @@ final class SessionViewModelTests: XCTestCase {
         XCTAssertEqual(list.first?.title, "新会话", "Default title should be '新会话'")
     }
 
+    func testCreateSessionInheritsMostRecentValidWorkspace() throws {
+        let context = try makeModelContext()
+        let viewModel = makeViewModel()
+        viewModel.configure(modelContext: context)
+
+        let workspace = FileManager.default.currentDirectoryPath
+        let recent = Session(title: "Recent", workspacePath: workspace)
+        recent.updatedAt = .now
+        let invalid = Session(title: "Invalid", workspacePath: "/definitely/missing/workspace")
+        invalid.updatedAt = .now.addingTimeInterval(-60)
+        context.insert(recent)
+        context.insert(invalid)
+        try context.save()
+        viewModel.fetchSessions()
+
+        viewModel.createSession()
+
+        XCTAssertEqual(viewModel.selectedSession?.workspacePath, workspace)
+    }
+
+    func testCreateSessionWithoutHistoryStartsUnbound() throws {
+        let context = try makeModelContext()
+        let viewModel = makeViewModel()
+        viewModel.configure(modelContext: context)
+
+        viewModel.createSession()
+
+        XCTAssertEqual(viewModel.selectedSession?.workspaceBindingMode, .unbound)
+        XCTAssertNil(viewModel.selectedSession?.workspacePath)
+    }
+
+    func testWorkspaceStateReportsNeedsRepairForMissingDirectory() throws {
+        let context = try makeModelContext()
+        let viewModel = makeViewModel()
+        viewModel.configure(modelContext: context)
+        let session = Session(title: "Broken", workspacePath: "/definitely/missing/workspace")
+
+        switch viewModel.workspaceState(for: session) {
+        case .needsRepair(let path):
+            XCTAssertEqual(path, "/definitely/missing/workspace")
+        default:
+            XCTFail("Expected missing workspace to require repair")
+        }
+    }
+
+    func testUpdateWorkspaceBindsExistingDirectory() throws {
+        let context = try makeModelContext()
+        let viewModel = makeViewModel()
+        viewModel.configure(modelContext: context)
+        let session = Session()
+        context.insert(session)
+        try context.save()
+
+        let bound = viewModel.updateWorkspace(
+            session,
+            to: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        )
+
+        XCTAssertTrue(bound)
+        XCTAssertEqual(session.workspacePath, FileManager.default.currentDirectoryPath)
+    }
+
+    func testUpdateWorkspaceFailurePreservesExistingBinding() throws {
+        let context = try makeModelContext()
+        let viewModel = makeViewModel()
+        viewModel.configure(modelContext: context)
+        let originalPath = FileManager.default.currentDirectoryPath
+        let session = Session(title: "Bound", workspacePath: originalPath)
+        context.insert(session)
+        try context.save()
+
+        let updated = viewModel.updateWorkspace(
+            session,
+            to: URL(fileURLWithPath: "/definitely/missing/workspace", isDirectory: true)
+        )
+
+        XCTAssertFalse(updated)
+        XCTAssertEqual(session.workspacePath, originalPath)
+    }
+
     // MARK: - AC#3: Switch between sessions
 
     // [P0] selectSession updates selectedSession

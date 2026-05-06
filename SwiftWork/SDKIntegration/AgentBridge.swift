@@ -29,6 +29,7 @@ enum MessageSendOutcome: Equatable, Sendable {
     case sentPlainText
     case sentSlashSkill(ExplicitSlashSkillInvocation)
     case rejectedUnavailableSkill(ExplicitSlashSkillInvocation)
+    case requiresWorkspaceBinding(ExplicitSlashSkillInvocation)
 }
 
 private struct QueuedMessageRequest {
@@ -45,6 +46,7 @@ private enum PreparedMessageRequest {
     case plainText(QueuedMessageRequest)
     case explicitSlashSkill(QueuedMessageRequest, ExplicitSlashSkillInvocation)
     case unavailableSkill(ExplicitSlashSkillInvocation)
+    case workspaceRequired(ExplicitSlashSkillInvocation)
 }
 
 @MainActor
@@ -81,6 +83,12 @@ final class AgentBridge {
 
     @ObservationIgnored
     private var configuredWorkspacePath: String?
+    @ObservationIgnored
+    private var configuredWorkspaceState: SessionWorkspaceState = .unbound
+    @ObservationIgnored
+    private let workspaceService = SessionWorkspaceService()
+    @ObservationIgnored
+    private var slashSkillCatalog: [Skill] = []
 
     // MARK: - Pagination State (Story 2-5)
 
@@ -161,24 +169,49 @@ final class AgentBridge {
         skillRegistry?.allSkills ?? []
     }
 
+    var activeWorkspaceRoot: String? {
+        if case .ready(let binding) = configuredWorkspaceState {
+            return binding.path
+        }
+        return nil
+    }
+
     init(permissionHandler: PermissionHandler = PermissionHandler()) {
         self.permissionHandler = permissionHandler
     }
 
-    func configure(apiKey: String, baseURL: String?, model: String, workspacePath: String?, sessionId: String) {
-        configuredWorkspacePath = workspacePath
-        let registry = SkillRegistry()
-        registry.register(BuiltInSkills.commit)
-        registry.register(BuiltInSkills.review)
-        registry.register(BuiltInSkills.simplify)
-        registry.register(BuiltInSkills.debug)
-        registry.register(BuiltInSkills.test)
+    func configure(
+        apiKey: String,
+        baseURL: String?,
+        model: String,
+        workspacePath: String?,
+        sessionId: String,
+        workspaceState: SessionWorkspaceState? = nil
+    ) {
+        let resolvedWorkspaceState = workspaceState ?? inferredWorkspaceState(from: workspacePath)
+        configuredWorkspaceState = resolvedWorkspaceState
+        configuredWorkspacePath = resolvedWorkspaceState.workspacePath
 
-        let discoveredCount = registry.registerDiscoveredSkills()
+        let fullRegistry = SkillRegistry()
+        fullRegistry.register(BuiltInSkills.commit)
+        fullRegistry.register(BuiltInSkills.review)
+        fullRegistry.register(BuiltInSkills.simplify)
+        fullRegistry.register(BuiltInSkills.debug)
+        fullRegistry.register(BuiltInSkills.test)
+
+        let skillDirectories = workspaceService.skillSearchDirectories(for: resolvedWorkspaceState)
+        let discoveredCount = fullRegistry.registerDiscoveredSkills(from: skillDirectories)
+        slashSkillCatalog = fullRegistry.allSkills
+
+        let registry = SkillRegistry()
+        for skill in slashSkillCatalog where skillAvailableInCurrentWorkspace(skill) {
+            registry.register(skill)
+        }
+
         self.skillRegistry = registry
         refreshDiscoveredSkills()
 
-        var tools = getAllBaseTools(tier: .core)
+        var tools = configuredTools(for: resolvedWorkspaceState)
         if !registry.allSkills.isEmpty {
             tools.append(createSkillTool(registry: registry))
         }
@@ -187,14 +220,16 @@ final class AgentBridge {
             apiKey: apiKey,
             model: model,
             baseURL: baseURL,
+            systemPrompt: workspaceSystemPrompt(for: resolvedWorkspaceState),
             maxTurns: 10,
             permissionMode: .default,
-            cwd: workspacePath,
+            cwd: workspaceService.agentWorkingDirectory(for: resolvedWorkspaceState),
             tools: tools,
             sessionStore: sdkSessionStore,
             sessionId: sessionId,
             skillRegistry: registry,
-            skillDirectories: [],
+            skillDirectories: skillDirectories,
+            projectRoot: activeWorkspaceRoot,
             persistSession: true
         )
 
@@ -351,6 +386,9 @@ final class AgentBridge {
         guard let agent, !text.isEmpty else { return .ignored }
 
         switch prepareMessageRequest(for: text) {
+        case .workspaceRequired(let invocation):
+            errorMessage = "Skill /\(invocation.canonicalName) 需要先绑定工作目录。"
+            return .requiresWorkspaceBinding(invocation)
         case .unavailableSkill(let invocation):
             errorMessage = "Skill /\(invocation.canonicalName) 当前不可用，未发送消息。"
             return .rejectedUnavailableSkill(invocation)
@@ -374,7 +412,10 @@ final class AgentBridge {
         if skillRegistry == nil {
             skillRegistry = SkillRegistry()
         }
-        skillRegistry?.register(skill)
+        slashSkillCatalog.append(skill)
+        if skillAvailableInCurrentWorkspace(skill) {
+            skillRegistry?.register(skill)
+        }
         refreshDiscoveredSkills()
     }
 
@@ -464,6 +505,8 @@ final class AgentBridge {
                 )
             case .unavailable(let invocation):
                 return .unavailableSkill(invocation)
+            case .workspaceRequired(let invocation):
+                return .workspaceRequired(invocation)
             }
         }
 
@@ -475,13 +518,14 @@ final class AgentBridge {
     private enum SlashSkillResolution {
         case available(ExplicitSlashSkillInvocation)
         case unavailable(ExplicitSlashSkillInvocation)
+        case workspaceRequired(ExplicitSlashSkillInvocation)
     }
 
     private func resolveSlashSkillRequest(in text: String) -> SlashSkillResolution? {
         refreshDiscoveredSkills()
 
         guard let parsedInvocation = parseSlashCommand(in: text),
-              let skill = resolveUserInvocableSkill(named: parsedInvocation.invokedName) else {
+              let skill = resolveCatalogSkill(named: parsedInvocation.invokedName) else {
             return nil
         }
 
@@ -490,6 +534,10 @@ final class AgentBridge {
             invokedName: parsedInvocation.invokedName,
             args: parsedInvocation.args
         )
+
+        guard skillAvailableInCurrentWorkspace(skill) else {
+            return .workspaceRequired(invocation)
+        }
 
         guard skill.isAvailable() else {
             return .unavailable(invocation)
@@ -515,8 +563,16 @@ final class AgentBridge {
     }
 
     private func resolveUserInvocableSkill(named invokedName: String) -> Skill? {
+        resolveSkill(named: invokedName, in: skillRegistry?.allSkills ?? [])
+    }
+
+    private func resolveCatalogSkill(named invokedName: String) -> Skill? {
+        resolveSkill(named: invokedName, in: slashSkillCatalog)
+    }
+
+    private func resolveSkill(named invokedName: String, in skills: [Skill]) -> Skill? {
         let normalized = invokedName.lowercased()
-        return skillRegistry?.allSkills.first(where: { skill in
+        return skills.first(where: { skill in
             guard skill.userInvocable else { return false }
             if skill.name.lowercased() == normalized {
                 return true
@@ -548,7 +604,7 @@ final class AgentBridge {
 
         let tool = createSkillTool(registry: registry)
         let context = ToolContext(
-            cwd: configuredWorkspacePath ?? FileManager.default.currentDirectoryPath,
+            cwd: workspaceService.agentWorkingDirectory(for: configuredWorkspaceState),
             toolUseId: toolUseId,
             skillRegistry: registry,
             restrictionStack: ToolRestrictionStack()
@@ -627,6 +683,48 @@ final class AgentBridge {
         discoveredSkills = refreshed
         if currentNames != refreshedNames {
             discoveredSkillsRevision += 1
+        }
+    }
+
+    private func inferredWorkspaceState(from workspacePath: String?) -> SessionWorkspaceState {
+        workspaceService.resolveState(workspacePath: workspacePath, bookmarkData: nil)
+    }
+
+    private func configuredTools(for state: SessionWorkspaceState) -> [ToolProtocol] {
+        let baseTools = getAllBaseTools(tier: .core)
+        guard state.requiresBinding else { return baseTools }
+
+        let allowedNames: Set<String> = ["AskUser", "ToolSearch", "WebFetch", "WebSearch"]
+        return baseTools.filter { allowedNames.contains($0.name) }
+    }
+
+    private func skillAvailableInCurrentWorkspace(_ skill: Skill) -> Bool {
+        switch configuredWorkspaceState {
+        case .ready:
+            true
+        case .unbound, .needsRepair:
+            !skillRequiresWorkspace(skill)
+        }
+    }
+
+    private func skillRequiresWorkspace(_ skill: Skill) -> Bool {
+        let workspaceToolNames: Set<String> = ["bash", "read", "write", "edit", "glob", "grep"]
+        if let restrictions = skill.toolRestrictions, !restrictions.isEmpty {
+            let names = Set(restrictions.map { $0.rawValue.lowercased() })
+            return !names.isDisjoint(with: workspaceToolNames)
+        }
+
+        return SkillSource.from(skill, workspaceRoot: activeWorkspaceRoot) == .project
+    }
+
+    private func workspaceSystemPrompt(for state: SessionWorkspaceState) -> String? {
+        switch state {
+        case .ready(let binding):
+            "Session workspace root: \(binding.path). All filesystem and project operations must stay within this directory."
+        case .unbound:
+            "This session has no bound workspace. Do not attempt filesystem, terminal, or project-scope skill work until the user binds a workspace."
+        case .needsRepair(let path):
+            "The previous workspace at \(path) is unavailable. Do not attempt filesystem, terminal, or project-scope skill work until the user repairs the workspace binding."
         }
     }
 
