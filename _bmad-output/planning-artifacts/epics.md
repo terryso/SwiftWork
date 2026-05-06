@@ -71,6 +71,12 @@ This document provides the complete epic and story breakdown for SwiftWork, deco
 - FR-SKILL-2: 用户通过 `/` 斜杠命令触发 Skill，带自动补全菜单
 - FR-SKILL-3: Timeline 渲染 Skill 调用卡片（toolUse + toolResult 专用 View）
 - FR-SKILL-4: 用户在设置面板中浏览和管理已注册的 Skill 列表
+- FR-MCP-1: 用户可以在设置中添加 MCP Server（Remote URL 或 Local 命令行），配置持久化到本地
+- FR-MCP-2: 用户可以在 MCP 管理面板中查看所有已配置的 MCP Server 及其连接状态（connected / failed / pending / disabled / needsAuth）
+- FR-MCP-3: 用户可以在 MCP 管理面板中启用/禁用/删除/重连 MCP Server
+- FR-MCP-4: MCP Server 的工具自动注册到 Agent 工具池，Tool Card 使用命名空间标识（mcp__serverName__toolName）
+- FR-MCP-5: Status Bar 显示当前 MCP Server 连接数量
+- FR-MCP-6: MCP Server 连接错误时显示错误详情，并提供重连操作
 
 ### NonFunctional Requirements
 
@@ -172,6 +178,12 @@ FR-SKILL-1: Epic 5 - Agent 启动时自动发现并加载 Skill
 FR-SKILL-2: Epic 5 - 用户通过 / 斜杠命令触发 Skill
 FR-SKILL-3: Epic 5 - Timeline 渲染 Skill 调用卡片
 FR-SKILL-4: Epic 5 - 用户浏览和管理已注册的 Skill
+FR-MCP-1: Epic 6 - 添加 MCP Server（Remote/Local）
+FR-MCP-2: Epic 6 - MCP Server 列表与连接状态
+FR-MCP-3: Epic 6 - 启用/禁用/删除/重连 MCP Server
+FR-MCP-4: Epic 6 - MCP 工具自动注册到 Agent 工具池
+FR-MCP-5: Epic 6 - Status Bar 显示 MCP 连接数
+FR-MCP-6: Epic 6 - MCP 连接错误展示与重连
 
 ## Epic List
 
@@ -198,6 +210,11 @@ FR-SKILL-4: Epic 5 - 用户浏览和管理已注册的 Skill
 ### Epic 5: Skill 系统（可扩展能力注入）
 用户通过斜杠命令调用预定义和自定义 Skill，并在 UI 中管理和浏览可用 Skill。SDK 已提供完整 Skill 基础设施（SkillRegistry、SkillLoader、SkillTool、BuiltInSkills），本 Epic 负责接入和 UI 层实现。
 **FRs covered:** FR-SKILL-1, FR-SKILL-2, FR-SKILL-3, FR-SKILL-4
+**ARCHs covered:** ARCH-5, ARCH-9, ARCH-13
+
+### Epic 6: MCP Server 集成（外部工具生态接入）
+用户可以在 SwiftWork 中配置和管理 MCP Server，让 Agent 自动发现并使用 MCP Server 提供的外部工具。SDK 已提供完整 MCP 基础设施（MCPClientManager、MCPToolDefinition、5 种传输方式、运行时管理 API），本 Epic 负责 MCP 配置管理 UI、Agent 集成和状态可视化。
+**FRs covered:** FR-MCP-1, FR-MCP-2, FR-MCP-3, FR-MCP-4, FR-MCP-5, FR-MCP-6
 **ARCHs covered:** ARCH-5, ARCH-9, ARCH-13
 
 ## Epic 1: 首次启动与基础交互（SDK→UI 闭环）
@@ -815,3 +832,173 @@ So that 我可以了解当前有哪些 skill 可用、它们的来源和功能�
 **Then** 在 Finder 中打开 skill 所在目录
 
 **FRs:** FR-SKILL-4
+
+---
+
+## Epic 6: MCP Server 集成（外部工具生态接入）
+
+用户可以在 SwiftWork 中配置和管理 MCP Server，让 Agent 自动发现并使用 MCP Server 提供的外部工具。SDK 已提供完整 MCP 基础设施（MCPClientManager、MCPToolDefinition、5 种传输方式、运行时管理 API），本 Epic 负责 MCP 配置管理 UI、Agent 集成和状态可视化。
+
+### Story 6.1: MCP 配置模型与持久化
+
+As a 用户,
+I want 我配置的 MCP Server 信息被安全地持久化，重启后自动恢复,
+So that 我不需要每次打开应用都重新配置 MCP Server。
+
+**Acceptance Criteria:**
+
+**Given** 用户通过 UI 添加了一个 MCP Server 配置
+**When** 配置保存
+**Then** MCP Server 配置通过 SwiftData 持久化，包含字段：name（唯一标识）、transportType（stdio / sse / http）、command（stdio 模式）、url（sse/http 模式）、args（stdio 参数）、env（环境变量）、headers（HTTP 头）、enabled（启用状态）、scope（project / global）、createdAt、updatedAt
+
+**Given** 用户配置了 MCP Server
+**When** 重启应用
+**Then** 所有 MCP Server 配置自动恢复到上次保存的状态（NFR19）
+
+**Given** 用户在项目级配置中添加了 MCP Server
+**When** 切换到另一个项目 workspace
+**Then** 项目级 MCP Server 配置随 workspace 切换，全局配置保持不变
+
+**FRs:** FR-MCP-1
+
+### Story 6.2: MCP 添加与编辑弹窗
+
+As a 用户,
+I want 通过原生 macOS 弹窗添加新的 MCP Server 或编辑已有配置,
+So that 我可以方便地连接外部工具服务或本地命令行工具。
+
+**Acceptance Criteria:**
+
+**Given** 用户在 MCP 管理面板点击 "+" 按钮
+**When** 弹窗显示
+**Then** 显示 AddMCPServerSheet，包含：Server 名称输入框、传输类型选择（Remote / Local）、Remote 模式的 URL 输入框、Local 模式的 Command 输入框和可选参数（参照 OpenWork `add-mcp-modal.tsx`）
+
+**Given** 弹窗中选择了 "Remote" 类型
+**When** 用户输入 URL 并提交
+**Then** 创建 `McpServerConfig.sse` 或 `McpServerConfig.http` 配置，保存到 SwiftData
+
+**Given** 弹窗中选择了 "Local" 类型
+**When** 用户输入命令（如 `npx -y @modelcontextprotocol/server-filesystem /tmp`）并提交
+**Then** 创建 `McpServerConfig.stdio` 配置，命令和参数自动解析，保存到 SwiftData
+
+**Given** 用户编辑一个已有的 MCP Server
+**When** 修改配置并保存
+**Then** 更新 SwiftData 中的配置，如果 Agent 正在运行则通过 `agent.setMcpServers()` 热更新（FR-MCP-3）
+
+**Given** 用户输入无效配置（空名称、空 URL/Command）
+**When** 提交
+**Then** 显示行内验证错误，阻止保存
+
+**FRs:** FR-MCP-1
+
+### Story 6.3: MCP 管理面板
+
+As a 用户,
+I want 在设置面板中查看所有已配置的 MCP Server 及其状态，并可以管理它们,
+So that 我可以清晰地了解 Agent 可以使用哪些外部工具，并控制它们的连接。
+
+**Acceptance Criteria:**
+
+**Given** 用户打开设置面板并切换到 "MCP Servers" 标签页
+**When** 面板加载
+**Then** 显示所有已配置 MCP Server 的列表，每项显示：名称、状态指示灯（connected=绿 / failed=红 / pending=琥珀 / disabled=灰）、连接类型标签（Remote / Local）（FR-MCP-2）
+
+**Given** MCP Server 列表已显示
+**When** 用户点击某个 Server 展开详情
+**Then** 显示详细信息：连接类型、工具列表（从 `mcpServerStatus().tools` 获取）、技术详情（URL 或 Command）、启用/禁用按钮、编辑按钮、删除按钮（参照 OpenWork `mcp-view.tsx` 展开交互）（FR-MCP-3）
+
+**Given** 用户在详情中点击 "禁用" 按钮
+**When** 操作执行
+**Then** 通过 `agent.toggleMcpServer(name, enabled: false)` 断开连接，状态变为 disabled，配置保留
+
+**Given** 用户在详情中点击 "启用" 按钮
+**When** 操作执行
+**Then** 通过 `agent.toggleMcpServer(name, enabled: true)` 重新连接，状态恢复
+
+**Given** 用户点击 "删除" 按钮
+**When** 确认删除
+**Then** 从 SwiftData 删除配置，断开连接（如果已连接），Agent 工具池移除该 Server 的工具
+
+**Given** 用户点击 "重连" 按钮
+**When** 操作执行
+**Then** 通过 `agent.reconnectMcpServer(name)` 重连，状态指示器显示 pending → connected/failed
+
+**Given** 某个 MCP Server 连接失败
+**When** 用户查看该 Server 详情
+**Then** 显示错误信息（从 `McpServerStatus.error` 获取），并提供"查看详情"展开区和"重连"按钮（FR-MCP-6）
+
+**Given** 没有配置任何 MCP Server
+**When** 面板加载
+**Then** 显示空状态提示（图标 + "尚未配置 MCP Server" + 添加引导），参照 OpenWork 空状态设计
+
+**FRs:** FR-MCP-2, FR-MCP-3, FR-MCP-6
+
+### Story 6.4: Agent MCP 集成与工具注册
+
+As a 用户,
+I want Agent 启动时自动连接配置的 MCP Server，并将发现的工具注册到工具池,
+So that Agent 可以使用 MCP Server 提供的外部工具来完成任务。
+
+**Acceptance Criteria:**
+
+**Given** 用户已配置 MCP Server 且 Agent 未运行
+**When** 用户发送第一条消息触发 Agent 创建
+**Then** AgentBridge 从 SwiftData 读取 MCP 配置，构建 `[String: McpServerConfig]` 字典，传入 `AgentOptions.mcpServers`，Agent 内部通过 `assembleFullToolPool()` 自动连接所有 MCP Server 并发现工具（FR-MCP-4）
+
+**Given** Agent 已启动并连接了 MCP Server
+**When** Agent 调用 MCP 工具
+**Then** Timeline 中渲染为 MCP 专用 Tool Card，工具名显示为 `mcp__{serverName}__{toolName}` 命名空间格式，卡片使用 MCP 图标或 Server 来源标识区分（参照 Epic 2 ToolRenderable 协议扩展）
+
+**Given** Agent 正在运行，用户通过 MCP 管理面板修改了配置
+**When** 添加/删除/修改 MCP Server
+**Then** 通过 `agent.setMcpServers()` 动态更新工具池，`McpServerUpdateResult` 报告变更结果，UI 反馈添加/移除/错误状态
+
+**Given** MCP Server 连接过程中发生错误
+**When** `MCPClientManager` 标记连接为 error
+**Then** 应用不崩溃，`mcpServerStatus()` 返回 failed 状态，MCP 管理面板和 Status Bar 反映错误状态
+
+**FRs:** FR-MCP-4
+
+### Story 6.5: MCP 状态可视化
+
+As a 用户,
+I want 在主工作区的 Status Bar 中看到 MCP 连接状态，并在 Timeline 中识别 MCP 工具调用,
+So that 我可以实时了解外部工具的可用性，并区分内置工具和 MCP 工具的调用。
+
+**Acceptance Criteria:**
+
+**Given** Agent 已启动并连接了 MCP Server
+**When** 查看 Status Bar
+**Then** 显示 MCP 连接数指标（如 "3 MCP 已连接"），参照 OpenWork `status-bar.tsx` 的 `mcpConnectedCount` 展示方式（FR-MCP-5）
+
+**Given** Agent 调用了 MCP 工具（工具名以 `mcp__` 开头）
+**When** Timeline 渲染 toolUse 事件
+**Then** Tool Card 显示 MCP 来源标识（如 "via {serverName}" 标签），使用与内置工具不同的视觉样式（不同图标或边框色），让用户一眼区分内置工具和外部工具（FR-MCP-4）
+
+**Given** Agent 连接了 MCP Server 并发现工具
+**When** 用户通过 Inspector 查看该工具
+**Then** 显示工具的完整元数据：serverName、mcpToolName、命名空间全名、schema、来源（MCP）
+
+**FRs:** FR-MCP-5, FR-MCP-4
+
+### Story 6.6: MCP 高级设置与配置文件
+
+As a 高级用户,
+I want 通过配置文件管理 MCP Server 配置，并能在 Finder 中定位配置文件,
+So that 我可以批量编辑、版本控制和分享 MCP 配置。
+
+**Acceptance Criteria:**
+
+**Given** 用户在 MCP 管理面板展开高级设置区域
+**When** 查看
+**Then** 显示配置文件路径（Project scope: `{workspace}/.claude/settings.json`，Global scope: `~/.claude/settings.json`），参照 OpenWork 高级设置折叠区
+
+**Given** 用户点击 "在 Finder 中显示" 按钮
+**When** 操作执行
+**Then** 在 Finder 中打开并选中配置文件
+
+**Given** 用户直接编辑了配置文件中的 MCP 配置
+**When** 切换回 SwiftWork
+**Then** 应用检测到文件变更并重新加载 MCP 配置（通过文件系统监控或手动刷新按钮）
+
+**FRs:** FR-MCP-1
