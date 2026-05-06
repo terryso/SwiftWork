@@ -36,7 +36,7 @@ struct TimelineView: View {
     }
 
     var body: some View {
-        if agentBridge.events.isEmpty {
+        if visibleEvents.isEmpty {
             emptyStateView
         } else {
             ScrollViewReader { proxy in
@@ -126,7 +126,7 @@ struct TimelineView: View {
         .task(id: reloadToken) {
             await performInitialPositioning(proxy: proxy)
         }
-        .onChange(of: agentBridge.events.count) { oldCount, newCount in
+        .onChange(of: visibleEvents.count) { oldCount, newCount in
             if newCount > oldCount && TimelineViewBehavior.shouldAutoScroll(
                 hasCompletedInitialScroll: hasCompletedInitialScroll,
                 scrollMode: scrollModeManager.scrollMode,
@@ -152,8 +152,12 @@ struct TimelineView: View {
 
     // MARK: - Virtualization
 
+    private var visibleEvents: [AgentEvent] {
+        TimelineViewBehavior.visibleEvents(agentBridge.events)
+    }
+
     private var virtualizedEvents: [AgentEvent] {
-        let allEvents = agentBridge.events
+        let allEvents = visibleEvents
         if allEvents.isEmpty { return [] }
         return virtualizationManager.eventsToRender(
             visibleRange: 0..<allEvents.count,
@@ -274,7 +278,7 @@ struct TimelineView: View {
     private func systemOrThinking(event: AgentEvent) -> some View {
         let subtype = event.metadata["subtype"] as? String ?? ""
         if subtype == "init" || subtype == "status" {
-            let isLatestInit = agentBridge.events.last(where: {
+            let isLatestInit = visibleEvents.last(where: {
                 let s = $0.metadata["subtype"] as? String ?? ""
                 return s == "init" || s == "status"
             })?.id == event.id
@@ -290,7 +294,7 @@ struct TimelineView: View {
         performProgrammaticScroll(proxy: proxy, animated: true) {
             switch TimelineViewBehavior.latestScrollTarget(
                 streamingText: agentBridge.streamingText,
-                events: agentBridge.events
+                events: visibleEvents
             ) {
             case .streaming:
                 proxy.scrollTo("streaming", anchor: .bottom)
@@ -387,7 +391,7 @@ struct TimelineView: View {
     }
 
     private func maybeLoadEarlierEventsIfNeeded() {
-        let isFirstLoadedEventVisible = topVisibleEventId == agentBridge.events.first?.id
+        let isFirstLoadedEventVisible = topVisibleEventId == visibleEvents.first?.id
         guard TimelineViewBehavior.shouldLoadEarlier(
             hasCompletedInitialScroll: hasCompletedInitialScroll,
             hasEarlierEvents: agentBridge.hasEarlierEvents,
@@ -399,7 +403,7 @@ struct TimelineView: View {
         ) else { return }
 
         let previousPrependRevision = agentBridge.timelinePaginationState.prependRevision
-        pendingPrependAnchorId = topVisibleEventId ?? agentBridge.events.first?.id
+        pendingPrependAnchorId = topVisibleEventId ?? visibleEvents.first?.id
         pendingPrependAnchorOffset = topVisibleEventMinY
         pendingPrependDocumentHeight = scrollViewport.documentHeight
         agentBridge.loadEarlierEvents()
@@ -429,7 +433,7 @@ struct TimelineView: View {
     }
 
     private func eventIndex(for eventId: UUID) -> Int {
-        agentBridge.events.firstIndex(where: { $0.id == eventId }) ?? .max
+        visibleEvents.firstIndex(where: { $0.id == eventId }) ?? .max
     }
 
     private func computeScrollDelta(
@@ -488,7 +492,7 @@ struct TimelineView: View {
         topVisibleEventMinY = 0
         scrollModeManager.resetForReload()
 
-        guard !agentBridge.events.isEmpty else { return }
+        guard !visibleEvents.isEmpty else { return }
         try? await Task.sleep(for: .milliseconds(50))
         guard !Task.isCancelled else { return }
         performProgrammaticScroll(proxy: proxy) {
@@ -521,6 +525,10 @@ enum TimelineScrollTarget: Equatable {
 }
 
 enum TimelineViewBehavior {
+    static func visibleEvents(_ events: [AgentEvent]) -> [AgentEvent] {
+        events.filter { !$0.isHiddenToolUseTransitionAssistant }
+    }
+
     static func latestScrollTarget(
         streamingText: String,
         events: [AgentEvent]

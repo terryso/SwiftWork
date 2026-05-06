@@ -20,4 +20,10 @@ struct AgentEvent: Identifiable, Sendable {
         self.metadata = metadata
         self.timestamp = timestamp
     }
+
+    var isHiddenToolUseTransitionAssistant: Bool {
+        type == .assistant &&
+            content.isEmpty &&
+            (metadata["stopReason"] as? String) == "tool_use"
+    }
 }

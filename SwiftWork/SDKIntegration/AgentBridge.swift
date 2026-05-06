@@ -428,27 +428,7 @@ final class AgentBridge {
             let sdkStream = agent.stream(outboundText)
             for await message in sdkStream {
                 guard !_Concurrency.Task.isCancelled else { break }
-
-                if case .userMessage = message { continue }
-
-                let event = EventMapper.map(message)
-
-                if event.type == .partialMessage {
-                    self.streamingText += event.content
-                    continue
-                }
-
-                if event.type == .assistant {
-                    self.streamingText = ""
-                }
-
-                if event.type == .result {
-                    receivedResult = true
-                    for callback in self.onResultCallbacks {
-                        callback(event.content)
-                    }
-                }
-                self.appendAndPersist(event)
+                receivedResult = self.handleStreamMessage(message) || receivedResult
             }
 
             if !_Concurrency.Task.isCancelled && !receivedResult {
@@ -710,6 +690,33 @@ final class AgentBridge {
 
         trimOldEvents()
         updatePaginationState()
+    }
+
+    @discardableResult
+    func handleStreamMessage(_ message: SDKMessage) -> Bool {
+        if case .userMessage = message {
+            return false
+        }
+
+        let event = EventMapper.map(message)
+
+        if event.type == .partialMessage {
+            streamingText += event.content
+            return false
+        }
+
+        if event.type == .assistant {
+            streamingText = ""
+        }
+
+        if event.type == .result {
+            for callback in onResultCallbacks {
+                callback(event.content)
+            }
+        }
+
+        appendAndPersist(event)
+        return event.type == .result
     }
 
     private let maxInMemory = 500

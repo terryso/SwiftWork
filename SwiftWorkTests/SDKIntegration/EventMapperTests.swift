@@ -58,6 +58,28 @@ final class EventMapperTests: XCTestCase {
         XCTAssertEqual(event.metadata["stopReason"] as? String, "tool_use")
     }
 
+    func testMapAssistantWithEmptyToolUseContentPreservesFilteringMetadata() throws {
+        let data = SDKMessage.AssistantData(text: "", model: "claude-sonnet-4-6", stopReason: "tool_use")
+
+        let event = EventMapper.map(.assistant(data))
+
+        XCTAssertEqual(event.type, .assistant)
+        XCTAssertEqual(event.content, "")
+        XCTAssertEqual(event.metadata["stopReason"] as? String, "tool_use")
+        XCTAssertTrue(event.isHiddenToolUseTransitionAssistant)
+    }
+
+    func testMapAssistantWithEmptyNonToolUseContentRemainsVisible() throws {
+        let data = SDKMessage.AssistantData(text: "", model: "claude-sonnet-4-6", stopReason: "end_turn")
+
+        let event = EventMapper.map(.assistant(data))
+
+        XCTAssertEqual(event.type, .assistant)
+        XCTAssertEqual(event.content, "")
+        XCTAssertEqual(event.metadata["stopReason"] as? String, "end_turn")
+        XCTAssertFalse(event.isHiddenToolUseTransitionAssistant)
+    }
+
     // MARK: - AC#1 — toolUse mapping
 
     // [P0] .toolUse maps to AgentEvent(type: .toolUse) with toolName, toolUseId, input

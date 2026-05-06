@@ -45,6 +45,48 @@ final class TimelineViewRefactoredTests: XCTestCase {
         XCTAssertEqual(target, .bottomAnchor)
     }
 
+    func testVisibleEventsHideOnlyEmptyToolUseAssistant() {
+        let hiddenAssistant = AgentEvent(
+            type: .assistant,
+            content: "",
+            metadata: ["stopReason": "tool_use"] as [String: any Sendable],
+            timestamp: .now
+        )
+        let emptyAssistant = AgentEvent(
+            type: .assistant,
+            content: "",
+            metadata: ["stopReason": "end_turn"] as [String: any Sendable],
+            timestamp: .now
+        )
+        let toolUse = AgentEvent(
+            type: .toolUse,
+            content: "Bash",
+            metadata: ["toolName": "Bash", "toolUseId": "tool-1", "input": "{}"] as [String: any Sendable],
+            timestamp: .now
+        )
+
+        let visible = TimelineViewBehavior.visibleEvents([hiddenAssistant, emptyAssistant, toolUse])
+
+        XCTAssertEqual(visible.map(\.id), [emptyAssistant.id, toolUse.id])
+    }
+
+    func testLatestScrollTargetUsesLastVisibleEventAfterFiltering() {
+        let visibleAssistant = AgentEvent(type: .assistant, content: "latest", timestamp: .now)
+        let hiddenAssistant = AgentEvent(
+            type: .assistant,
+            content: "",
+            metadata: ["stopReason": "tool_use"] as [String: any Sendable],
+            timestamp: .now
+        )
+
+        let target = TimelineViewBehavior.latestScrollTarget(
+            streamingText: "",
+            events: TimelineViewBehavior.visibleEvents([visibleAssistant, hiddenAssistant])
+        )
+
+        XCTAssertEqual(target, .event(visibleAssistant.id))
+    }
+
     func testShouldAutoScrollRequiresFollowLatestWithoutPendingPrepend() {
         XCTAssertTrue(
             TimelineViewBehavior.shouldAutoScroll(

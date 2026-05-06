@@ -1,5 +1,6 @@
 import XCTest
 @testable import SwiftWork
+import OpenAgentSDK
 
 // ATDD Red Phase — Story 1.4: 消息输入与 Agent 执行
 // Unit tests for AgentBridge: state management, message sending, cancellation, error handling.
@@ -92,7 +93,7 @@ final class AgentBridgeTests: XCTestCase {
                 XCTFail("isRunning did not become false within timeout")
                 break
             }
-            try await Task.sleep(for: .milliseconds(100))
+            try await _Concurrency.Task.sleep(for: .milliseconds(100))
         }
 
         XCTAssertFalse(bridge.isRunning, "isRunning should be false after stream completes")
@@ -265,6 +266,58 @@ final class AgentBridgeTests: XCTestCase {
         bridge.configure(apiKey: "key1", baseURL: nil, model: "model1", workspacePath: "/path2", sessionId: UUID().uuidString)
 
         XCTAssertTrue(bridge.events.isEmpty, "Events should be cleared on session switch")
+    }
+
+    func testHandleStreamMessageKeepsEmptyToolUseAssistantForDebuggingWhileClearingStreamingText() {
+        let bridge = makeBridge()
+        bridge.streamingText = "partial response"
+
+        let didReceiveResult = bridge.handleStreamMessage(
+            .assistant(.init(text: "", model: "claude-sonnet-4-6", stopReason: "tool_use"))
+        )
+
+        XCTAssertFalse(didReceiveResult)
+        XCTAssertEqual(bridge.streamingText, "")
+        XCTAssertEqual(bridge.events.count, 1)
+        XCTAssertTrue(bridge.events.first?.isHiddenToolUseTransitionAssistant == true)
+        XCTAssertEqual(bridge.events.first?.metadata["stopReason"] as? String, "tool_use")
+    }
+
+    func testHandleStreamMessagePreservesEmptyNonToolUseAssistant() {
+        let bridge = makeBridge()
+        bridge.streamingText = "partial response"
+
+        let didReceiveResult = bridge.handleStreamMessage(
+            .assistant(.init(text: "", model: "claude-sonnet-4-6", stopReason: "end_turn"))
+        )
+
+        XCTAssertFalse(didReceiveResult)
+        XCTAssertEqual(bridge.streamingText, "")
+        XCTAssertEqual(bridge.events.count, 1)
+        XCTAssertEqual(bridge.events.first?.type, .assistant)
+        XCTAssertEqual(bridge.events.first?.content, "")
+        XCTAssertEqual(bridge.events.first?.metadata["stopReason"] as? String, "end_turn")
+    }
+
+    func testHandleStreamMessagePreservesToolEventsAfterHiddenToolUseAssistant() {
+        let bridge = makeBridge()
+        bridge.streamingText = "partial response"
+
+        bridge.handleStreamMessage(
+            .assistant(.init(text: "", model: "claude-sonnet-4-6", stopReason: "tool_use"))
+        )
+        bridge.handleStreamMessage(
+            .toolUse(.init(toolName: "FileRead", toolUseId: "tool-1", input: #"{"path":"README.md"}"#))
+        )
+        bridge.handleStreamMessage(
+            .toolResult(.init(toolUseId: "tool-1", content: "contents", isError: false))
+        )
+
+        XCTAssertEqual(bridge.streamingText, "")
+        XCTAssertEqual(bridge.events.map(\.type), [.assistant, .toolUse, .toolResult])
+        XCTAssertTrue(bridge.events.first?.isHiddenToolUseTransitionAssistant == true)
+        XCTAssertEqual(bridge.events[1].content, "FileRead")
+        XCTAssertEqual(bridge.events.last?.content, "contents")
     }
 
     // MARK: - loadEvents
@@ -508,7 +561,7 @@ final class AgentBridgeTests: XCTestCase {
         while bridge.isRunning {
             let elapsed = ContinuousClock.now - start
             if elapsed > .seconds(10) { break }
-            try await Task.sleep(for: .milliseconds(100))
+            try await _Concurrency.Task.sleep(for: .milliseconds(100))
         }
         XCTAssertFalse(bridge.isRunning, "isRunning should eventually become false")
     }
