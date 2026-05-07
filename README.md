@@ -10,6 +10,7 @@ English | **[中文](./README_CN.md)**
 [![CI](https://github.com/terryso/SwiftWork/actions/workflows/ci.yml/badge.svg)](https://github.com/terryso/SwiftWork/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/terryso/6bc0b5140838d40c8e71ae39ce64f25f/raw/coverage.json)](https://github.com/terryso/SwiftWork/actions)
 [![BMAD](https://bmad-badge.vercel.app/terryso/SwiftWork.svg)](https://github.com/bmad-code-org/BMAD-METHOD)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/terryso/SwiftWork)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 macOS-native AI workspace for visualizing and interacting with AI agents. SwiftWork provides real-time observability into agent execution — see what the agent is doing, why it's doing it, and the results of each step.
