@@ -13,6 +13,7 @@ struct SettingsView: View {
         case general = "通用"
         case permissions = "权限"
         case skills = "Skills"
+        case mcp = "MCP Servers"
 
         var id: Self { self }
     }
@@ -79,7 +80,7 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(width: 260)
+            .frame(width: 340)
 
             Spacer()
         }
@@ -97,6 +98,8 @@ struct SettingsView: View {
             permissionsTab
         case .skills:
             skillsTab
+        case .mcp:
+            mcpTab
         }
     }
 
@@ -145,6 +148,23 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 Text("Skill 列表不可用")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    // MARK: - MCP Servers Tab
+
+    private var mcpTab: some View {
+        Group {
+            if let bridge = agentBridge, let store = bridge.mcpConfigStore {
+                MCPManagementView(
+                    store: store,
+                    agentBridge: bridge
+                )
+            } else {
+                Text("MCP 管理不可用")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

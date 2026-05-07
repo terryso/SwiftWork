@@ -58,3 +58,8 @@
 - hashInput not collision-resistant — doom loop detection "hash" uses `String(describing:)` which may produce nondeterministic output for nested types and can collide for different inputs. Pre-existing design choice, acceptable for heuristic detection, not a correctness bug. [AgentBridge.swift:590-597]
 - nonisolated(unsafe) for input dict crossing actors — `setupPermissionCallback` uses `nonisolated(unsafe)` to pass the SDK's input dictionary across actor boundaries. SDK contract is that input dicts are immutable in practice, but the pattern suppresses concurrency safety checks. [AgentBridge.swift:473]
 - Dead code: PendingPermissionRequest and PermissionDialogView — These files are no longer referenced after the inline permission card migration. `PermissionDialogView` is marked deprecated but still compiles. Cleanup task for a future story. [PendingPermissionRequest.swift, PermissionDialogView.swift]
+
+## Deferred from: code review of 6-3-mcp-management-panel (2026-05-07)
+
+- Management panel hardcodes `scope: .global` for add/edit sheets — cannot add or edit workspace-scoped MCP configs from the management panel. Acceptable for MVP, but should be extended when project-scoped MCP becomes a priority. [MCPManagementView.swift:37,48]
+- No expandable "查看详情" section for error display — AC7 spec mentions a "查看详情" expandable area, but the current implementation shows error inline. Minor deviation, acceptable for MVP. [MCPServerDetailView.swift:100-114]

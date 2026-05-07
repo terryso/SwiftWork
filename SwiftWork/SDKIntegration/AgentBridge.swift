@@ -191,6 +191,35 @@ final class AgentBridge {
         return nil
     }
 
+    // MARK: - MCP Management (Story 6-3)
+
+    /// Get runtime MCP server statuses from the running Agent.
+    func mcpServerStatus() async -> [String: McpServerStatus] {
+        guard let agent else { return [:] }
+        return await agent.mcpServerStatus()
+    }
+
+    /// Enable or disable a specific MCP Server at runtime.
+    /// Also updates SwiftData config for persistence.
+    func toggleMcpServer(name: String, enabled: Bool) async throws {
+        // Update SwiftData config
+        if let store = mcpConfigStore {
+            let configs = try store.list()
+            if let config = configs.first(where: { $0.name == name }) {
+                _ = try store.update(config, enabled: enabled)
+            }
+        }
+        // Update SDK runtime
+        guard let agent else { return }
+        try await agent.toggleMcpServer(name: name, enabled: enabled)
+    }
+
+    /// Reconnect a specific MCP Server.
+    func reconnectMcpServer(name: String) async throws {
+        guard let agent else { return }
+        try await agent.reconnectMcpServer(name: name)
+    }
+
     /// Hot-update MCP servers on the running Agent after an edit.
     /// Called by EditMCPServerSheet after saving config changes.
     func updateMCPServers() {

@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-07T12:00:00.000Z",
+  "repo": "swiftwork",
+  "target": {
+    "type": "story",
+    "id": "6-3",
+    "label": "MCP 管理面板"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "rationale": "P0 coverage is 100%, P1 coverage is 100% (4/4 P1 tests fully covering their criteria), and overall coverage is 100% (8/8 ACs fully covered). All 45 tests map cleanly to acceptance criteria with zero gaps.",
+  "p0_status": "MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-matrix-6-3.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}
