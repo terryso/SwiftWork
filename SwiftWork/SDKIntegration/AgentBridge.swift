@@ -179,6 +179,11 @@ final class AgentBridge {
         slashSkillCatalog
     }
 
+    // MARK: - MCP Config System (Story 6-1)
+
+    @ObservationIgnored
+    var mcpConfigStore: MCPServerConfigStore?
+
     var activeWorkspaceRoot: String? {
         if case .ready(let binding) = configuredWorkspaceState {
             return binding.path
@@ -222,6 +227,10 @@ final class AgentBridge {
             tools.append(createSkillTool(registry: registry))
         }
 
+        // MCP config (Story 6-1)
+        let mcpConfigs = (try? mcpConfigStore?.enabledConfigsForWorkspace(activeWorkspaceRoot)) ?? []
+        let mcpServers = mcpConfigStore?.toSDKConfigs(mcpConfigs)
+
         let options = AgentOptions(
             apiKey: apiKey,
             model: model,
@@ -231,6 +240,7 @@ final class AgentBridge {
             permissionMode: .default,
             cwd: workspaceService.agentWorkingDirectory(for: resolvedWorkspaceState),
             tools: tools,
+            mcpServers: (mcpServers?.isEmpty ?? true) ? nil : mcpServers,
             sessionStore: sdkSessionStore,
             sessionId: sessionId,
             skillRegistry: registry,
@@ -241,6 +251,7 @@ final class AgentBridge {
 
         let skillCount = registry.allSkills.count
         os_log("SwiftWork SkillRegistry: %d skills registered (%d discovered from filesystem)", log: .default, type: .info, skillCount, discoveredCount)
+        os_log("SwiftWork MCP: %d configs loaded", log: .default, type: .info, mcpConfigs.count)
 
         self.agent = createAgent(options: options)
         setupPermissionCallback()

@@ -1,5 +1,5 @@
-# generated: 2026-05-01
-# last_updated: 2026-05-05T19:30:00
+# generated: 2026-05-07
+# last_updated: 2026-05-07
 # project: swiftwork
 # project_key: NOKEY
 # tracking_system: file-system
@@ -34,8 +34,8 @@
 # - Developer typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2026-05-01
-last_updated: 2026-05-05T19:30:00
+generated: 2026-05-07
+last_updated: 2026-05-07
 project: swiftwork
 project_key: NOKEY
 tracking_system: file-system
@@ -85,3 +85,13 @@ development_status:
   5-3-skill-timeline-card-rendering: done
   5-4-skill-management-panel: done
   epic-5-retrospective: optional
+
+  # === Epic 6: MCP Server 集成（外部工具生态接入） ===
+  epic-6: in-progress
+  6-1-mcp-config-model-persistence: done
+  6-2-mcp-add-edit-modal: backlog
+  6-3-mcp-management-panel: backlog
+  6-4-agent-mcp-integration-tool-registration: backlog
+  6-5-mcp-status-visualization: backlog
+  6-6-mcp-advanced-settings-config: backlog
+  epic-6-retrospective: optional

@@ -120,6 +120,7 @@ struct ContentView: View {
         eventStore = SwiftDataEventStore(modelContext: modelContext)
 
         agentBridge.permissionHandler.setModelContext(modelContext)
+        agentBridge.mcpConfigStore = MCPServerConfigStore(modelContext: modelContext)
 
         // Wire AgentBridge.onResult to AppState for dock badge updates
         agentBridge.addOnResultCallback { [weak appState] _ in

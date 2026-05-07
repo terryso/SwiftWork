@@ -15,7 +15,8 @@ struct SwiftWorkApp: App {
             Session.self,
             Event.self,
             PermissionRule.self,
-            AppConfiguration.self
+            AppConfiguration.self,
+            MCPServerConfig.self
         ])
         .commands {
             // File menu — replace default "New Window" with "新建会话"

@@ -167,6 +167,9 @@
 		FDF994987DEF742D1975F5D1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9DE8F7D4DE985171849FE3 /* Sparkle */; };
 		FF60CDA07D09892433EF2CDB /* SidebarViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CABD327DD4F4521E5DF08B18 /* SidebarViewTests.swift */; };
 		FFCB8876C399FBF487A2D4DB /* EventDetailSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63FAD2265ACE7675C3824B1 /* EventDetailSections.swift */; };
+		190D17406F814F08B1C54526 /* MCPServerConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8013BCF885E40AD828B6D19 /* MCPServerConfig.swift */; };
+		971E478B01F54BF8BBD61C23 /* MCPServerConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0272F007922545ED8290849B /* MCPServerConfigStore.swift */; };
+		18F006C6AB57478B8F3D0525 /* MCPServerConfigStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FD8C07DB584F0394F5B5AC /* MCPServerConfigStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -338,6 +341,9 @@
 		FC489F9AD659EAE84527791A /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
 		FD01FF123727A7F5A930BFC9 /* MarkdownContentViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownContentViewTests.swift; sourceTree = "<group>"; };
 		FF0DF313CF00BBF501B76EBC /* EventMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMapperTests.swift; sourceTree = "<group>"; };
+		F8013BCF885E40AD828B6D19 /* MCPServerConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPServerConfig.swift; sourceTree = "<group>"; };
+		0272F007922545ED8290849B /* MCPServerConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPServerConfigStore.swift; sourceTree = "<group>"; };
+		67FD8C07DB584F0394F5B5AC /* MCPServerConfigStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPServerConfigStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -415,6 +421,7 @@
 				5BEEE538076F4930F29CCAB7 /* MarkdownRendererTests.swift */,
 				EBA46E073AF2453A0FF25080 /* SessionWorkspaceServiceTests.swift */,
 				502D72F04159AB97B9DCE5B6 /* TitleGeneratorTests.swift */,
+				67FD8C07DB584F0394F5B5AC /* MCPServerConfigStoreTests.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -473,6 +480,7 @@
 				04A34486E99EFC3F2899562C /* Event.swift */,
 				8EDCD3AF38C5C7BA73DD6D88 /* PermissionRule.swift */,
 				60F465E4A11CEB9AC1E257C0 /* Session.swift */,
+				F8013BCF885E40AD828B6D19 /* MCPServerConfig.swift */,
 			);
 			path = SwiftData;
 			sourceTree = "<group>";
@@ -775,6 +783,7 @@
 				4CA44FC5C93A563DCBFC06AE /* MarkdownRenderer.swift */,
 				64FE51A0FE3676E211989EE9 /* SessionWorkspaceService.swift */,
 				867E45236FE183BA2BE38187 /* TitleGenerator.swift */,
+				0272F007922545ED8290849B /* MCPServerConfigStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -947,6 +956,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				18F006C6AB57478B8F3D0525 /* MCPServerConfigStoreTests.swift in Sources */,
 				D1F0CA58C294C2313B7D9C1A /* APIKeySettingsViewTests.swift in Sources */,
 				EE11535B3E1C4317058FE54A /* AgentBridgeSkillTests.swift in Sources */,
 				80EC97D3AF295BA9AA0E3CDB /* AgentBridgeTests.swift in Sources */,
@@ -1024,6 +1034,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				190D17406F814F08B1C54526 /* MCPServerConfig.swift in Sources */,
+				971E478B01F54BF8BBD61C23 /* MCPServerConfigStore.swift in Sources */,
 				EC8C28AC153741067B206D27 /* APIKeySettingsView.swift in Sources */,
 				EE23C4626C62A5F8A438D6C5 /* AgentBridge+ToolContentMap.swift in Sources */,
 				4882B7B1920FCACBEC8AA8C8 /* AgentBridge.swift in Sources */,
