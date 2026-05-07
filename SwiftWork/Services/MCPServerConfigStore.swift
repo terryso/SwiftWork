@@ -104,6 +104,14 @@ final class MCPServerConfigStore {
         scope: MCPServerScope,
         workspacePath: String?
     ) throws -> MCPServerConfig {
+        // Check for duplicate name (allow keeping the same name)
+        if config.name != name {
+            let existing = try list()
+            if existing.contains(where: { $0.name == name }) {
+                throw MCPServerConfigError.duplicateName(name)
+            }
+        }
+
         config.name = name
         config.transportType = transportType
         config.command = command

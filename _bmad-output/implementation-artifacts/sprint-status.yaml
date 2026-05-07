@@ -89,7 +89,7 @@ development_status:
   # === Epic 6: MCP Server 集成（外部工具生态接入） ===
   epic-6: in-progress
   6-1-mcp-config-model-persistence: done
-  6-2-mcp-add-edit-modal: backlog
+  6-2-mcp-add-edit-modal: done
   6-3-mcp-management-panel: backlog
   6-4-agent-mcp-integration-tool-registration: backlog
   6-5-mcp-status-visualization: backlog
