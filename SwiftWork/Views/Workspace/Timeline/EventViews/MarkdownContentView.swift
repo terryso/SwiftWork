@@ -4,17 +4,21 @@ import SwiftUI
 struct MarkdownContentView: View {
     let markdown: String
 
-    @State private var isExpanded = false
+    @State private var isExpanded: Bool
+    @State private var hasUserToggledExpansion = false
     @State private var renderedViews: [AnyView] = []
     @State private var cachedMarkdownHash: Int = 0
 
     private static let collapseCharThreshold = 1000
     private static let collapseLineThreshold = 20
 
+    init(markdown: String) {
+        self.markdown = markdown
+        _isExpanded = State(initialValue: Self.shouldStartExpanded(for: markdown))
+    }
+
     private var shouldCollapse: Bool {
-        let charCount = markdown.count
-        let lineCount = markdown.components(separatedBy: .newlines).count
-        return charCount > Self.collapseCharThreshold || lineCount > Self.collapseLineThreshold
+        Self.shouldCollapse(markdown: markdown)
     }
 
     private var collapsedViewCount: Int {
@@ -48,8 +52,21 @@ struct MarkdownContentView: View {
             renderIfNeeded()
         }
         .onChange(of: markdown) {
+            if shouldCollapse && !hasUserToggledExpansion {
+                isExpanded = true
+            }
             renderIfNeeded()
         }
+    }
+
+    static func shouldCollapse(markdown: String) -> Bool {
+        let charCount = markdown.count
+        let lineCount = markdown.components(separatedBy: .newlines).count
+        return charCount > collapseCharThreshold || lineCount > collapseLineThreshold
+    }
+
+    static func shouldStartExpanded(for markdown: String) -> Bool {
+        shouldCollapse(markdown: markdown)
     }
 
     // MARK: - Render Cache
@@ -66,6 +83,7 @@ struct MarkdownContentView: View {
     private var expandButton: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.25)) {
+                hasUserToggledExpansion = true
                 isExpanded = true
             }
         } label: {
@@ -79,6 +97,7 @@ struct MarkdownContentView: View {
     private var collapseButton: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.25)) {
+                hasUserToggledExpansion = true
                 isExpanded = false
             }
         } label: {

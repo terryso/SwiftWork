@@ -48,13 +48,15 @@ final class MarkdownContentViewTests: XCTestCase {
 
     // MARK: - AC#3 — Long Text Collapse/Expand
 
-    // [P0] MarkdownContentView should collapse long text by default (>20 lines or >1000 chars)
+    // [P0] MarkdownContentView should start expanded for long text (>20 lines or >1000 chars)
     @MainActor
-    func testMarkdownContentViewCollapsesLongText() throws {
+    func testMarkdownContentViewStartsExpandedForLongText() throws {
         // Generate content exceeding the 1000 character threshold
         let longContent = String(repeating: "This is a line of text that adds to the total length. ", count: 30)
         let view = MarkdownContentView(markdown: longContent)
-        XCTAssertNotNil(view, "MarkdownContentView should collapse content exceeding 1000 characters")
+        XCTAssertNotNil(view, "MarkdownContentView should handle content exceeding 1000 characters")
+        XCTAssertTrue(MarkdownContentView.shouldStartExpanded(for: longContent),
+            "Long assistant content should be expanded by default")
     }
 
     // [P0] MarkdownContentView should not collapse short text
@@ -65,9 +67,9 @@ final class MarkdownContentViewTests: XCTestCase {
         XCTAssertNotNil(view, "MarkdownContentView should not collapse short content")
     }
 
-    // [P1] MarkdownContentView should handle content with many lines (>20 lines)
+    // [P1] MarkdownContentView should start expanded for content with many lines (>20 lines)
     @MainActor
-    func testMarkdownContentViewCollapsesManyLines() throws {
+    func testMarkdownContentViewStartsExpandedForManyLines() throws {
         // Generate content exceeding the 20 line threshold
         var lines: [String] = []
         for i in 0..<25 {
@@ -75,7 +77,16 @@ final class MarkdownContentViewTests: XCTestCase {
         }
         let longMarkdown = lines.joined(separator: "\n")
         let view = MarkdownContentView(markdown: longMarkdown)
-        XCTAssertNotNil(view, "MarkdownContentView should collapse content exceeding 20 lines")
+        XCTAssertNotNil(view, "MarkdownContentView should handle content exceeding 20 lines")
+        XCTAssertTrue(MarkdownContentView.shouldStartExpanded(for: longMarkdown),
+            "Multi-line long content should be expanded by default")
+    }
+
+    @MainActor
+    func testMarkdownContentViewShortTextDoesNotNeedDefaultExpansion() throws {
+        let shortContent = "This is a short message."
+        XCTAssertFalse(MarkdownContentView.shouldStartExpanded(for: shortContent),
+            "Short content should not opt into expanded-by-default behavior")
     }
 
     // [P2] MarkdownContentView should handle mixed Markdown with code blocks and text
