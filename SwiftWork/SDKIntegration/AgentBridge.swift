@@ -229,12 +229,10 @@ final class AgentBridge {
         _Concurrency.Task { [weak self] in
             guard let self, let agent = self.agent else { return }
             do {
-                _ = try await agent.setMcpServers(mcpServers)
-                if mcpServers.isEmpty {
-                    os_log("SwiftWork MCP: cleared all MCP servers (all disabled)", log: .default, type: .info)
-                } else {
-                    os_log("SwiftWork MCP: hot-updated to %d configs", log: .default, type: .info, configs.count)
-                }
+                let result = try await agent.setMcpServers(mcpServers)
+                os_log("SwiftWork MCP: hot-update result — added: %{public}@, removed: %{public}@, errors: %{public}@",
+                       log: .default, type: .info,
+                       result.added.description, result.removed.description, result.errors.description)
             } catch {
                 os_log("SwiftWork MCP: hot-update failed: %{public}s", log: .default, type: .error, error.localizedDescription)
             }

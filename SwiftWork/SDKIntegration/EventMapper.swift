@@ -29,14 +29,26 @@ struct EventMapper {
             if data.toolName == "EnterPlanMode" || data.toolName == "ExitPlanMode" || data.toolName == "TodoWrite" {
                 return mapPlanToolUse(data)
             }
+
+            var metadata: [String: any Sendable] = [
+                "toolName": data.toolName,
+                "toolUseId": data.toolUseId,
+                "input": data.input
+            ]
+
+            // MCP tool detection
+            if data.toolName.hasPrefix("mcp__") {
+                metadata["isMCP"] = true
+                let parts = data.toolName.components(separatedBy: "__")
+                if parts.count >= 2 {
+                    metadata["serverName"] = parts[1]
+                }
+            }
+
             return AgentEvent(
                 type: .toolUse,
                 content: data.toolName,
-                metadata: [
-                    "toolName": data.toolName,
-                    "toolUseId": data.toolUseId,
-                    "input": data.input
-                ],
+                metadata: metadata,
                 timestamp: .now
             )
 
@@ -52,14 +64,25 @@ struct EventMapper {
             )
 
         case .toolProgress(let data):
+            var metadata: [String: any Sendable] = [
+                "toolUseId": data.toolUseId,
+                "toolName": data.toolName,
+                "elapsedTimeSeconds": data.elapsedTimeSeconds ?? 0
+            ]
+
+            // MCP tool detection
+            if data.toolName.hasPrefix("mcp__") {
+                metadata["isMCP"] = true
+                let parts = data.toolName.components(separatedBy: "__")
+                if parts.count >= 2 {
+                    metadata["serverName"] = parts[1]
+                }
+            }
+
             return AgentEvent(
                 type: .toolProgress,
                 content: data.toolName,
-                metadata: [
-                    "toolUseId": data.toolUseId,
-                    "toolName": data.toolName,
-                    "elapsedTimeSeconds": data.elapsedTimeSeconds ?? 0
-                ],
+                metadata: metadata,
                 timestamp: .now
             )
 

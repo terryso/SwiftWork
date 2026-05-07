@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-07T00:00:00.000Z",
+  "repo": "swiftwork",
+  "target": {
+    "type": "story",
+    "id": "6-4",
+    "label": "Agent MCP 集成与工具注册"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "rationale": "P0 coverage is 100%, P1 coverage is 100%, and overall coverage is 100%. All 4 acceptance criteria are fully covered by automated tests. No critical or high gaps. 35 unique test cases across 2 test files cover all acceptance criteria with both happy-path and error/degradation scenarios.",
+  "p0_status": "MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix-6-4.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}

@@ -135,9 +135,13 @@ final class MCPManagementViewModel {
 
     func onAddSheetDismiss() async {
         await loadServers()
+        // Hot-add new MCP server to running Agent's tool pool
+        agentBridge?.updateMCPServers()
     }
 
     func onEditSheetDismiss() async {
         await loadServers()
+        // Hot-update MCP server config on running Agent
+        agentBridge?.updateMCPServers()
     }
 }
