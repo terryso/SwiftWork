@@ -8,6 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* MCPToolRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E1D0C9B8A7F6E5D4C3B2A1 /* MCPToolRenderer.swift */; };
+		A2B3C4D5E6F7A8B9C0D1E2F3 /* MCPStatusViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C4D5E6F7A8B9C0D1E2F3A4 /* MCPStatusViewModel.swift */; };
+		A3B4C5D6E7F8A9B0C1D2E3F4 /* WorkspaceStatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C5D6E7F8A9B0C1D2E3F4A5 /* WorkspaceStatusBar.swift */; };
+		A4B5C6D7E8F9A0B1C2D3E4F5 /* MCPStatusViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C6D7E8F9A0B1C2D3E4F5A6 /* MCPStatusViewModelTests.swift */; };
+		A5B6C7D8E9F0A1B2C3D4E5F6 /* WorkspaceStatusBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6C7D8E9F0A1B2C3D4E5F6A7 /* WorkspaceStatusBarTests.swift */; };
+		A6B7C8D9E0F1A2B3C4D5E6F7 /* InspectorMCPMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D9E0F1A2B3C4D5E6F7A8 /* InspectorMCPMetadataTests.swift */; };
+		A7B8C9D0E1F2A3B4C5D6E7F8 /* MCPStatusVisualizationIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C9D0E1F2A3B4C5D6E7F8A9 /* MCPStatusVisualizationIntegrationTests.swift */; };
 		AA11BB22CC33DD44EE55FF66 /* MCPToolRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FF55EE44DD33CC22BB11AA /* MCPToolRendererTests.swift */; };
 		CA1CA2CA3CA4CA5CA6CA7CA8 /* AgentBridgeMCPIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB1DB2DB3DB4DB5DB6DB7DB8 /* AgentBridgeMCPIntegrationTests.swift */; };
 		0262269494FEF0DC8C094B1F /* SessionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F380C7C08F3DD820103F3E /* SessionModelTests.swift */; };
@@ -199,6 +205,12 @@
 
 /* Begin PBXFileReference section */
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* MCPToolRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPToolRenderer.swift; sourceTree = "<group>"; };
+		B3C4D5E6F7A8B9C0D1E2F3A4 /* MCPStatusViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPStatusViewModel.swift; sourceTree = "<group>"; };
+		B4C5D6E7F8A9B0C1D2E3F4A5 /* WorkspaceStatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStatusBar.swift; sourceTree = "<group>"; };
+		B5C6D7E8F9A0B1C2D3E4F5A6 /* MCPStatusViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPStatusViewModelTests.swift; sourceTree = "<group>"; };
+		B6C7D8E9F0A1B2C3D4E5F6A7 /* WorkspaceStatusBarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStatusBarTests.swift; sourceTree = "<group>"; };
+		B7C8D9E0F1A2B3C4D5E6F7A8 /* InspectorMCPMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorMCPMetadataTests.swift; sourceTree = "<group>"; };
+		B8C9D0E1F2A3B4C5D6E7F8A9 /* MCPStatusVisualizationIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPStatusVisualizationIntegrationTests.swift; sourceTree = "<group>"; };
 		66FF55EE44DD33CC22BB11AA /* MCPToolRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPToolRendererTests.swift; sourceTree = "<group>"; };
 		DB1DB2DB3DB4DB5DB6DB7DB8 /* AgentBridgeMCPIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBridgeMCPIntegrationTests.swift; sourceTree = "<group>"; };
 		018F22261C50BA5EB7A72484 /* TimelineVirtualizationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineVirtualizationManager.swift; sourceTree = "<group>"; };
@@ -559,6 +571,8 @@
 				A1CEE257E0BD510592B8E967 /* Inspector */,
 				52C69336767C14CA90E75D0F /* Timeline */,
 				06F4FE9F0DABC0C03C687381 /* WorkspaceView.swift */,
+				B3C4D5E6F7A8B9C0D1E2F3A4 /* MCPStatusViewModel.swift */,
+				B4C5D6E7F8A9B0C1D2E3F4A5 /* WorkspaceStatusBar.swift */,
 			);
 			path = Workspace;
 			sourceTree = "<group>";
@@ -668,6 +682,7 @@
 				0B6DE1A65E1A5E4A920A9777 /* SessionViewModelTests.swift */,
 				1CDB51501F73B6E895945718 /* SettingsViewModel4_2Tests.swift */,
 				B1EC9D65D9B0E0DFDA57F376 /* SettingsViewModelTests.swift */,
+				B5C6D7E8F9A0B1C2D3E4F5A6 /* MCPStatusViewModelTests.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -678,6 +693,7 @@
 				DEE31509E08AAA6CF8174F66 /* AppEntryTests.swift */,
 				5E333F99AA61A37985863EFB /* AppStateIntegrationTests.swift */,
 				41ABC4B79BFB7F5FD9733208 /* AppStateRestoreIntegrationTests.swift */,
+				B8C9D0E1F2A3B4C5D6E7F8A9 /* MCPStatusVisualizationIntegrationTests.swift */,
 				CF697F72F41082C3CF92BE5F /* DockBadgeTests.swift */,
 				76A66DFE80D88BA79C33C0AA /* MenuBarCommandsTests.swift */,
 				581CB50FBF632E5C058691FD /* MessageInputAgentExecutionIntegrationTests.swift */,
@@ -821,6 +837,7 @@
 			children = (
 				51212BA61019D9173EA27321 /* InputBar */,
 				EC236188A31B4B4385E5D14F /* Inspector */,
+				B6C7D8E9F0A1B2C3D4E5F6A7 /* WorkspaceStatusBarTests.swift */,
 			);
 			path = Workspace;
 			sourceTree = "<group>";
@@ -888,6 +905,7 @@
 			children = (
 				E32465203BA8A93F26F15F25 /* DebugViewTests.swift */,
 				8DE08D477FAB6622E2C923AD /* InspectorViewTests.swift */,
+				B7C8D9E0F1A2B3C4D5E6F7A8 /* InspectorMCPMetadataTests.swift */,
 			);
 			path = Inspector;
 			sourceTree = "<group>";
@@ -1009,6 +1027,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				D1F0CA58C294C2313B7D9C1A /* APIKeySettingsViewTests.swift in Sources */,
+				A4B5C6D7E8F9A0B1C2D3E4F5 /* MCPStatusViewModelTests.swift in Sources */,
+				A5B6C7D8E9F0A1B2C3D4E5F6 /* WorkspaceStatusBarTests.swift in Sources */,
+				A6B7C8D9E0F1A2B3C4D5E6F7 /* InspectorMCPMetadataTests.swift in Sources */,
+				A7B8C9D0E1F2A3B4C5D6E7F8 /* MCPStatusVisualizationIntegrationTests.swift in Sources */,
 				7B1C589936AF54D898A36342 /* AddMCPServerViewModelTests.swift in Sources */,
 				EE11535B3E1C4317058FE54A /* AgentBridgeSkillTests.swift in Sources */,
 				80EC97D3AF295BA9AA0E3CDB /* AgentBridgeTests.swift in Sources */,
@@ -1186,6 +1208,8 @@
 				97AEED5B62EB84EA05A50681 /* UserMessageView.swift in Sources */,
 				914A2D51D3E15C3254112C63 /* WelcomeView.swift in Sources */,
 				967DEC57AC27AE9D7085E5E0 /* WindowAccessor.swift in Sources */,
+				A2B3C4D5E6F7A8B9C0D1E2F3 /* MCPStatusViewModel.swift in Sources */,
+				A3B4C5D6E7F8A9B0C1D2E3F4 /* WorkspaceStatusBar.swift in Sources */,
 				14C7C40B371078790395770E /* WorkspaceView.swift in Sources */,
 				B72C6B4C0887FD13EF16C0A0 /* WriteToolRenderer.swift in Sources */,
 			);

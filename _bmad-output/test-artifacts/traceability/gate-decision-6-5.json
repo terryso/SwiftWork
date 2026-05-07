@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-07T15:27:03.107661",
+  "repo": "swiftwork",
+  "target": {
+    "type": "story",
+    "id": "6-5",
+    "label": "MCP Status Visualization"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "rationale": "P0 coverage is 100%, overall coverage is 100% (minimum: 80%). All acceptance criteria fully covered with 62 active tests across 4 files.",
+  "p0_status": "MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "links": {
+    "trace_report_path": "/Users/nick/CascadeProjects/swiftwork/_bmad-output/test-artifacts/traceability/traceability-matrix-6-5.md",
+    "trace_report_url": ""
+  }
+}

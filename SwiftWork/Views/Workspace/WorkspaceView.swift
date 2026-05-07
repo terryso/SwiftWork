@@ -17,6 +17,7 @@ struct WorkspaceView: View {
     @State private var debugViewModel: DebugViewModel?
     @State private var timelineReloadToken = UUID()
     @State private var workspaceState: SessionWorkspaceState = .unbound
+    @State private var mcpStatusViewModel: MCPStatusViewModel?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -31,6 +32,11 @@ struct WorkspaceView: View {
                 .frame(maxHeight: .infinity)
 
                 Divider()
+
+                if let mcpStatusViewModel {
+                    WorkspaceStatusBar(viewModel: mcpStatusViewModel)
+                    Divider()
+                }
 
                 InputBarView(agentBridge: agentBridge)
 
@@ -93,6 +99,7 @@ struct WorkspaceView: View {
         }
         .task {
             debugViewModel = DebugViewModel(agentBridge: agentBridge)
+            setupMCPStatusViewModel()
             refreshWorkspaceContext()
             loadPersistedEvents()
             setupTitleGeneration()
@@ -109,6 +116,11 @@ struct WorkspaceView: View {
                 eventLookup = Dictionary(uniqueKeysWithValues: agentBridge.events.map { ($0.id, $0) })
             }
         }
+        .onChange(of: agentBridge.isRunning) { _, isRunning in
+            Task {
+                await mcpStatusViewModel?.onAgentRunningChanged(isRunning: isRunning)
+            }
+        }
         .onChange(of: session.id) { _, _ in
             sessionViewModel.deactivateActiveWorkspace()
             agentBridge.clearEvents()
@@ -117,6 +129,7 @@ struct WorkspaceView: View {
             refreshWorkspaceContext()
             loadPersistedEvents()
             setupTitleGeneration()
+            setupMCPStatusViewModel()
         }
         .onChange(of: session.workspacePath) { _, _ in
             refreshWorkspaceContext()
@@ -125,6 +138,7 @@ struct WorkspaceView: View {
             refreshWorkspaceContext()
         }
         .onDisappear {
+            mcpStatusViewModel?.stopPeriodicRefresh()
             sessionViewModel.deactivateActiveWorkspace()
         }
     }
@@ -270,5 +284,17 @@ struct WorkspaceView: View {
            sessionViewModel.updateWorkspace(session, to: url) {
             refreshWorkspaceContext()
         }
+    }
+
+    private func setupMCPStatusViewModel() {
+        mcpStatusViewModel?.stopPeriodicRefresh()
+        guard let store = agentBridge.mcpConfigStore else { return }
+        let vm = MCPStatusViewModel(store: store, agentBridge: agentBridge)
+        mcpStatusViewModel = vm
+        Task {
+            await vm.loadConfiguredServers()
+            await vm.refreshStatus()
+        }
+        vm.startPeriodicRefresh()
     }
 }

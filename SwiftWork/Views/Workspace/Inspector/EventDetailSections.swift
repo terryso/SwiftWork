@@ -12,6 +12,9 @@ extension InspectorView {
             // Tool name
             labeledRow("工具", value: content.toolName)
 
+            // MCP metadata section (AC3)
+            mcpMetadataSection(event: event)
+
             // Status
             labeledRow("状态", value: statusText(content.status))
 
@@ -58,9 +61,55 @@ extension InspectorView {
             if let toolName = event.metadata["toolName"] as? String {
                 labeledRow("工具", value: toolName)
             }
+
+            // MCP metadata section even without ToolContent
+            mcpMetadataSection(event: event)
+
             if let input = event.metadata["input"] as? String, !input.isEmpty {
                 labeledRow("参数", value: input)
             }
+        }
+    }
+
+    // MARK: - MCP Metadata Section (AC3 — Story 6-5)
+
+    @ViewBuilder
+    func mcpMetadataSection(event: AgentEvent) -> some View {
+        if let isMCP = event.metadata["isMCP"] as? Bool, isMCP {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: "cube.box")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                    Text("MCP 工具")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.blue)
+                }
+
+                // 来源
+                labeledRow("来源", value: "MCP")
+
+                // 服务器名
+                if let serverName = event.metadata["serverName"] as? String {
+                    labeledRow("服务器", value: serverName)
+                }
+
+                // 命名空间全名
+                if let toolName = event.metadata["toolName"] as? String {
+                    labeledRow("命名空间", value: toolName)
+
+                    // MCP 工具名（去掉 mcp__server__ 前缀）
+                    let parts = toolName.components(separatedBy: "__")
+                    if parts.count >= 3 {
+                        let mcpToolName = parts.dropFirst(2).joined(separator: "__")
+                        labeledRow("MCP 工具", value: mcpToolName)
+                    }
+                }
+            }
+            .padding(6)
+            .background(.blue.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
         }
     }
 
