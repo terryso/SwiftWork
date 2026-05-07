@@ -3,12 +3,14 @@ import SwiftUI
 struct MCPManagementView: View {
     let store: MCPServerConfigStore
     let agentBridge: AgentBridge?
+    let configManager: MCPConfigFileManager
 
     @State private var viewModel: MCPManagementViewModel
 
-    init(store: MCPServerConfigStore, agentBridge: AgentBridge?) {
+    init(store: MCPServerConfigStore, agentBridge: AgentBridge?, configManager: MCPConfigFileManager = MCPConfigFileManager()) {
         self.store = store
         self.agentBridge = agentBridge
+        self.configManager = configManager
         self._viewModel = State(initialValue: MCPManagementViewModel(store: store, agentBridge: agentBridge))
     }
 
@@ -155,6 +157,15 @@ struct MCPManagementView: View {
                         Divider().padding(.horizontal, 20)
                     }
                 }
+
+                // Advanced settings section at bottom (AC#1)
+                MCPAdvancedSettingsView(
+                    configManager: configManager,
+                    store: store,
+                    agentBridge: agentBridge
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
             }
             .padding(.bottom, 20)
         }

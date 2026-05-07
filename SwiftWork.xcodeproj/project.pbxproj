@@ -191,7 +191,12 @@
 		FDF994987DEF742D1975F5D1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9DE8F7D4DE985171849FE3 /* Sparkle */; };
 		FF60CDA07D09892433EF2CDB /* SidebarViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CABD327DD4F4521E5DF08B18 /* SidebarViewTests.swift */; };
 		FFCB8876C399FBF487A2D4DB /* EventDetailSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63FAD2265ACE7675C3824B1 /* EventDetailSections.swift */; };
+		55CADB5B0B10E8155ADBACD9 /* MCPConfigFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C39CE357EA90CD9C50E74DE /* MCPConfigFileManager.swift */; };
+		5CEEDE4C16BB13C98A886AAE /* MCPAdvancedSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BB00050C848DD8985E3EE5 /* MCPAdvancedSettingsView.swift */; };
 /* End PBXBuildFile section */
+		2A574954CEFDE6DCF4233F78 /* MCPConfigFileManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6FBECD196520C643610609 /* MCPConfigFileManagerTests.swift */; };
+		335F8C333E68943265F95C71 /* MCPConfigFileIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F79E7F8A9D9AA778A46EF29 /* MCPConfigFileIntegrationTests.swift */; };
+		F9A00F1A060EAEE9DE2BC904 /* MCPAdvancedSettingsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB75AFAAD70443DC596B4975 /* MCPAdvancedSettingsViewTests.swift */; };
 
 /* Begin PBXContainerItemProxy section */
 		09401C5BB23A71BC71D39257 /* PBXContainerItemProxy */ = {
@@ -386,7 +391,12 @@
 		FC489F9AD659EAE84527791A /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
 		FD01FF123727A7F5A930BFC9 /* MarkdownContentViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownContentViewTests.swift; sourceTree = "<group>"; };
 		FF0DF313CF00BBF501B76EBC /* EventMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMapperTests.swift; sourceTree = "<group>"; };
+		3C39CE357EA90CD9C50E74DE /* MCPConfigFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPConfigFileManager.swift; sourceTree = "<group>"; };
+		C7BB00050C848DD8985E3EE5 /* MCPAdvancedSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPAdvancedSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+		7A6FBECD196520C643610609 /* MCPConfigFileManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPConfigFileManagerTests.swift; sourceTree = "<group>"; };
+		3F79E7F8A9D9AA778A46EF29 /* MCPConfigFileIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPConfigFileIntegrationTests.swift; sourceTree = "<group>"; };
+		FB75AFAAD70443DC596B4975 /* MCPAdvancedSettingsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPAdvancedSettingsViewTests.swift; sourceTree = "<group>"; };
 
 /* Begin PBXFrameworksBuildPhase section */
 		955AA7162AF47961EA05C87D /* Frameworks */ = {
@@ -433,6 +443,7 @@
 				CB345F131B0EE93B8B2C7A27 /* MCPFormFields.swift */,
 				8BAF1783667F4F7EEFF4FA2D /* MCPTransportTypePicker.swift */,
 				7AAE75BC4F8F47C6A1969592 /* MCPManagementView.swift */,
+				C7BB00050C848DD8985E3EE5 /* MCPAdvancedSettingsView.swift */,
 				BF79C0F6CEAC4FAA951F28F8 /* MCPManagementViewModel.swift */,
 				EA06454EBC484820BBF189B1 /* MCPServerRowView.swift */,
 				9AFA88A751614BBDB7AD066A /* MCPServerDetailView.swift */,
@@ -475,6 +486,8 @@
 				9AF3B52F98A3C32B3302EFC1 /* AppStateManagerTests.swift */,
 				B88CFD3B44C00704A2FC0C28 /* CodeHighlighterTests.swift */,
 				10AE3903B9C1221BB226CA37 /* EventStoreTests.swift */,
+				3F79E7F8A9D9AA778A46EF29 /* MCPConfigFileIntegrationTests.swift */,
+				7A6FBECD196520C643610609 /* MCPConfigFileManagerTests.swift */,
 				D6FAFDCA54246E7640902E6B /* KeychainManagerTests.swift */,
 				5BEEE538076F4930F29CCAB7 /* MarkdownRendererTests.swift */,
 				A940B72417B6A2837A932C34 /* MCPServerConfigStoreTests.swift */,
@@ -790,6 +803,7 @@
 				A18E6F0A27BF01C636533789 /* ModelPickerViewTests.swift */,
 				34AB269D7852B3F42A46D3F1 /* SettingsViewIntegrationTests.swift */,
 				4E731208D3D540E684FDF48D /* MCPManagementViewTests.swift */,
+				FB75AFAAD70443DC596B4975 /* MCPAdvancedSettingsViewTests.swift */,
 				1443D75780E27463CE4BF1BF /* SkillSourceGroupingTests.swift */,
 				1B381EA872A3D23BE7E68B39 /* SkillsSettingsViewTests.swift */,
 			);
@@ -851,6 +865,7 @@
 				2FB301716EFD17D016570708 /* KeychainManager.swift */,
 				4CA44FC5C93A563DCBFC06AE /* MarkdownRenderer.swift */,
 				3D5722374029FC8906450402 /* MCPServerConfigStore.swift */,
+				3C39CE357EA90CD9C50E74DE /* MCPConfigFileManager.swift */,
 				64FE51A0FE3676E211989EE9 /* SessionWorkspaceService.swift */,
 				867E45236FE183BA2BE38187 /* TitleGenerator.swift */,
 			);
@@ -1061,6 +1076,7 @@
 				3291499AE94ABC7287F14F5E /* KeychainManagerTests.swift in Sources */,
 				FD8A6B321FBDC73B7BF7F812 /* MCPServerConfigStoreTests.swift in Sources */,
 				D64924F3FAB645CE90CA2172 /* MCPManagementViewTests.swift in Sources */,
+				F9A00F1A060EAEE9DE2BC904 /* MCPAdvancedSettingsViewTests.swift in Sources */,
 				30B83336534140689B0419E9 /* MCPManagementViewModelTests.swift in Sources */,
 				AA11BB22CC33DD44EE55FF66 /* MCPToolRendererTests.swift in Sources */,
 				CA1CA2CA3CA4CA5CA6CA7CA8 /* AgentBridgeMCPIntegrationTests.swift in Sources */,
@@ -1116,6 +1132,7 @@
 				EC8C28AC153741067B206D27 /* APIKeySettingsView.swift in Sources */,
 				65D066AD2C5A438B2889BA95 /* AddMCPServerSheet.swift in Sources */,
 				1A1C286FAA0A492FBB52988C /* MCPManagementView.swift in Sources */,
+				5CEEDE4C16BB13C98A886AAE /* MCPAdvancedSettingsView.swift in Sources */,
 				6EF40D57A4F4429FB15EDF95 /* MCPManagementViewModel.swift in Sources */,
 				FAA0ED959F804AE6B827E2A6 /* MCPServerRowView.swift in Sources */,
 				18D85913649E433E92023E6F /* MCPServerDetailView.swift in Sources */,
@@ -1154,6 +1171,7 @@
 				84975CD09EBE0CC51F980EBD /* MCPFormFields.swift in Sources */,
 				6D4257A506232DE06AA99A7A /* MCPServerConfig.swift in Sources */,
 				AFAFE60BA3486B5D5D52C1CB /* MCPServerConfigStore.swift in Sources */,
+				55CADB5B0B10E8155ADBACD9 /* MCPConfigFileManager.swift in Sources */,
 				D73AFF97F3E595F8DAE22978 /* MCPTransportTypePicker.swift in Sources */,
 				ED1F50729458CC553DAF223B /* MarkdownContentView.swift in Sources */,
 				3514AA05BADBE0E7083C0A3D /* MarkdownRenderer.swift in Sources */,

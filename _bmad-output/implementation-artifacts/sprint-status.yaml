@@ -1,5 +1,5 @@
 # generated: 2026-05-07
-# last_updated: 2026-05-07 (6-5 done)
+# last_updated: 2026-05-07 (6-6 review)
 # project: swiftwork
 # project_key: NOKEY
 # tracking_system: file-system
@@ -94,5 +94,5 @@ development_status:
   6-3-mcp-management-panel: done
   6-4-agent-mcp-integration-tool-registration: done
   6-5-mcp-status-visualization: done
-  6-6-mcp-advanced-settings-config: backlog
+  6-6-mcp-advanced-settings-config: done
   epic-6-retrospective: optional

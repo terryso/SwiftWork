@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-07T16:45:00.000000",
+  "repo": "swiftwork",
+  "target": {
+    "type": "story",
+    "id": "6-6",
+    "label": "MCP Advanced Settings Config"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "rationale": "P0 coverage is 100%, overall coverage is 100% (minimum: 80%). All 4 acceptance criteria fully covered with 60 active tests across 3 files. No critical or high-priority gaps. 3 informational gaps with accepted mitigations.",
+  "p0_status": "MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 0,
+  "links": {
+    "trace_report_path": "/Users/nick/CascadeProjects/swiftwork/_bmad-output/test-artifacts/traceability/traceability-matrix-6-6.md",
+    "trace_report_url": ""
+  }
+}
