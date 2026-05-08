@@ -24,6 +24,10 @@ final class MCPConfigFileManager {
 
     // MARK: - File Existence Check (AC#3)
 
+    var revealFileHandler: (String) -> Void = { path in
+        NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "")
+    }
+
     func configFileExists(atPath path: String) -> Bool {
         FileManager.default.fileExists(atPath: path)
     }
@@ -37,7 +41,7 @@ final class MCPConfigFileManager {
     // MARK: - Reveal in Finder (AC#3)
 
     func revealInFinder(path: String) {
-        NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "")
+        revealFileHandler(path)
     }
 
     // MARK: - Parse JSON Config (AC#4)
@@ -191,11 +195,15 @@ final class MCPConfigFileManager {
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: descriptor,
             eventMask: [.write, .delete, .rename, .attrib],
-            queue: DispatchQueue.global(qos: .utility)
+            queue: DispatchQueue.main
         )
 
         source.setEventHandler {
-            DispatchQueue.main.async { onChange() }
+            onChange()
+        }
+
+        source.setCancelHandler { [descriptor] in
+            close(descriptor)
         }
 
         source.resume()
@@ -207,9 +215,6 @@ final class MCPConfigFileManager {
             source.cancel()
         }
         fileSource = nil
-        if watchedFileDescriptor >= 0 {
-            close(watchedFileDescriptor)
-            watchedFileDescriptor = -1
-        }
+        watchedFileDescriptor = -1
     }
 }

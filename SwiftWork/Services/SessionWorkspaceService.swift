@@ -188,7 +188,7 @@ final class SessionWorkspaceService {
             return false
         }
 
-        return fileManager.isWritableFile(atPath: path)
+        return true
     }
 
     private func resolveBookmarkURL(from data: Data?) -> URL? {

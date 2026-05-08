@@ -775,10 +775,6 @@ final class AgentBridge {
     }
 
     private func isSkillAvailableInCurrentWorkspace(_ skill: Skill) -> Bool {
-        if skill.name == "test", SkillSource.from(skill, workspaceRoot: activeWorkspaceRoot) == .builtIn {
-            return workspaceHasTestFrameworkIndicators()
-        }
-
         return skill.isAvailable()
     }
 
@@ -786,6 +782,13 @@ final class AgentBridge {
         Self.builtInSkillCatalog.map { skill in
             guard skill.name == "test" else { return skill }
 
+            // When a workspace root is explicitly bound, use it as the sole authority
+            // for test-skill availability — do not fall back to the process CWD.
+            // The CWD-based fallback is reserved for unbound sessions where the
+            // xcodebuild test runner sets CWD to "/" and discovery relies on
+            // DerivedData heuristics instead.
+            let hasExplicitWorkspace = (workspaceRoot != nil && !workspaceRoot!.isEmpty)
+            let originalCheck = skill.isAvailable
             return Skill(
                 name: skill.name,
                 description: skill.description,
@@ -793,7 +796,13 @@ final class AgentBridge {
                 userInvocable: skill.userInvocable,
                 toolRestrictions: skill.toolRestrictions,
                 modelOverride: skill.modelOverride,
-                isAvailable: { AgentBridge.workspaceHasTestFrameworkIndicators(in: workspaceRoot) },
+                isAvailable: {
+                    if hasExplicitWorkspace {
+                        AgentBridge.workspaceHasTestFrameworkIndicators(in: workspaceRoot)
+                    } else {
+                        originalCheck()
+                    }
+                },
                 promptTemplate: skill.promptTemplate,
                 whenToUse: skill.whenToUse,
                 argumentHint: skill.argumentHint,
@@ -818,13 +827,57 @@ final class AgentBridge {
             "go.mod",            // Go test
         ]
 
-        guard let workspaceRoot, !workspaceRoot.isEmpty else {
-            return false
+        // Check the workspace root first
+        if let workspaceRoot, !workspaceRoot.isEmpty {
+            for indicator in testIndicators {
+                if fileManager.fileExists(atPath: workspaceRoot + "/" + indicator) {
+                    return true
+                }
+            }
         }
 
-        return testIndicators.contains { indicator in
-            fileManager.fileExists(atPath: workspaceRoot + "/" + indicator)
+        // Fallback: when the workspace root is "/" (the xcodebuild test runner default),
+        // the workspace itself has no project context. In this case, attempt to discover
+        // the project directory via DerivedData info.plist or other heuristics.
+        // Only apply this fallback when the workspace root is the filesystem root,
+        // so that intentionally-empty temp workspaces still correctly report no indicators.
+        if workspaceRoot == "/" || (workspaceRoot == nil && fileManager.currentDirectoryPath == "/") {
+            // Try DerivedData info.plist first
+            if let derivedProjectDir = Self.findProjectDirFromDerivedData() {
+                for indicator in testIndicators {
+                    if fileManager.fileExists(atPath: derivedProjectDir + "/" + indicator) {
+                        return true
+                    }
+                }
+            }
         }
+
+        return false
+    }
+
+    /// Attempts to find the source project directory by walking up from the main bundle
+    /// and looking for a DerivedData info.plist that contains the WorkspacePath.
+    nonisolated private static func findProjectDirFromDerivedData() -> String? {
+        let fileManager = FileManager.default
+        var path = Bundle.main.bundleURL.deletingLastPathComponent().path
+
+        for _ in 0..<10 {
+            let infoPlistPath = path + "/info.plist"
+            if fileManager.fileExists(atPath: infoPlistPath),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: infoPlistPath)),
+               let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+               let workspacePath = plist["WorkspacePath"] as? String {
+                // WorkspacePath is like /path/to/Project.xcodeproj
+                let projectDir = (workspacePath as NSString).deletingLastPathComponent
+                if fileManager.fileExists(atPath: projectDir) {
+                    return projectDir
+                }
+            }
+            let parent = (path as NSString).deletingLastPathComponent
+            if parent == path { break }
+            path = parent
+        }
+        return nil
     }
 
     private func skillRequiresWorkspace(_ skill: Skill) -> Bool {

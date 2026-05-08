@@ -582,16 +582,18 @@ final class MCPConfigFileManagerTests: XCTestCase {
     // [P1] revealInFinder does not crash for existing file
     func testRevealInFinderDoesNotCrashForExistingFile() throws {
         let manager = makeManager()
+        manager.revealFileHandler = { _ in }
         let filePath = tempDirectory + "/.claude/settings.json"
         try writeConfigFile(path: filePath, json: "{}")
 
-        // Should not crash — NSWorkspace.selectFile is safe for existing files
+        // Should not crash — handler is a no-op in tests
         manager.revealInFinder(path: filePath)
     }
 
     // [P1] revealInFinder does not crash for non-existing file
     func testRevealInFinderDoesNotCrashForMissingFile() {
         let manager = makeManager()
+        manager.revealFileHandler = { _ in }
         // Should not crash even for missing files
         manager.revealInFinder(path: "/nonexistent/path/settings.json")
     }
