@@ -49,6 +49,14 @@ struct SessionRowView: View {
                     .lineLimit(1)
                     .font(.body)
             }
+            if let workspacePath = session.workspacePath, !workspacePath.isEmpty {
+                let dirName = URL(fileURLWithPath: workspacePath).lastPathComponent
+                Label(dirName, systemImage: "folder.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .accessibilityLabel("工作目录: \(dirName)")
+            }
             Text(session.updatedAt.relativeFormatted)
                 .font(.caption)
                 .foregroundStyle(.secondary)
