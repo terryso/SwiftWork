@@ -18,9 +18,9 @@ struct SwiftWorkApp: App {
             AppConfiguration.self
         ])
         .commands {
-            // File menu — replace default "New Window" with "新建会话"
+            // File menu — replace default "New Window" with "New Session"
             CommandGroup(replacing: .newItem) {
-                Button("新建会话") {
+                Button("New Session") {
                     appState.sessionViewModel.createSession()
                 }
                 .keyboardShortcut("n", modifiers: .command)
@@ -28,14 +28,14 @@ struct SwiftWorkApp: App {
 
             // View menu — add Inspector and Debug Panel toggles
             CommandGroup(after: .toolbar) {
-                Button("切换 Inspector") {
+                Button("Toggle Inspector") {
                     withAnimation {
                         appState.isInspectorVisible.toggle()
                     }
                 }
                 .keyboardShortcut("i", modifiers: .command)
 
-                Button("切换 Debug Panel") {
+                Button("Toggle Debug Panel") {
                     withAnimation {
                         appState.isDebugPanelVisible.toggle()
                     }
@@ -45,7 +45,7 @@ struct SwiftWorkApp: App {
 
             // App menu — replace default "Settings..." with custom binding
             CommandGroup(replacing: .appSettings) {
-                Button("设置...") {
+                Button("Settings...") {
                     appState.isSettingsPresented = true
                 }
                 .keyboardShortcut(",", modifiers: .command)

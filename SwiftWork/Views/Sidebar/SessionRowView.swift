@@ -50,12 +50,13 @@ struct SessionRowView: View {
                     .font(.body)
             }
             if let workspacePath = session.workspacePath, !workspacePath.isEmpty {
-                let dirName = URL(fileURLWithPath: workspacePath).lastPathComponent
-                Label(dirName, systemImage: "folder.fill")
+                let displayPath = (workspacePath as NSString).abbreviatingWithTildeInPath
+                Text(displayPath)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
-                    .accessibilityLabel("工作目录: \(dirName)")
+                    .truncationMode(.middle)
+                    .accessibilityLabel("工作目录: \(workspacePath)")
             }
             Text(session.updatedAt.relativeFormatted)
                 .font(.caption)
