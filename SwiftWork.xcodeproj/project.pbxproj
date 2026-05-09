@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -921,7 +921,6 @@
 				9B35EF6059C168F9C512144D /* XCRemoteSwiftPackageReference "Sparkle" */,
 				C3E52794B416B98DC07FC380 /* XCRemoteSwiftPackageReference "Splash" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (

@@ -16,6 +16,8 @@ macOS-native AI workspace for visualizing and interacting with AI agents. SwiftW
 
 Built with [Open Agent SDK (Swift)](https://github.com/terryso/open-agent-sdk-swift).
 
+https://github.com/user-attachments/assets/5ad4de4f-29dd-4a9b-a673-ef1c297da754
+
 ## Features
 
 ### Session Management

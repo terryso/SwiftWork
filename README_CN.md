@@ -16,6 +16,8 @@ macOS 原生 AI 工作台，用于可视化和交互 AI Agent。SwiftWork 提供
 
 基于 [Open Agent SDK (Swift)](https://github.com/terryso/open-agent-sdk-swift) 构建。
 
+https://github.com/user-attachments/assets/5ad4de4f-29dd-4a9b-a673-ef1c297da754
+
 ## 功能特性
 
 ### 会话管理
