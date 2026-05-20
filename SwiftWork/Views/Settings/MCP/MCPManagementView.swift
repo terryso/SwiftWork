@@ -38,6 +38,7 @@ struct MCPManagementView: View {
                 store: store,
                 scope: .global,
                 workspacePath: nil,
+                agentBridge: agentBridge,
                 onSave: { _ in }
             )
         }

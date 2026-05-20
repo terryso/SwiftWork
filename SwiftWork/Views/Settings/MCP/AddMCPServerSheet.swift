@@ -274,6 +274,7 @@ struct AddMCPServerSheet: View {
     let store: MCPServerConfigStore
     let scope: MCPServerScope
     let workspacePath: String?
+    let agentBridge: AgentBridge?
     let onSave: (MCPServerConfig) -> Void
 
     @State private var viewModel = AddMCPServerViewModel()
@@ -355,6 +356,7 @@ struct AddMCPServerSheet: View {
             for config in configs {
                 onSave(config)
             }
+            agentBridge?.updateMCPServers()
             viewModel.isSubmitting = false
             dismiss()
         } catch let error as MCPServerConfigError {
