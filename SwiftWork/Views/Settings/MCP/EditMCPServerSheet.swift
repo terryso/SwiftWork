@@ -21,7 +21,7 @@ struct EditMCPServerSheet: View {
             Divider()
             footer
         }
-        .frame(minWidth: 460, minHeight: 320)
+        .frame(minWidth: 480, minHeight: 360)
         .onAppear {
             viewModel.populateFromConfig(originalConfig)
         }
@@ -34,7 +34,7 @@ struct EditMCPServerSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("编辑 MCP Server")
                     .font(.headline)
-                Text("修改 \(originalConfig.name) 的配置")
+                Text(originalConfig.name)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -91,7 +91,6 @@ struct EditMCPServerSheet: View {
                 scope: scope,
                 workspacePath: workspacePath
             )
-            // Hot-update Agent if running
             agentBridge?.updateMCPServers()
             viewModel.isSubmitting = false
             onSave(updated)

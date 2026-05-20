@@ -58,11 +58,11 @@ final class MCPConfigFileManager {
         }
 
         return mcpServers.compactMap { name, serverDict -> MCPServerConfig? in
-            parseServerEntry(name: name, dict: serverDict)
+            Self.parseServerEntry(name: name, dict: serverDict)
         }
     }
 
-    private func parseServerEntry(name: String, dict: [String: Any]) -> MCPServerConfig? {
+    static func parseServerEntry(name: String, dict: [String: Any]) -> MCPServerConfig? {
         // Determine transport type
         let transportType: TransportType
         if let typeString = dict["type"] as? String {

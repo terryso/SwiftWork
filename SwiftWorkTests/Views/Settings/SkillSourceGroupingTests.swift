@@ -2,10 +2,8 @@ import XCTest
 import OpenAgentSDK
 @testable import SwiftWork
 
-// ATDD Red Phase -- Story 5.4: Skill Management Panel
 // Acceptance tests for Skill source grouping logic (AC#2).
 // SkillSource is a pure-function enum that categorizes skills by baseDir.
-// These tests assert EXPECTED behavior. They will FAIL until SkillSource is implemented.
 
 @MainActor
 final class SkillSourceGroupingTests: XCTestCase {
@@ -24,8 +22,10 @@ final class SkillSourceGroupingTests: XCTestCase {
         )
     }
 
+    /// Fixed workspace root so tests are hermetic and don't depend on
+    /// FileManager.default.currentDirectoryPath (which varies by test runner).
     private var workspaceRoot: String {
-        FileManager.default.currentDirectoryPath
+        "/tmp/SkillSourceGroupingTests/workspace"
     }
 
     // MARK: - AC#2: Skill source grouping by baseDir
@@ -65,13 +65,8 @@ final class SkillSourceGroupingTests: XCTestCase {
         let skill = makeSkill(name: "global-skill", baseDir: homeSkillPath)
 
         let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
-        if workspaceRoot == NSHomeDirectory() {
-            XCTAssertEqual(source, .project,
-                "When workspace root is home directory, home-based skill should be Project")
-        } else {
-            XCTAssertEqual(source, .user,
-                "Skill with baseDir in home directory should be classified as User")
-        }
+        XCTAssertEqual(source, .user,
+            "Skill with baseDir in home directory should be classified as User")
     }
 
     // [P1] BuiltInSkills from SDK have nil baseDir -> all classified as .builtIn
@@ -115,28 +110,17 @@ final class SkillSourceGroupingTests: XCTestCase {
         let skill = makeSkill(name: "edge-skill", baseDir: workspaceRoot)
 
         let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
-        // hasPrefix(cwd) will match when baseDir == cwd, so it's .project
         XCTAssertEqual(source, .project,
             "Skill with baseDir exactly equal to CWD should be classified as Project")
     }
 
     // [P2] Edge case: baseDir starts with same prefix but is different path
     func testSkillSourceWhenBaseDirHasSimilarPrefixButDifferentPath() {
-        // e.g., CWD = /Users/nick/projects/myproject
-        // baseDir = /Users/nick/projects/myproject-other/skills/skill
-        // hasPrefix check should NOT match this
         let fakePath = workspaceRoot + "-suffix/skills/skill"
         let skill = makeSkill(name: "tricky-skill", baseDir: fakePath)
 
         let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
-        // This depends on whether hasPrefix matches "/path-suffix" for "/path"
-        // String.hasPrefix would match if cwd has no trailing slash
-        // e.g. "/foo".hasPrefix("/foo-suffix") == false
-        // Actually "/foo-suffix".hasPrefix("/foo") == true -- this IS a bug risk!
-        // The implementation should add "/" to the prefix to avoid false matches
-        // For now, test documents the expected behavior
-        let expectedSource: SkillSource = .user
-        XCTAssertEqual(source, expectedSource,
+        XCTAssertEqual(source, .user,
             "Skill with baseDir that merely shares a prefix with CWD should be User, not Project. " +
             "Implementation must ensure exact path prefix matching (add trailing '/' to CWD check).")
     }

@@ -1,52 +1,78 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - JSON Input Format Detection
+
+enum MCPJSONInputFormat {
+    /// `{"mcpServers": {"name": {...}}}`
+    case mcpServers
+    /// `{"name": {"command": "..."}, ...}`
+    case serverMap
+    /// `{"command": "...", "args": [...]}` (bare single-server config)
+    case bareConfig
+    /// Cannot parse / unrecognized
+    case invalid
+}
+
+// MARK: - ViewModel
+
 @MainActor
 @Observable
 final class AddMCPServerViewModel {
 
     // MARK: - Form State
 
-    var name = ""
-    var transportMode: MCPTransportMode = .remote
-    var url = ""
-    var command = ""
+    var jsonText = ""
+    var serverName = ""
     var isSubmitting = false
     var errorMessage: String?
+
+    // MARK: - Format Detection
+
+    var detectedFormat: MCPJSONInputFormat {
+        detectFormat(jsonText)
+    }
+
+    var showsNameField: Bool {
+        detectedFormat == .bareConfig
+    }
 
     // MARK: - Validation
 
     var isValid: Bool {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else { return false }
-
-        switch transportMode {
-        case .remote:
-            return !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .local:
-            return !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let format = detectedFormat
+        guard format != .invalid else { return false }
+        if format == .bareConfig {
+            return !serverName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
+        return true
     }
 
     @discardableResult
     func validate() -> Bool {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedName.isEmpty {
-            errorMessage = "Server 名称不能为空"
+        let format = detectedFormat
+        if format == .invalid {
+            errorMessage = "无法解析 JSON，请检查格式"
             return false
         }
+        if format == .bareConfig {
+            let trimmedName = serverName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedName.isEmpty {
+                errorMessage = "Server 名称不能为空"
+                return false
+            }
+        }
 
-        switch transportMode {
-        case .remote:
-            if url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                errorMessage = "URL 不能为空"
+        // Try parsing to validate structure
+        do {
+            let configs = try parseConfigs()
+            if configs.isEmpty {
+                errorMessage = "未找到有效的 MCP Server 配置"
                 return false
             }
-        case .local:
-            if command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                errorMessage = "Command 不能为空"
-                return false
-            }
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
 
         errorMessage = nil
@@ -59,40 +85,26 @@ final class AddMCPServerViewModel {
         store: MCPServerConfigStore,
         scope: MCPServerScope,
         workspacePath: String?
-    ) throws -> MCPServerConfig {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    ) throws -> [MCPServerConfig] {
+        let configs = try parseConfigs()
+        var results: [MCPServerConfig] = []
 
-        switch transportMode {
-        case .remote:
-            return try store.add(
-                name: trimmedName,
-                transportType: .sse,
-                command: nil,
-                url: url.trimmingCharacters(in: .whitespacesAndNewlines),
-                args: nil,
-                env: nil,
-                headers: nil,
+        for (name, config) in configs {
+            let added = try store.add(
+                name: name,
+                transportType: config.transportType,
+                command: config.command,
+                url: config.url,
+                args: config.args,
+                env: config.env,
+                headers: config.headers,
                 enabled: true,
                 scope: scope,
                 workspacePath: workspacePath
             )
-
-        case .local:
-            let (cmd, args) = parseCommand(command)
-            let argsData = args.isEmpty ? nil : try? JSONEncoder().encode(args)
-            return try store.add(
-                name: trimmedName,
-                transportType: .stdio,
-                command: cmd,
-                url: nil,
-                args: argsData,
-                env: nil,
-                headers: nil,
-                enabled: true,
-                scope: scope,
-                workspacePath: workspacePath
-            )
+            results.append(added)
         }
+        return results
     }
 
     // MARK: - Submit (Edit)
@@ -103,89 +115,154 @@ final class AddMCPServerViewModel {
         scope: MCPServerScope,
         workspacePath: String?
     ) throws -> MCPServerConfig {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        switch transportMode {
-        case .remote:
-            return try store.replace(
-                originalConfig,
-                name: trimmedName,
-                transportType: .sse,
-                command: nil,
-                url: url.trimmingCharacters(in: .whitespacesAndNewlines),
-                args: nil,
-                env: nil,
-                headers: nil,
-                enabled: originalConfig.enabled,
-                scope: scope,
-                workspacePath: workspacePath
-            )
-
-        case .local:
-            let (cmd, args) = parseCommand(command)
-            let argsData = args.isEmpty ? nil : try? JSONEncoder().encode(args)
-            return try store.replace(
-                originalConfig,
-                name: trimmedName,
-                transportType: .stdio,
-                command: cmd,
-                url: nil,
-                args: argsData,
-                env: nil,
-                headers: nil,
-                enabled: originalConfig.enabled,
-                scope: scope,
-                workspacePath: workspacePath
-            )
+        let configs = try parseConfigs()
+        guard let first = configs.first else {
+            throw ParseError.invalidJSON
         }
+        let (_, config) = first
+        return try store.replace(
+            originalConfig,
+            name: config.name,
+            transportType: config.transportType,
+            command: config.command,
+            url: config.url,
+            args: config.args,
+            env: config.env,
+            headers: config.headers,
+            enabled: originalConfig.enabled,
+            scope: scope,
+            workspacePath: workspacePath
+        )
     }
 
     // MARK: - Populate from Existing Config (Edit Mode)
 
     func populateFromConfig(_ config: MCPServerConfig) {
-        name = config.name
-
-        switch config.transportType {
-        case .sse, .http:
-            transportMode = .remote
-            url = config.url ?? ""
-            command = ""
-        case .stdio:
-            transportMode = .local
-            url = ""
-            if let cmd = config.command {
-                let decodedArgs = config.decodedArgs ?? []
-                if decodedArgs.isEmpty {
-                    command = cmd
-                } else {
-                    command = ([cmd] + decodedArgs).joined(separator: " ")
-                }
-            } else {
-                command = ""
-            }
+        var dict: [String: Any] = [:]
+        if let command = config.command {
+            dict["command"] = command
+        }
+        if let url = config.url {
+            dict["url"] = url
+        }
+        if let args = config.decodedArgs, !args.isEmpty {
+            dict["args"] = args
+        }
+        if let env = config.decodedEnv, !env.isEmpty {
+            dict["env"] = env
+        }
+        if let headers = config.decodedHeaders, !headers.isEmpty {
+            dict["headers"] = headers
         }
 
+        let wrapper: [String: Any] = [config.name: dict]
+        if let data = try? JSONSerialization.data(
+            withJSONObject: wrapper,
+            options: [.prettyPrinted, .sortedKeys]
+        ) {
+            jsonText = String(data: data, encoding: .utf8) ?? ""
+        }
+
+        serverName = config.name
         errorMessage = nil
     }
 
     // MARK: - Reset
 
     func reset() {
-        name = ""
-        transportMode = .remote
-        url = ""
-        command = ""
+        jsonText = ""
+        serverName = ""
         isSubmitting = false
         errorMessage = nil
     }
 
-    // MARK: - Private
+    // MARK: - Private — Format Detection
 
-    private func parseCommand(_ input: String) -> (command: String, args: [String]) {
-        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        let tokens = trimmed.split(separator: " ").map(String.init)
-        guard let first = tokens.first else { return ("", []) }
-        return (first, Array(tokens.dropFirst()))
+    private func detectFormat(_ text: String) -> MCPJSONInputFormat {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let data = trimmed.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return .invalid
+        }
+
+        // Format 1: {"mcpServers": {...}}
+        if let mcpServers = json["mcpServers"] as? [String: [String: Any]] {
+            return .mcpServers
+        }
+
+        // Format 3: bare config — has command or url at top level
+        if json["command"] != nil || json["url"] != nil {
+            return .bareConfig
+        }
+
+        // Format 2: {"name": {"command": "..."}, ...} — all values are dicts with command/url
+        let serverEntries = json.values.compactMap { $0 as? [String: Any] }
+        if !serverEntries.isEmpty && serverEntries.allSatisfy({ entry in
+            entry["command"] != nil || entry["url"] != nil
+        }) {
+            return .serverMap
+        }
+
+        return .invalid
+    }
+
+    // MARK: - Private — JSON Parsing
+
+    private enum ParseError: LocalizedError {
+        case invalidJSON
+        case missingName
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidJSON: "无法解析 JSON，请检查格式"
+            case .missingName: "Server 名称不能为空"
+            }
+        }
+    }
+
+    private func parseConfigs() throws -> [(name: String, config: MCPServerConfig)] {
+        let trimmed = jsonText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let data = trimmed.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw ParseError.invalidJSON
+        }
+
+        var serverDicts: [(name: String, dict: [String: Any])] = []
+
+        switch detectedFormat {
+        case .mcpServers:
+            guard let inner = json["mcpServers"] as? [String: [String: Any]] else {
+                throw ParseError.invalidJSON
+            }
+            serverDicts = inner.map { ($0.key, $0.value) }
+
+        case .serverMap:
+            let entries = json.compactMap { (key, value) -> (String, [String: Any])? in
+                guard let dict = value as? [String: Any] else { return nil }
+                return (key, dict)
+            }
+            serverDicts = entries
+
+        case .bareConfig:
+            let name = serverName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else {
+                throw ParseError.missingName
+            }
+            serverDicts = [(name, json)]
+
+        case .invalid:
+            throw ParseError.invalidJSON
+        }
+
+        var results: [(name: String, config: MCPServerConfig)] = []
+        for (name, dict) in serverDicts {
+            guard let config = MCPConfigFileManager.parseServerEntry(name: name, dict: dict) else {
+                continue
+            }
+            results.append((name, config))
+        }
+        return results
     }
 }
 
@@ -209,7 +286,7 @@ struct AddMCPServerSheet: View {
             Divider()
             footer
         }
-        .frame(minWidth: 460, minHeight: 320)
+        .frame(minWidth: 480, minHeight: 360)
     }
 
     // MARK: - Header
@@ -219,7 +296,7 @@ struct AddMCPServerSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("添加 MCP Server")
                     .font(.headline)
-                Text("配置一个新的 MCP Server 连接")
+                Text("粘贴 JSON 配置来添加 MCP Server")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -270,12 +347,14 @@ struct AddMCPServerSheet: View {
 
         viewModel.isSubmitting = true
         do {
-            let config = try viewModel.submit(
+            let configs = try viewModel.submit(
                 store: store,
                 scope: scope,
                 workspacePath: workspacePath
             )
-            onSave(config)
+            for config in configs {
+                onSave(config)
+            }
             viewModel.isSubmitting = false
             dismiss()
         } catch let error as MCPServerConfigError {
