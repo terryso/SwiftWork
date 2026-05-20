@@ -1253,6 +1253,7 @@
 				CODE_SIGN_STYLE = manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 7;
+				DEVELOPMENT_TEAM = ETRBR9HA5V;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = SwiftWork;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1289,6 +1290,7 @@
 				CODE_SIGN_STYLE = manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 7;
+				DEVELOPMENT_TEAM = ETRBR9HA5V;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = SwiftWork;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1355,7 +1357,7 @@
 			repositoryURL = "https://github.com/terryso/open-agent-sdk-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.0;
+				minimumVersion = 0.3.0;
 			};
 		};
 		9B35EF6059C168F9C512144D /* XCRemoteSwiftPackageReference "Sparkle" */ = {

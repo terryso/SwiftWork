@@ -17,7 +17,7 @@ let package = Package(
         // Core SDK for agent capabilities
         .package(
             url: "https://github.com/terryso/open-agent-sdk-swift",
-            .upToNextMinor(from: "0.1.0")
+            .upToNextMinor(from: "0.3.0")
         ),
         // Apple's Markdown parsing library
         .package(
