@@ -1,48 +1,40 @@
 installation:
-  version: 6.7.1
+  version: 6.10.0
   installDate: 2026-04-30T18:58:40.511Z
-  lastUpdated: 2026-05-20T02:05:23.060Z
+  lastUpdated: 2026-08-01T07:52:57.119Z
 modules:
   - name: core
-    version: 6.7.1
+    version: 6.10.0
     installDate: 2026-04-30T18:58:39.970Z
-    lastUpdated: 2026-05-20T02:05:23.057Z
+    lastUpdated: 2026-08-01T07:52:57.114Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: bmm
-    version: 6.7.1
+    version: 6.10.0
     installDate: 2026-04-30T18:58:39.952Z
-    lastUpdated: 2026-05-20T02:05:23.057Z
+    lastUpdated: 2026-08-01T07:52:57.114Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: tea
-    version: v1.19.0
+    version: v1.19.1
     installDate: 2026-04-30T18:58:40.352Z
-    lastUpdated: 2026-05-20T02:05:23.058Z
+    lastUpdated: 2026-08-01T07:52:57.116Z
     source: external
     npmPackage: bmad-method-test-architecture-enterprise
     repoUrl: https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise
     channel: stable
-    sha: 8734d51f24071ddbcb3617390b5fcddb4128ef77
-  - name: automator
-    version: main
-    installDate: 2026-05-20T02:05:22.835Z
-    lastUpdated: 2026-05-20T02:05:23.059Z
+    sha: 74cf6e6adf5a6f46614788f184f340ea58336157
+  - name: bmad-loop
+    version: v0.9.0
+    installDate: 2026-08-01T07:52:57.057Z
+    lastUpdated: 2026-08-01T07:52:57.119Z
     source: external
-    npmPackage: bmad-story-automator
-    repoUrl: https://github.com/bmad-code-org/bmad-automator
-    channel: next
-    sha: 33601b9757383c526d120f112a03190f0c990762
-  - name: wds
-    version: v0.4.3
-    installDate: 2026-05-20T02:05:23.013Z
-    lastUpdated: 2026-05-20T02:05:23.060Z
-    source: external
-    npmPackage: bmad-wds
-    repoUrl: https://github.com/bmad-code-org/bmad-method-wds-expansion
+    npmPackage: null
+    repoUrl: https://github.com/bmad-code-org/bmad-loop
     channel: stable
-    sha: cc16f09fcfab26d35635af1491f36a38a8431c8d
+    sha: 72551742617b4e1c9cb72d2038dc67ce973f7eea
 ides:
   - claude-code
+  - codex
