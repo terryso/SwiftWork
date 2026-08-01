@@ -49,6 +49,22 @@ private enum PreparedMessageRequest {
     case workspaceRequired(ExplicitSlashSkillInvocation)
 }
 
+/// Values needed to construct a short-lived Agent for an explicit Skill invocation.
+///
+/// OpenAgentSDK's streaming API snapshots `options.tools` before it applies a Skill's
+/// `allowed-tools` declarations. A dedicated Agent lets SwiftWork provide the already
+/// filtered pool up front, so a Bash-only Skill cannot fall back to ToolSearch or MCP.
+private struct ExplicitSkillAgentConfiguration {
+    let apiKey: String
+    let baseURL: String?
+    let model: String
+    let provider: AgentProvider
+    let systemPrompt: String?
+    let cwd: String
+    let sessionId: String
+    let projectRoot: String?
+}
+
 /// Keeps the Skill tool's model-facing catalog live while delegating execution to
 /// OpenAgentSDK's implementation. The SDK tool snapshots its description at creation
 /// time, so exposing that tool directly would advertise stale or unavailable skills
@@ -106,6 +122,11 @@ final class AgentBridge {
     @ObservationIgnored
     var executeSkillStreamHandler: ((String, String?) -> AsyncStream<SDKMessage>)?
 
+    /// Test seam for the isolated local-tool execution path. Production constructs a
+    /// short-lived Agent whose tool pool is already limited to the Skill declaration.
+    @ObservationIgnored
+    var restrictedSkillStreamHandler: ((String, String?, [String]) -> AsyncStream<SDKMessage>)?
+
     @ObservationIgnored
     private var currentTask: _Concurrency.Task<Void, Never>?
 
@@ -128,6 +149,8 @@ final class AgentBridge {
     private var configuredWorkspacePath: String?
     @ObservationIgnored
     private var configuredWorkspaceState: SessionWorkspaceState = .unbound
+    @ObservationIgnored
+    private var explicitSkillAgentConfiguration: ExplicitSkillAgentConfiguration?
     @ObservationIgnored
     private let workspaceService: SessionWorkspaceService
     @ObservationIgnored
@@ -347,6 +370,7 @@ final class AgentBridge {
         let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedAPIKey.isEmpty, !normalizedModel.isEmpty else {
             agent = nil
+            explicitSkillAgentConfiguration = nil
             errorMessage = "请先在设置中获取并选择可用模型"
             return
         }
@@ -367,6 +391,16 @@ final class AgentBridge {
 
         let systemPrompt = workspaceSystemPrompt(for: resolvedWorkspaceState)
         lastConfiguredSystemPrompt = systemPrompt
+        explicitSkillAgentConfiguration = ExplicitSkillAgentConfiguration(
+            apiKey: normalizedAPIKey,
+            baseURL: baseURL,
+            model: normalizedModel,
+            provider: provider,
+            systemPrompt: systemPrompt,
+            cwd: workspaceService.agentWorkingDirectory(for: resolvedWorkspaceState),
+            sessionId: sessionId,
+            projectRoot: activeWorkspaceRoot
+        )
 
         // MCP config (Story 6-1)
         let mcpConfigs = (try? mcpConfigStore?.enabledConfigsForWorkspace(activeWorkspaceRoot)) ?? []
@@ -394,8 +428,9 @@ final class AgentBridge {
         os_log("SwiftWork SkillRegistry: %d skills registered (%d discovered from filesystem)", log: .default, type: .info, skillCount, discoveredCount)
         os_log("SwiftWork MCP: %d configs loaded, options.mcpServers=%{public}s", log: .default, type: .info, mcpConfigs.count, options.mcpServers != nil ? "set" : "nil")
 
-        self.agent = createAgent(options: options)
-        setupPermissionCallback()
+        let configuredAgent = createAgent(options: options)
+        self.agent = configuredAgent
+        setupPermissionCallback(for: configuredAgent)
     }
 
     func configureEvents(store: any EventStoring, session: Session) {
@@ -617,8 +652,7 @@ final class AgentBridge {
                     }
                     return
                 }
-                sdkStream = self.executeSkillStreamHandler?(invocation.canonicalName, invocation.args)
-                    ?? agent.executeSkillStream(invocation.canonicalName, args: invocation.args)
+                sdkStream = self.explicitSlashSkillStream(for: invocation, fallbackAgent: agent)
             }
             for await message in sdkStream {
                 guard !_Concurrency.Task.isCancelled else { break }
@@ -785,6 +819,104 @@ final class AgentBridge {
 
         errorMessage = nil
         return true
+    }
+
+    /// Executes a slash Skill with an isolated local-only tool pool when its
+    /// `allowed-tools` declaration contains only SDK tools. This is deliberately
+    /// separate from the long-lived chat Agent: OpenAgentSDK's `stream(_:)` snapshots
+    /// the parent tool list before applying Skill restrictions, which otherwise leaves
+    /// ToolSearch and configured MCP tools visible to a Bash-only Skill.
+    private func explicitSlashSkillStream(
+        for invocation: ExplicitSlashSkillInvocation,
+        fallbackAgent: Agent
+    ) -> AsyncStream<SDKMessage> {
+        if let executeSkillStreamHandler {
+            return executeSkillStreamHandler(invocation.canonicalName, invocation.args)
+        }
+
+        guard let skill = resolveCatalogSkill(named: invocation.canonicalName),
+              let localTools = restrictedLocalTools(for: skill)
+        else {
+            return fallbackAgent.executeSkillStream(invocation.canonicalName, args: invocation.args)
+        }
+
+        guard !localTools.isEmpty else {
+            return failedExplicitSkillStream(
+                "Skill /\(invocation.canonicalName) 声明的工具在当前运行时不可用。"
+            )
+        }
+
+        let toolNames = localTools.map(\.name)
+        if let restrictedSkillStreamHandler {
+            return restrictedSkillStreamHandler(invocation.canonicalName, invocation.args, toolNames)
+        }
+
+        guard let configuration = explicitSkillAgentConfiguration,
+              let registry = skillRegistry else {
+            return failedExplicitSkillStream(
+                "Skill /\(invocation.canonicalName) 执行环境尚未配置。"
+            )
+        }
+
+        let options = AgentOptions(
+            apiKey: configuration.apiKey,
+            model: configuration.model,
+            baseURL: configuration.baseURL,
+            provider: configuration.provider.sdkProvider,
+            systemPrompt: configuration.systemPrompt,
+            maxTurns: 10,
+            permissionMode: .default,
+            cwd: configuration.cwd,
+            tools: localTools,
+            mcpServers: nil,
+            sessionStore: sdkSessionStore,
+            sessionId: configuration.sessionId,
+            skillRegistry: registry,
+            skillDirectories: nil,
+            projectRoot: configuration.projectRoot,
+            persistSession: true
+        )
+        let skillAgent = createAgent(options: options)
+        setupPermissionCallback(for: skillAgent)
+        return skillAgent.executeSkillStream(invocation.canonicalName, args: invocation.args)
+    }
+
+    /// Returns a strict SDK-tool pool for Skills that declare only local tools.
+    /// A declaration that names MCP is left on the existing MCP-aware path, while an
+    /// unknown local declaration resolves to an empty pool and therefore fails closed.
+    private func restrictedLocalTools(for skill: Skill) -> [ToolProtocol]? {
+        let availableTools = getAllBaseTools(tier: .core)
+
+        if let declarations = skill.toolDeclarations, !declarations.isEmpty {
+            guard !declarations.contains(where: { $0.normalizedName.hasPrefix("mcp__") }) else {
+                return nil
+            }
+            return filterToolsByDeclarations(
+                available: availableTools,
+                allowed: declarations,
+                disallowed: nil
+            ).filtered
+        }
+
+        guard let restrictions = skill.toolRestrictions, !restrictions.isEmpty else {
+            return nil
+        }
+        let allowedNames = Set(restrictions.map { $0.rawValue.lowercased() })
+        return availableTools.filter { allowedNames.contains($0.name.lowercased()) }
+    }
+
+    private func failedExplicitSkillStream(_ error: String) -> AsyncStream<SDKMessage> {
+        AsyncStream { continuation in
+            continuation.yield(.result(SDKMessage.ResultData(
+                subtype: .errorDuringExecution,
+                text: error,
+                usage: nil,
+                numTurns: 0,
+                durationMs: 0,
+                errors: [error]
+            )))
+            continuation.finish()
+        }
     }
 
     private func serializeJSON(_ object: Any) -> String {
@@ -1015,6 +1147,10 @@ final class AgentBridge {
 
     private func skillRequiresWorkspace(_ skill: Skill) -> Bool {
         let workspaceToolNames: Set<String> = ["bash", "read", "write", "edit", "glob", "grep"]
+        let declaredNames = Set(skill.toolDeclarations?.map(\.normalizedName) ?? [])
+        if !declaredNames.isDisjoint(with: workspaceToolNames) {
+            return true
+        }
         if let restrictions = skill.toolRestrictions, !restrictions.isEmpty {
             let names = Set(restrictions.map { $0.rawValue.lowercased() })
             return !names.isDisjoint(with: workspaceToolNames)
@@ -1153,8 +1289,8 @@ final class AgentBridge {
 
     // MARK: - Permission Callback (Story 3-1)
 
-    private func setupPermissionCallback() {
-        agent?.setCanUseTool { [weak self] tool, input, _ in
+    private func setupPermissionCallback(for agent: Agent) {
+        agent.setCanUseTool { [weak self] tool, input, _ in
             guard let self else { return .allow() }
             let toolName = tool.name
             let inputDict = (input as? [String: Any]) ?? [:]

@@ -48,7 +48,8 @@ final class AgentBridgeSkillTests: XCTestCase {
     private func createFilesystemSkill(
         name: String,
         description: String,
-        under root: String
+        under root: String,
+        allowedTools: String? = nil
     ) throws {
         let skillDirectory = URL(fileURLWithPath: root, isDirectory: true)
             .appendingPathComponent(name, isDirectory: true)
@@ -57,6 +58,7 @@ final class AgentBridgeSkillTests: XCTestCase {
         ---
         name: \(name)
         description: \(description)
+        \(allowedTools.map { "allowed-tools: \($0)" } ?? "")
         ---
         Execute \(name).
         """
@@ -740,6 +742,80 @@ final class AgentBridgeSkillTests: XCTestCase {
 
         XCTAssertEqual(directSkillCalls.map(\.0), ["analytics"])
         XCTAssertEqual(directSkillCalls.first?.1, "recent 7d")
+    }
+
+    func testExplicitFilesystemBashDeclarationUsesIsolatedLocalToolPool() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeRestrictedSkill-\(UUID().uuidString)", isDirectory: true)
+        let workspace = root.appendingPathComponent("workspace", isDirectory: true)
+        let directories = makeSourceDirectories(under: root.appendingPathComponent("global"))
+        try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
+        try createFilesystemSkill(
+            name: "analytics",
+            description: "Analytics",
+            under: directories.codex,
+            allowedTools: "Bash(uv:*)"
+        )
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: workspace.path,
+            sessionId: UUID().uuidString
+        )
+        let isolatedStreamCalled = expectation(description: "Isolated local skill stream called")
+        var capturedCall: (name: String, args: String?, tools: [String])?
+        bridge.restrictedSkillStreamHandler = { name, args, tools in
+            capturedCall = (name, args, tools)
+            isolatedStreamCalled.fulfill()
+            return self.completedStream()
+        }
+
+        let outcome = bridge.sendMessage("/analytics recent 7d")
+
+        guard case .sentSlashSkill = outcome else {
+            return XCTFail("Expected explicit filesystem Skill to start")
+        }
+        await fulfillment(of: [isolatedStreamCalled], timeout: 1)
+        await waitForExecutionToFinish(bridge)
+
+        XCTAssertEqual(capturedCall?.name, "analytics")
+        XCTAssertEqual(capturedCall?.args, "recent 7d")
+        XCTAssertEqual(capturedCall?.tools, ["Bash"],
+                       "A Bash-only Skill must not expose ToolSearch or MCP tools")
+    }
+
+    func testUnboundFilesystemBashDeclarationRequiresWorkspaceBinding() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeUnboundRestrictedSkill-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        try createFilesystemSkill(
+            name: "analytics",
+            description: "Analytics",
+            under: directories.codex,
+            allowedTools: "Bash(uv:*)"
+        )
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        let outcome = bridge.sendMessage("/analytics")
+
+        guard case .requiresWorkspaceBinding(let invocation) = outcome else {
+            return XCTFail("A Bash-only filesystem Skill must not run from an unbound workspace")
+        }
+        XCTAssertEqual(invocation.canonicalName, "analytics")
+        XCTAssertEqual(bridge.errorMessage, "Skill /analytics 需要先绑定工作目录。")
     }
 
     func testExplicitSkillErrorStreamReleasesQueue() async {
