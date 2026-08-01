@@ -19,6 +19,25 @@ final class MockKeychainManager: KeychainManaging, @unchecked Sendable {
     }
 }
 
+struct StubModelDiscoveryService: ModelDiscovering {
+    let models: [String]
+    let error: AppError?
+
+    init(models: [String] = [], error: AppError? = nil) {
+        self.models = models
+        self.error = error
+    }
+
+    func fetchModels(
+        provider: AgentProvider,
+        apiKey: String,
+        baseURL: String?
+    ) async throws -> [String] {
+        if let error { throw error }
+        return models
+    }
+}
+
 enum TestDataFactory {
 
     // MARK: - Session Factories

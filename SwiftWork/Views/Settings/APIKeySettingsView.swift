@@ -5,44 +5,35 @@ struct APIKeySettingsView: View {
     @State private var showAPIKey = false
     @State private var newAPIKey = ""
     @State private var newBaseURL = ""
+    @State private var newProvider: AgentProvider = .anthropic
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Status indicator
             statusSection
-
             Divider()
-
-            // API Key input
+            providerSection
+            Divider()
             apiKeyInputSection
-
             Divider()
-
-            // Base URL input
             baseURLInputSection
-
             Divider()
-
-            // Save button
             saveButton
         }
         .onAppear {
             newBaseURL = settingsViewModel.baseURL
+            newProvider = settingsViewModel.selectedProvider
         }
     }
 
-    // MARK: - Status Section
-
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("API Key")
+            Text("Provider 配置")
                 .font(.headline)
 
             HStack(spacing: 8) {
                 Image(systemName: settingsViewModel.isAPIKeyConfigured ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(settingsViewModel.isAPIKeyConfigured ? .green : .red)
-                Text(settingsViewModel.isAPIKeyConfigured ? "已配置" : "未配置")
-                    .font(.body)
+                Text(settingsViewModel.isAPIKeyConfigured ? "API Key 已配置" : "API Key 未配置")
             }
 
             if settingsViewModel.isAPIKeyConfigured {
@@ -53,7 +44,20 @@ struct APIKeySettingsView: View {
         }
     }
 
-    // MARK: - API Key Input
+    private var providerSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("API 协议")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Picker("API 协议", selection: $newProvider) {
+                ForEach(AgentProvider.allCases) { provider in
+                    Text(provider.displayName).tag(provider)
+                }
+            }
+            .pickerStyle(.menu)
+        }
+    }
 
     private var apiKeyInputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -62,13 +66,14 @@ struct APIKeySettingsView: View {
                 .foregroundStyle(.secondary)
 
             HStack {
-                if showAPIKey {
-                    TextField("sk-...", text: $newAPIKey)
-                        .textFieldStyle(.roundedBorder)
-                } else {
-                    SecureField("sk-...", text: $newAPIKey)
-                        .textFieldStyle(.roundedBorder)
+                Group {
+                    if showAPIKey {
+                        TextField("API Key", text: $newAPIKey)
+                    } else {
+                        SecureField("API Key", text: $newAPIKey)
+                    }
                 }
+                .textFieldStyle(.roundedBorder)
 
                 Button(action: { showAPIKey.toggle() }) {
                     Image(systemName: showAPIKey ? "eye.slash" : "eye")
@@ -78,20 +83,22 @@ struct APIKeySettingsView: View {
         }
     }
 
-    // MARK: - Base URL Input
-
     private var baseURLInputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Base URL")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            TextField(Constants.defaultBaseURL, text: $newBaseURL)
+            TextField(newProvider.defaultBaseURL, text: $newBaseURL)
                 .textFieldStyle(.roundedBorder)
+
+            Text(newProvider == .openAI
+                 ? "OpenAI-compatible 地址通常包含版本路径，例如 /v1"
+                 : "Anthropic 地址不包含 /v1")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
-
-    // MARK: - Save Button
 
     private var saveButton: some View {
         HStack {
@@ -103,48 +110,44 @@ struct APIKeySettingsView: View {
                     .font(.caption)
             }
 
-            Button("保存更改") {
-                performSave()
+            Button("保存并获取模型") {
+                Task { await performSave() }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(!hasChanges)
+            .disabled(!hasChanges || settingsViewModel.isLoadingModels)
         }
     }
-
-    // MARK: - Actions
 
     private var hasChanges: Bool {
-        let trimmedKey = newAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let keyChanged = !trimmedKey.isEmpty
-        let urlChanged = newBaseURL != settingsViewModel.baseURL
-        return keyChanged || urlChanged
+        !newAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || normalizedBaseURL != settingsViewModel.baseURL
+            || newProvider != settingsViewModel.selectedProvider
     }
 
-    private func performSave() {
-        normalizeBaseURL()
+    private var normalizedBaseURL: String {
+        newBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
 
-        let trimmedKey = newAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedKey.isEmpty {
-            do {
-                try settingsViewModel.updateAPIKey(newAPIKey)
-                newAPIKey = ""
-            } catch {
-                // errorMessage already set by updateAPIKey()
-                return
+    private func performSave() async {
+        do {
+            if newProvider != settingsViewModel.selectedProvider {
+                try settingsViewModel.updateProvider(newProvider)
             }
-        }
 
-        // Always persist base URL changes
-        if newBaseURL != settingsViewModel.baseURL {
-            settingsViewModel.updateBaseURL(newBaseURL)
-        }
-    }
+            let trimmedKey = newAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedKey.isEmpty {
+                try settingsViewModel.updateAPIKey(trimmedKey)
+                newAPIKey = ""
+            }
 
-    private func normalizeBaseURL() {
-        var url = newBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        if url.hasSuffix("/") {
-            url.removeLast()
+            if normalizedBaseURL != settingsViewModel.baseURL {
+                try settingsViewModel.updateBaseURL(normalizedBaseURL)
+            }
+
+            _ = await settingsViewModel.refreshModels(clearExisting: true)
+        } catch {
+            settingsViewModel.errorMessage = error.localizedDescription
         }
-        newBaseURL = url
     }
 }

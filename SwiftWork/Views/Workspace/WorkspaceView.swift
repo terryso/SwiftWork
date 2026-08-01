@@ -2,6 +2,13 @@ import AppKit
 import SwiftUI
 
 struct WorkspaceView: View {
+    private struct ActiveAgentConfiguration {
+        let apiKey: String
+        let baseURL: String?
+        let model: String
+        let provider: AgentProvider
+    }
+
     let agentBridge: AgentBridge
     let eventStore: (any EventStoring)?
     let session: Session
@@ -18,6 +25,8 @@ struct WorkspaceView: View {
     @State private var timelineReloadToken = UUID()
     @State private var workspaceState: SessionWorkspaceState = .unbound
     @State private var mcpStatusViewModel: MCPStatusViewModel?
+    @State private var hasPendingAgentConfigurationRefresh = false
+    @State private var activeAgentConfiguration: ActiveAgentConfiguration?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -120,6 +129,13 @@ struct WorkspaceView: View {
             Task {
                 await mcpStatusViewModel?.onAgentRunningChanged(isRunning: isRunning)
             }
+            if !isRunning, hasPendingAgentConfigurationRefresh {
+                hasPendingAgentConfigurationRefresh = false
+                configureAgent(for: workspaceState)
+            }
+        }
+        .onChange(of: settingsViewModel.configurationRevision) { _, _ in
+            refreshAgentConfigurationWhenIdle()
         }
         .onChange(of: session.id) { _, _ in
             sessionViewModel.deactivateActiveWorkspace()
@@ -202,15 +218,36 @@ struct WorkspaceView: View {
 
         let model = settingsViewModel.selectedModel
         let baseURL = settingsViewModel.baseURL.isEmpty ? nil : settingsViewModel.baseURL
+        if apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            activeAgentConfiguration = nil
+        } else {
+            activeAgentConfiguration = ActiveAgentConfiguration(
+                apiKey: apiKey,
+                baseURL: baseURL,
+                model: model,
+                provider: settingsViewModel.selectedProvider
+            )
+        }
 
         agentBridge.configure(
             apiKey: apiKey,
             baseURL: baseURL,
             model: model,
+            provider: settingsViewModel.selectedProvider,
             workspacePath: session.workspacePath,
             sessionId: session.id.uuidString,
             workspaceState: state
         )
+    }
+
+    private func refreshAgentConfigurationWhenIdle() {
+        if agentBridge.isRunning {
+            hasPendingAgentConfigurationRefresh = true
+        } else {
+            hasPendingAgentConfigurationRefresh = false
+            configureAgent(for: workspaceState)
+        }
     }
 
     private func loadPersistedEvents() {
@@ -221,20 +258,18 @@ struct WorkspaceView: View {
     }
 
     private func setupTitleGeneration() {
-        let keychainManager = KeychainManager()
-        let apiKey = (try? keychainManager.getAPIKey()) ?? ""
-        let model = settingsViewModel.selectedModel
-        let baseURL = settingsViewModel.baseURL.isEmpty ? nil : settingsViewModel.baseURL
-
         agentBridge.addOnResultCallback { [weak session] _ in
-            guard let session, session.title == "新会话" else { return }
+            guard let session,
+                  session.title == "新会话",
+                  let configuration = activeAgentConfiguration else { return }
             let events = agentBridge.events
             Task {
                 if let title = await TitleGenerator.generate(
                     events: events,
-                    apiKey: apiKey,
-                    baseURL: baseURL,
-                    model: model
+                    apiKey: configuration.apiKey,
+                    baseURL: configuration.baseURL,
+                    model: configuration.model,
+                    provider: configuration.provider
                 ) {
                     sessionViewModel.updateSessionTitle(session, title: title)
                 }

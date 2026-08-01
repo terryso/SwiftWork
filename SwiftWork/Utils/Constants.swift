@@ -4,12 +4,12 @@ enum Constants {
     static let appName = "SwiftWork"
     static let defaultModel = "claude-sonnet-4-6"
     static let defaultBaseURL = "https://api.anthropic.com"
+}
 
-    static let availableModels = [
-        "claude-sonnet-4-6",
-        "claude-opus-4-7",
-        "claude-haiku-3-5"
-    ]
+enum AppConfigurationKeys {
+    static let hasCompletedOnboarding = "hasCompletedOnboarding"
+    static let selectedModel = "selectedModel"
+    static let selectedProvider = "selectedProvider"
 }
 
 enum KeychainConstants {

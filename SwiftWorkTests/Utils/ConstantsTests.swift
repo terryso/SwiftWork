@@ -2,8 +2,7 @@ import XCTest
 @testable import SwiftWork
 
 // ATDD Red Phase — Story 1.2: 首次启动引导与 Agent 配置
-// Tests assert EXPECTED behavior for Constants extensions.
-// They will FAIL until KeychainConstants and availableModels are added.
+// Tests assert compatibility constants and Provider defaults.
 
 final class ConstantsTests: XCTestCase {
 
@@ -14,20 +13,14 @@ final class ConstantsTests: XCTestCase {
         XCTAssertEqual(Constants.defaultModel, "claude-sonnet-4-6")
     }
 
-    // [P0] Constants.availableModels contains expected models
-    func testAvailableModelsContainsAllModels() {
-        let models = Constants.availableModels
-        XCTAssertEqual(models.count, 3, "Should have 3 available models")
-        XCTAssertTrue(models.contains("claude-sonnet-4-6"))
-        XCTAssertTrue(models.contains("claude-opus-4-7"))
-        XCTAssertTrue(models.contains("claude-haiku-3-5"))
+    func testProviderDefaultsMatchSDKBaseURLSemantics() {
+        XCTAssertEqual(AgentProvider.anthropic.defaultBaseURL, "https://api.anthropic.com")
+        XCTAssertEqual(AgentProvider.openAI.defaultBaseURL, "https://api.openai.com/v1")
     }
 
-    // [P1] defaultModel is the first in availableModels
-    func testDefaultModelIsFirstInList() {
-        let models = Constants.availableModels
-        XCTAssertEqual(models.first, Constants.defaultModel,
-                       "Default model should be first in available models list")
+    func testProviderPersistentValuesMatchSDKProtocolNames() {
+        XCTAssertEqual(AgentProvider.anthropic.rawValue, "anthropic")
+        XCTAssertEqual(AgentProvider.openAI.rawValue, "openai")
     }
 
     // MARK: - AC#2 & AC#6: Keychain constants

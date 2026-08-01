@@ -2,6 +2,45 @@ import XCTest
 @testable import SwiftWork
 import SwiftData
 
+private actor SuspendedModelDiscoveryService: ModelDiscovering {
+    private(set) var started = false
+    private(set) var wasCancelled = false
+
+    func fetchModels(
+        provider: AgentProvider,
+        apiKey: String,
+        baseURL: String?
+    ) async throws -> [String] {
+        started = true
+        do {
+            try await Task.sleep(for: .seconds(60))
+            return ["stale-model"]
+        } catch is CancellationError {
+            wasCancelled = true
+            throw CancellationError()
+        }
+    }
+}
+
+private final class FailingBaseURLKeychainManager: KeychainManaging, @unchecked Sendable {
+    private var storage: [String: Data] = [:]
+
+    func save(key: String, data: Data) throws {
+        if key == KeychainConstants.baseURLAccount {
+            throw AppError(domain: .data, code: "TEST_WRITE_FAILED", message: "Base URL 写入失败")
+        }
+        storage[key] = data
+    }
+
+    func load(key: String) throws -> Data? {
+        storage[key]
+    }
+
+    func delete(key: String) throws {
+        storage.removeValue(forKey: key)
+    }
+}
+
 // ATDD Red Phase — Story 1.2: 首次启动引导与 Agent 配置
 // Tests assert EXPECTED behavior. They will FAIL until SettingsViewModel is implemented.
 
@@ -74,6 +113,17 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(stored, Data("sk-ant-test-valid-key".utf8))
     }
 
+    func testSaveAPIKeyReportsBaseURLPersistenceFailure() throws {
+        let viewModel = makeViewModel(keychainManager: FailingBaseURLKeychainManager())
+        viewModel.configure(modelContext: try makeModelContext())
+        viewModel.apiKey = "provider-key"
+        viewModel.baseURL = "https://gateway.example.com/v1"
+
+        XCTAssertThrowsError(try viewModel.saveAPIKey())
+        XCTAssertFalse(viewModel.isAPIKeyConfigured)
+        XCTAssertEqual(viewModel.errorMessage, "Base URL 写入失败")
+    }
+
     // [P1] saveAPIKey clears errorMessage on success
     func testSaveAPIKeyClearsError() throws {
         let viewModel = makeViewModel()
@@ -89,26 +139,20 @@ final class SettingsViewModelTests: XCTestCase {
 
     // MARK: - AC#3: Model selection
 
-    // [P0] selectedModel defaults to Constants.defaultModel
-    func testDefaultModel() throws {
+    // [P0] First launch waits for the Provider API before offering models
+    func testFirstLaunchStartsWithoutStaticModelSelection() throws {
         let viewModel = makeViewModel()
-        XCTAssertEqual(viewModel.selectedModel, "claude-sonnet-4-6", "Default model should be claude-sonnet-4-6")
+        XCTAssertEqual(viewModel.selectedModel, "")
+        XCTAssertTrue(viewModel.availableModels.isEmpty)
     }
 
-    // [P0] availableModels contains expected models
-    func testAvailableModels() throws {
-        let viewModel = makeViewModel()
-        let models = viewModel.availableModels
-
-        XCTAssertTrue(models.contains("claude-sonnet-4-6"), "Should contain claude-sonnet-4-6")
-        XCTAssertTrue(models.contains("claude-opus-4-7"), "Should contain claude-opus-4-7")
-        XCTAssertTrue(models.contains("claude-haiku-3-5"), "Should contain claude-haiku-3-5")
-    }
-
-    // [P1] selectedModel can be changed
+    // [P1] selectedModel can be changed to a discovered model
     func testChangeSelectedModel() throws {
         let viewModel = makeViewModel()
-        viewModel.selectedModel = "claude-opus-4-7"
+        let context = try makeModelContext()
+        viewModel.configure(modelContext: context)
+        viewModel.availableModels = ["claude-opus-4-7"]
+        try viewModel.updateModel("claude-opus-4-7")
         XCTAssertEqual(viewModel.selectedModel, "claude-opus-4-7")
     }
 
@@ -124,6 +168,8 @@ final class SettingsViewModelTests: XCTestCase {
         // Simulate saving API key first
         viewModel.apiKey = "sk-ant-test-valid-key"
         try viewModel.saveAPIKey()
+        viewModel.availableModels = ["claude-sonnet-4-6"]
+        viewModel.selectedModel = "claude-sonnet-4-6"
 
         viewModel.completeSetup()
 
@@ -139,6 +185,8 @@ final class SettingsViewModelTests: XCTestCase {
 
         viewModel.apiKey = "sk-ant-test-valid-key"
         try viewModel.saveAPIKey()
+        viewModel.availableModels = ["claude-sonnet-4-6"]
+        viewModel.selectedModel = "claude-sonnet-4-6"
         viewModel.completeSetup()
 
         // Verify AppConfiguration was saved
@@ -158,6 +206,7 @@ final class SettingsViewModelTests: XCTestCase {
 
         viewModel.apiKey = "sk-ant-test-valid-key"
         viewModel.selectedModel = "claude-opus-4-7"
+        viewModel.availableModels = ["claude-opus-4-7"]
         try viewModel.saveAPIKey()
         viewModel.completeSetup()
 
@@ -255,5 +304,139 @@ final class SettingsViewModelTests: XCTestCase {
         // Verify state changes trigger observation
         viewModel.apiKey = "sk-test"
         XCTAssertEqual(viewModel.apiKey, "sk-test")
+    }
+
+    // MARK: - Dynamic Provider models
+
+    func testRefreshModelsUsesDynamicListAndRequiresExplicitSelection() async throws {
+        let keychain = MockKeychainManager()
+        try keychain.saveAPIKey("provider-key")
+        let viewModel = SettingsViewModel(
+            keychainManager: keychain,
+            modelDiscoveryService: StubModelDiscoveryService(models: ["gpt-b", "gpt-a"])
+        )
+        let context = try makeModelContext()
+        viewModel.configure(modelContext: context)
+        try viewModel.updateProvider(.openAI)
+
+        let succeeded = await viewModel.refreshModels(clearExisting: true)
+
+        XCTAssertTrue(succeeded)
+        XCTAssertEqual(viewModel.availableModels, ["gpt-b", "gpt-a"])
+        XCTAssertEqual(viewModel.selectedModel, "")
+        XCTAssertFalse(viewModel.hasValidModelSelection)
+
+        try viewModel.updateModel("gpt-a")
+
+        XCTAssertEqual(viewModel.selectedModel, "gpt-a")
+        XCTAssertTrue(viewModel.hasValidModelSelection)
+    }
+
+    func testProviderChangeClearsPreviousProviderModels() throws {
+        let viewModel = makeViewModel()
+        let context = try makeModelContext()
+        context.insert(AppConfiguration(key: "selectedModel", value: Data("claude-model".utf8)))
+        try context.save()
+        viewModel.configure(modelContext: context)
+
+        try viewModel.updateProvider(.openAI)
+
+        XCTAssertEqual(viewModel.selectedProvider, .openAI)
+        XCTAssertTrue(viewModel.availableModels.isEmpty)
+        XCTAssertEqual(viewModel.selectedModel, "")
+    }
+
+    func testLegacyConfigurationDefaultsToAnthropic() throws {
+        let keychain = MockKeychainManager()
+        try keychain.saveAPIKey("legacy-key")
+        let viewModel = makeViewModel(keychainManager: keychain)
+        let context = try makeModelContext()
+        context.insert(AppConfiguration(key: "selectedModel", value: Data("legacy-claude".utf8)))
+        try context.save()
+
+        viewModel.configure(modelContext: context)
+
+        XCTAssertEqual(viewModel.selectedProvider, .anthropic)
+        XCTAssertEqual(viewModel.availableModels, ["legacy-claude"])
+    }
+
+    func testLegacyKeyWithoutSavedModelDoesNotCreateStaticCandidate() throws {
+        let keychain = MockKeychainManager()
+        try keychain.saveAPIKey("legacy-key")
+        let viewModel = makeViewModel(keychainManager: keychain)
+        let context = try makeModelContext()
+
+        viewModel.configure(modelContext: context)
+
+        XCTAssertEqual(viewModel.selectedProvider, .anthropic)
+        XCTAssertEqual(viewModel.selectedModel, Constants.defaultModel)
+        XCTAssertTrue(viewModel.availableModels.isEmpty)
+        XCTAssertFalse(viewModel.hasValidModelSelection)
+    }
+
+    func testUnknownPersistedProviderFailsClosedWithoutLoadingItsModel() throws {
+        let keychain = MockKeychainManager()
+        try keychain.saveAPIKey("provider-key")
+        let viewModel = makeViewModel(keychainManager: keychain)
+        let context = try makeModelContext()
+        context.insert(AppConfiguration(key: AppConfigurationKeys.selectedProvider, value: Data("openai-v2".utf8)))
+        context.insert(AppConfiguration(key: AppConfigurationKeys.selectedModel, value: Data("gpt-unknown".utf8)))
+        try context.save()
+
+        viewModel.configure(modelContext: context)
+
+        XCTAssertEqual(viewModel.selectedProvider, .anthropic)
+        XCTAssertEqual(viewModel.selectedModel, "")
+        XCTAssertTrue(viewModel.availableModels.isEmpty)
+        XCTAssertFalse(viewModel.hasValidModelSelection)
+        XCTAssertNotNil(viewModel.modelLoadErrorMessage)
+    }
+
+    func testRefreshFailurePreservesSavedSelection() async throws {
+        let keychain = MockKeychainManager()
+        try keychain.saveAPIKey("provider-key")
+        let error = AppError(domain: .network, code: "FAILED", message: "无法获取模型")
+        let viewModel = SettingsViewModel(
+            keychainManager: keychain,
+            modelDiscoveryService: StubModelDiscoveryService(error: error)
+        )
+        let context = try makeModelContext()
+        context.insert(AppConfiguration(key: "selectedModel", value: Data("saved-model".utf8)))
+        try context.save()
+        viewModel.configure(modelContext: context)
+
+        let succeeded = await viewModel.refreshModels()
+
+        XCTAssertFalse(succeeded)
+        XCTAssertEqual(viewModel.selectedModel, "saved-model")
+        XCTAssertEqual(viewModel.availableModels, ["saved-model"])
+        XCTAssertEqual(viewModel.modelLoadErrorMessage, "无法获取模型")
+    }
+
+    func testInvalidatingModelsCancelsActiveRefreshAndRejectsStaleResult() async throws {
+        let keychain = MockKeychainManager()
+        try keychain.saveAPIKey("provider-key")
+        let service = SuspendedModelDiscoveryService()
+        let viewModel = SettingsViewModel(
+            keychainManager: keychain,
+            modelDiscoveryService: service
+        )
+        viewModel.configure(modelContext: try makeModelContext())
+
+        let refreshTask = Task { await viewModel.refreshModels(clearExisting: true) }
+        while !(await service.started) {
+            await Task.yield()
+        }
+
+        viewModel.selectedProvider = .openAI
+        viewModel.invalidateModels()
+        let succeeded = await refreshTask.value
+        let wasCancelled = await service.wasCancelled
+
+        XCTAssertFalse(succeeded)
+        XCTAssertTrue(wasCancelled)
+        XCTAssertTrue(viewModel.availableModels.isEmpty)
+        XCTAssertEqual(viewModel.selectedModel, "")
+        XCTAssertFalse(viewModel.isLoadingModels)
     }
 }

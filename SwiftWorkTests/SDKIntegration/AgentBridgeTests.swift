@@ -605,6 +605,39 @@ final class AgentBridgeTests: XCTestCase {
         XCTAssertEqual(userMessages.count, 3, "All three messages should be queued")
         XCTAssertEqual(userMessages.map(\.content), ["Turn 1", "Turn 2", "Turn 3"])
     }
+
+    func testConfigureRecordsSelectedOpenAIProvider() {
+        let bridge = makeBridge()
+
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: "https://gateway.example.com/v1",
+            model: "gpt-model",
+            provider: .openAI,
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        XCTAssertEqual(bridge.lastConfiguredProvider, .openAI)
+        XCTAssertEqual(AgentProvider.openAI.sdkProvider, LLMProvider.openai)
+        XCTAssertEqual(AgentProvider.anthropic.sdkProvider, LLMProvider.anthropic)
+    }
+
+    func testConfigureWithoutSelectedModelFailsClosed() {
+        let bridge = makeBridge()
+
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: "https://gateway.example.com/v1",
+            model: "",
+            provider: .openAI,
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        XCTAssertNotNil(bridge.errorMessage)
+        XCTAssertEqual(bridge.sendMessage("must not send"), .ignored)
+    }
 }
 
 // MARK: - Mock EventStore

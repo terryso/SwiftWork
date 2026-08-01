@@ -94,6 +94,8 @@ final class AgentBridge {
     @ObservationIgnored
     private var agent: Agent?
 
+    private(set) var lastConfiguredProvider: AgentProvider?
+
     /// Test seam for verifying MCP hot updates without opening a real network connection.
     /// Production uses `Agent.setMcpServers(_:)` when this handler is nil.
     @ObservationIgnored
@@ -326,6 +328,7 @@ final class AgentBridge {
         apiKey: String,
         baseURL: String?,
         model: String,
+        provider: AgentProvider = .anthropic,
         workspacePath: String?,
         sessionId: String,
         workspaceState: SessionWorkspaceState? = nil
@@ -333,6 +336,16 @@ final class AgentBridge {
         let resolvedWorkspaceState = workspaceState ?? inferredWorkspaceState(from: workspacePath)
         configuredWorkspaceState = resolvedWorkspaceState
         configuredWorkspacePath = resolvedWorkspaceState.workspacePath
+        lastConfiguredProvider = provider
+
+        let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedAPIKey.isEmpty, !normalizedModel.isEmpty else {
+            agent = nil
+            errorMessage = "请先在设置中获取并选择可用模型"
+            return
+        }
+        errorMessage = nil
 
         let registry = skillRegistry ?? SkillRegistry()
         skillRegistry = registry
@@ -355,9 +368,10 @@ final class AgentBridge {
         let mcpServers = mcpConfigStore?.toSDKConfigs(mcpConfigs)
 
         let options = AgentOptions(
-            apiKey: apiKey,
-            model: model,
+            apiKey: normalizedAPIKey,
+            model: normalizedModel,
             baseURL: baseURL,
+            provider: provider.sdkProvider,
             systemPrompt: systemPrompt,
             maxTurns: 10,
             permissionMode: .default,
@@ -371,7 +385,6 @@ final class AgentBridge {
             projectRoot: activeWorkspaceRoot,
             persistSession: true
         )
-
         let skillCount = registry.allSkills.count
         os_log("SwiftWork SkillRegistry: %d skills registered (%d discovered from filesystem)", log: .default, type: .info, skillCount, discoveredCount)
         os_log("SwiftWork MCP: %d configs loaded, options.mcpServers=%{public}s", log: .default, type: .info, mcpConfigs.count, options.mcpServers != nil ? "set" : "nil")
@@ -1342,6 +1355,17 @@ final class AgentBridge {
         if reloaded {
             timelinePaginationState.reloadID = UUID()
             timelinePaginationState.prependRevision = 0
+        }
+    }
+}
+
+extension AgentProvider {
+    var sdkProvider: LLMProvider {
+        switch self {
+        case .anthropic:
+            .anthropic
+        case .openAI:
+            .openai
         }
     }
 }

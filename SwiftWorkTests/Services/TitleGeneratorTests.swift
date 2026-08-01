@@ -1,149 +1,148 @@
 import XCTest
 @testable import SwiftWork
 
+private actor TitleHTTPClient: HTTPDataLoading {
+    private let responseData: Data
+    private let statusCode: Int
+    private(set) var lastRequest: URLRequest?
+
+    init(json: String, statusCode: Int = 200) {
+        self.responseData = Data(json.utf8)
+        self.statusCode = statusCode
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        lastRequest = request
+        guard let url = request.url,
+              let response = HTTPURLResponse(
+                url: url,
+                statusCode: statusCode,
+                httpVersion: nil,
+                headerFields: nil
+              ) else {
+            throw AppError(domain: .network, code: "TEST_RESPONSE", message: "测试响应无效")
+        }
+        return (responseData, response)
+    }
+}
+
 final class TitleGeneratorTests: XCTestCase {
+    private let events = [
+        AgentEvent(type: .userMessage, content: "帮我修复登录问题", timestamp: .now),
+        AgentEvent(type: .assistant, content: "正在检查", timestamp: .now)
+    ]
 
-    // MARK: - Nil returns (no network needed)
-
-    func testReturnsNilWhenAPIKeyEmpty() async {
-        let events = [AgentEvent(type: .userMessage, content: "Hello", timestamp: .now)]
-        let result = await TitleGenerator.generate(
+    func testReturnsNilWithoutAPIKeyModelOrConversation() async {
+        let missingAPIKey = await TitleGenerator.generate(
             events: events,
             apiKey: "",
             baseURL: nil,
             model: "claude-sonnet-4-6"
         )
-        XCTAssertNil(result)
-    }
-
-    func testReturnsNilWhenNoUserOrAssistantEvents() async {
-        let events = [
-            AgentEvent(type: .system, content: "init", timestamp: .now),
-            AgentEvent(type: .toolUse, content: "Bash", timestamp: .now),
-            AgentEvent(type: .toolResult, content: "ok", timestamp: .now)
-        ]
-        let result = await TitleGenerator.generate(
+        let missingModel = await TitleGenerator.generate(
             events: events,
-            apiKey: "sk-test-key",
+            apiKey: "key",
             baseURL: nil,
-            model: "claude-sonnet-4-6"
+            model: ""
         )
-        XCTAssertNil(result, "Should return nil when no userMessage or assistant events")
-    }
-
-    func testReturnsNilWhenEventsEmpty() async {
-        let result = await TitleGenerator.generate(
-            events: [],
-            apiKey: "sk-test-key",
+        let missingConversation = await TitleGenerator.generate(
+            events: [AgentEvent(type: .system, content: "init", timestamp: .now)],
+            apiKey: "key",
             baseURL: nil,
-            model: "claude-sonnet-4-6"
+            model: "model"
         )
-        XCTAssertNil(result)
+
+        XCTAssertNil(missingAPIKey)
+        XCTAssertNil(missingModel)
+        XCTAssertNil(missingConversation)
     }
 
-    func testFiltersToOnlyUserAndAssistantEvents() async {
-        // With invalid key, the network call will fail and return nil
-        // But the filtering logic should still work (no crash)
-        let events = [
-            AgentEvent(type: .system, content: "init", timestamp: .now),
-            AgentEvent(type: .userMessage, content: "Hello", timestamp: .now),
-            AgentEvent(type: .toolUse, content: "Bash", timestamp: .now),
-            AgentEvent(type: .assistant, content: "World", timestamp: .now)
-        ]
-        let result = await TitleGenerator.generate(
+    func testAnthropicProtocolBuildsMessagesRequestAndParsesTitle() async {
+        let client = TitleHTTPClient(json: #"{"content":[{"type":"text","text":" 登录问题修复 "}]}"#)
+
+        let title = await TitleGenerator.generate(
             events: events,
-            apiKey: "sk-invalid-key",
+            apiKey: "anthropic-key",
+            baseURL: "https://gateway.example.com/",
+            model: "claude-model",
+            provider: .anthropic,
+            httpClient: client
+        )
+
+        XCTAssertEqual(title, "登录问题修复")
+        let request = await client.lastRequest
+        XCTAssertEqual(request?.url?.absoluteString, "https://gateway.example.com/v1/messages")
+        XCTAssertEqual(request?.value(forHTTPHeaderField: "x-api-key"), "anthropic-key")
+        XCTAssertEqual(request?.value(forHTTPHeaderField: "anthropic-version"), "2023-06-01")
+        XCTAssertNil(request?.value(forHTTPHeaderField: "Authorization"))
+    }
+
+    func testOpenAIProtocolBuildsChatCompletionsRequestAndParsesTitle() async {
+        let client = TitleHTTPClient(
+            json: #"{"choices":[{"message":{"role":"assistant","content":"OpenAI 登录修复"}}]}"#
+        )
+
+        let title = await TitleGenerator.generate(
+            events: events,
+            apiKey: "openai-key",
+            baseURL: "https://gateway.example.com/v1/",
+            model: "gpt-model",
+            provider: .openAI,
+            httpClient: client
+        )
+
+        XCTAssertEqual(title, "OpenAI 登录修复")
+        let request = await client.lastRequest
+        XCTAssertEqual(request?.url?.absoluteString, "https://gateway.example.com/v1/chat/completions")
+        XCTAssertEqual(request?.value(forHTTPHeaderField: "Authorization"), "Bearer openai-key")
+        XCTAssertNil(request?.value(forHTTPHeaderField: "x-api-key"))
+    }
+
+    func testHTTPFailureInvalidURLAndInvalidJSONReturnNil() async {
+        let failedClient = TitleHTTPClient(json: "{}", statusCode: 401)
+        let invalidJSONClient = TitleHTTPClient(json: "not-json")
+
+        let failedRequest = await TitleGenerator.generate(
+            events: events,
+            apiKey: "key",
             baseURL: nil,
-            model: "claude-sonnet-4-6"
+            model: "model",
+            httpClient: failedClient
         )
-        // Will return nil due to invalid key, but should not crash
-        XCTAssertNotNil(result == nil)
-    }
-
-    func testHandlesBaseURLNil() async {
-        let events = [AgentEvent(type: .userMessage, content: "test", timestamp: .now)]
-        // Will fail due to invalid key, but tests URL construction with nil baseURL
-        let _ = await TitleGenerator.generate(
+        let invalidURL = await TitleGenerator.generate(
             events: events,
-            apiKey: "sk-test",
+            apiKey: "key",
+            baseURL: "not a url",
+            model: "model",
+            httpClient: failedClient
+        )
+        let invalidJSON = await TitleGenerator.generate(
+            events: events,
+            apiKey: "key",
             baseURL: nil,
-            model: "claude-sonnet-4-6"
+            model: "model",
+            httpClient: invalidJSONClient
         )
-        // No crash = success
+
+        XCTAssertNil(failedRequest)
+        XCTAssertNil(invalidURL)
+        XCTAssertNil(invalidJSON)
     }
 
-    func testHandlesBaseURLWithTrailingSlash() async {
-        let events = [AgentEvent(type: .userMessage, content: "test", timestamp: .now)]
-        let _ = await TitleGenerator.generate(
-            events: events,
-            apiKey: "sk-test",
-            baseURL: "https://api.example.com/",
-            model: "claude-sonnet-4-6"
+    func testLongTitleIsTruncatedToThirtyCharacters() async {
+        let longTitle = String(repeating: "标", count: 40)
+        let client = TitleHTTPClient(
+            json: #"{"content":[{"type":"text","text":"\#(longTitle)"}]}"#
         )
-        // No crash = success
-    }
 
-    func testHandlesBaseURLWithoutTrailingSlash() async {
-        let events = [AgentEvent(type: .userMessage, content: "test", timestamp: .now)]
-        let _ = await TitleGenerator.generate(
+        let title = await TitleGenerator.generate(
             events: events,
-            apiKey: "sk-test",
-            baseURL: "https://api.example.com",
-            model: "claude-sonnet-4-6"
-        )
-        // No crash = success
-    }
-
-    func testHandlesInvalidBaseURL() async {
-        let events = [AgentEvent(type: .userMessage, content: "test", timestamp: .now)]
-        let result = await TitleGenerator.generate(
-            events: events,
-            apiKey: "sk-test",
-            baseURL: "not a valid url",
-            model: "claude-sonnet-4-6"
-        )
-        XCTAssertNil(result, "Invalid URL should return nil")
-    }
-
-    func testLimitsToLast10Messages() async {
-        // Create 15 user events — should only use last 10
-        var events: [AgentEvent] = []
-        for i in 0..<15 {
-            events.append(AgentEvent(type: .userMessage, content: "Message \(i)", timestamp: .now))
-        }
-        let _ = await TitleGenerator.generate(
-            events: events,
-            apiKey: "sk-test",
-            baseURL: "https://api.anthropic.com",
-            model: "claude-sonnet-4-6"
-        )
-        // No crash = success (the actual API call will fail with fake key)
-    }
-
-    func testTruncatesLongContent() async {
-        let longContent = String(repeating: "a", count: 1000)
-        let events = [AgentEvent(type: .userMessage, content: longContent, timestamp: .now)]
-        let _ = await TitleGenerator.generate(
-            events: events,
-            apiKey: "sk-test",
-            baseURL: "https://api.anthropic.com",
-            model: "claude-sonnet-4-6"
-        )
-        // No crash = success
-    }
-
-    func testOnlyUserMessageAndAssistantTypesAreIncluded() async {
-        let events = [
-            AgentEvent(type: .partialMessage, content: "partial", timestamp: .now),
-            AgentEvent(type: .result, content: "done", timestamp: .now),
-            AgentEvent(type: .system, content: "init", timestamp: .now)
-        ]
-        let result = await TitleGenerator.generate(
-            events: events,
-            apiKey: "sk-test",
+            apiKey: "key",
             baseURL: nil,
-            model: "claude-sonnet-4-6"
+            model: "model",
+            httpClient: client
         )
-        XCTAssertNil(result, "Should return nil — no userMessage or assistant events after filtering")
+
+        XCTAssertEqual(title?.count, 30)
     }
 }

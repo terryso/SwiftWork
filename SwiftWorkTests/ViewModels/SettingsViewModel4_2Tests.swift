@@ -105,6 +105,7 @@ final class SettingsViewModel4_2Tests: XCTestCase {
         let viewModel = makeViewModel()
         let context = try makeModelContext()
         viewModel.configure(modelContext: context)
+        viewModel.availableModels = ["claude-opus-4-7"]
 
         try viewModel.updateModel("claude-opus-4-7")
 
@@ -122,6 +123,7 @@ final class SettingsViewModel4_2Tests: XCTestCase {
         let viewModel = makeViewModel()
         let context = try makeModelContext()
         viewModel.configure(modelContext: context)
+        viewModel.availableModels = ["claude-haiku-3-5"]
 
         try viewModel.updateModel("claude-haiku-3-5")
 
@@ -139,6 +141,7 @@ final class SettingsViewModel4_2Tests: XCTestCase {
         try context.save()
 
         viewModel.configure(modelContext: context)
+        viewModel.availableModels.append("claude-opus-4-7")
         try viewModel.updateModel("claude-opus-4-7")
 
         let descriptor = FetchDescriptor<AppConfiguration>(
@@ -155,6 +158,7 @@ final class SettingsViewModel4_2Tests: XCTestCase {
         let viewModel = makeViewModel()
         let context = try makeModelContext()
         viewModel.configure(modelContext: context)
+        viewModel.availableModels = ["claude-sonnet-4-6"]
 
         try viewModel.updateModel("claude-sonnet-4-6")
         try viewModel.updateModel("claude-sonnet-4-6")

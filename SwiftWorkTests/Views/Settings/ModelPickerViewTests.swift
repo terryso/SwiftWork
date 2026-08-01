@@ -46,22 +46,17 @@ final class ModelPickerViewTests: XCTestCase {
         XCTAssertNotNil(view, "ModelPickerView should accept SettingsViewModel parameter")
     }
 
-    // [P0] ModelPickerView shows available models from Constants
-    func testModelPickerViewShowsAvailableModels() throws {
+    // [P0] ModelPickerView does not expose a static fallback list
+    func testModelPickerViewStartsWithoutStaticModels() throws {
         let viewModel = makeViewModel()
-        let models = viewModel.availableModels
-
-        XCTAssertEqual(models.count, 3, "Should have 3 available models")
-        XCTAssertTrue(models.contains("claude-sonnet-4-6"))
-        XCTAssertTrue(models.contains("claude-opus-4-7"))
-        XCTAssertTrue(models.contains("claude-haiku-3-5"))
+        XCTAssertTrue(viewModel.availableModels.isEmpty)
     }
 
     // [P0] ModelPickerView reflects current selected model
     func testModelPickerViewShowsCurrentModel() throws {
         let viewModel = makeViewModel()
 
-        XCTAssertEqual(viewModel.selectedModel, "claude-sonnet-4-6", "Default model should be selected")
+        XCTAssertEqual(viewModel.selectedModel, "", "No model is selected before API discovery")
     }
 
     // [P1] ModelPickerView selection updates ViewModel
@@ -70,8 +65,9 @@ final class ModelPickerViewTests: XCTestCase {
         let context = container.mainContext
         let viewModel = makeViewModel()
         viewModel.configure(modelContext: context)
+        viewModel.availableModels = ["claude-opus-4-7"]
 
-        viewModel.selectedModel = "claude-opus-4-7"
+        try viewModel.updateModel("claude-opus-4-7")
 
         XCTAssertEqual(viewModel.selectedModel, "claude-opus-4-7", "Should reflect new selection")
     }
@@ -82,6 +78,7 @@ final class ModelPickerViewTests: XCTestCase {
         let context = container.mainContext
         let viewModel = makeViewModel()
         viewModel.configure(modelContext: context)
+        viewModel.availableModels = ["claude-haiku-3-5"]
 
         try viewModel.updateModel("claude-haiku-3-5")
 
@@ -95,11 +92,11 @@ final class ModelPickerViewTests: XCTestCase {
         XCTAssertEqual(saved, "claude-haiku-3-5", "Model change should persist")
     }
 
-    // [P2] ModelPickerView displays default model on first launch
-    func testModelPickerViewDefaultModelOnFirstLaunch() throws {
+    // [P2] ModelPickerView requires discovery on first launch
+    func testModelPickerViewRequiresDiscoveryOnFirstLaunch() throws {
         let viewModel = makeViewModel()
 
         XCTAssertTrue(viewModel.isFirstLaunch, "Should be first launch")
-        XCTAssertEqual(viewModel.selectedModel, Constants.defaultModel, "Should show default model")
+        XCTAssertFalse(viewModel.hasValidModelSelection)
     }
 }

@@ -67,3 +67,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-swiftwork-global-skill-discovery.md`
   summary: 为全局 Skill 的 supporting files 设计受限的 workspace 外读取与执行边界。
   evidence: 现有 workspace 系统提示禁止普通文件操作越界，而 SDK SkillTool 会返回全局 Skill 的 baseDir 与 supportingFiles；依赖 references 或 scripts 的既有全局 Skill 无法同时遵守两者。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-provider-protocol-and-dynamic-models.md`
+  summary: 将凭据存储从 Application Support 沙盒 plist 迁移到真正的 macOS Keychain。
+  evidence: `KeychainManager` 在本次改动前已明确使用沙盒文件存储；真实 Keychain 迁移需要兼容既有凭据并单独验证，超出 Provider 与动态模型修复范围。

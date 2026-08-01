@@ -147,6 +147,9 @@
 		B7D0373F558EDDAECD469F39 /* PermissionRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EDCD3AF38C5C7BA73DD6D88 /* PermissionRule.swift */; };
 		BE7F850A4BFF4AFD5F595082 /* ConstantsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3330453F98A826234A527440 /* ConstantsTests.swift */; };
 		BEFF832DF8D805F4A8955785 /* TimelineEventViewsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85DC855F8179F2A005DB404D /* TimelineEventViewsTests.swift */; };
+		C0D3A001C0D3A001C0D3A001 /* AgentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3B001C0D3B001C0D3B001 /* AgentProvider.swift */; };
+		C0D3A002C0D3A002C0D3A002 /* ModelDiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3B002C0D3B002C0D3B002 /* ModelDiscoveryService.swift */; };
+		C0D3A003C0D3A003C0D3A003 /* ModelDiscoveryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D3B003C0D3B003C0D3B003 /* ModelDiscoveryServiceTests.swift */; };
 		C0F4DE2EBF09C1E2099390EC /* SessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC489F9AD659EAE84527791A /* SessionViewModel.swift */; };
 		C1D8A9865C72E5186B5A9C77 /* InspectorViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DE08D477FAB6622E2C923AD /* InspectorViewTests.swift */; };
 		C3368DE4F0E3A753D0846FAE /* ModelPickerViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18E6F0A27BF01C636533789 /* ModelPickerViewTests.swift */; };
@@ -354,6 +357,9 @@
 		BCAFF17A3FA232B9FB54D5DD /* ToolLogListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolLogListView.swift; sourceTree = "<group>"; };
 		C1654FED10A9847B30748402 /* MCPAdvancedSettingsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPAdvancedSettingsViewTests.swift; sourceTree = "<group>"; };
 		C1A9ED9000F8018DC5E66615 /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
+		C0D3B001C0D3B001C0D3B001 /* AgentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProvider.swift; sourceTree = "<group>"; };
+		C0D3B002C0D3B002C0D3B002 /* ModelDiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDiscoveryService.swift; sourceTree = "<group>"; };
+		C0D3B003C0D3B003C0D3B003 /* ModelDiscoveryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDiscoveryServiceTests.swift; sourceTree = "<group>"; };
 		C2B959060BB368C1F2C4F0C3 /* MCPConfigFileManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPConfigFileManagerTests.swift; sourceTree = "<group>"; };
 		C2F380C7C08F3DD820103F3E /* SessionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionModelTests.swift; sourceTree = "<group>"; };
 		C3769130408C33713CDC97D9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -490,6 +496,7 @@
 				2B20BC608D2CC2959E83C7E1 /* MCPConfigFileIntegrationTests.swift */,
 				C2B959060BB368C1F2C4F0C3 /* MCPConfigFileManagerTests.swift */,
 				A940B72417B6A2837A932C34 /* MCPServerConfigStoreTests.swift */,
+				C0D3B003C0D3B003C0D3B003 /* ModelDiscoveryServiceTests.swift */,
 				EBA46E073AF2453A0FF25080 /* SessionWorkspaceServiceTests.swift */,
 				502D72F04159AB97B9DCE5B6 /* TitleGeneratorTests.swift */,
 			);
@@ -639,6 +646,7 @@
 			isa = PBXGroup;
 			children = (
 				0F53533AA5DAF536519AB24E /* AgentEvent.swift */,
+				C0D3B001C0D3B001C0D3B001 /* AgentProvider.swift */,
 				8946C856C29731F6A0E000AD /* AgentEventType.swift */,
 				B4889B0AAB114C1E82D4C0D3 /* AppError.swift */,
 				9FE74ACA0F4B86D5077E12EF /* PendingPermissionRequest.swift */,
@@ -865,6 +873,7 @@
 				4CA44FC5C93A563DCBFC06AE /* MarkdownRenderer.swift */,
 				60F04953FDA82602C4A48574 /* MCPConfigFileManager.swift */,
 				3D5722374029FC8906450402 /* MCPServerConfigStore.swift */,
+				C0D3B002C0D3B002C0D3B002 /* ModelDiscoveryService.swift */,
 				64FE51A0FE3676E211989EE9 /* SessionWorkspaceService.swift */,
 				A11CE001A11CE001A11CE001 /* SkillDirectoryService.swift */,
 				867E45236FE183BA2BE38187 /* TitleGenerator.swift */,
@@ -1086,6 +1095,7 @@
 				A7BC0F19CD75B18DD2688900 /* MarkdownRenderingIntegrationTests.swift in Sources */,
 				0640D6037C62BC2B00AD9345 /* MenuBarCommandsTests.swift in Sources */,
 				E0ECB6CF9CE63AB61D89C05A /* MessageInputAgentExecutionIntegrationTests.swift in Sources */,
+				C0D3A003C0D3A003C0D3A003 /* ModelDiscoveryServiceTests.swift in Sources */,
 				C3368DE4F0E3A753D0846FAE /* ModelPickerViewTests.swift in Sources */,
 				E93DAD6B6363BEF4C5F24DF5 /* OnboardingFlowTests.swift in Sources */,
 				C5AB21C660D59892DC3DE3D6 /* PendingPermissionRequestTests.swift in Sources */,
@@ -1136,6 +1146,7 @@
 				EE23C4626C62A5F8A438D6C5 /* AgentBridge+ToolContentMap.swift in Sources */,
 				4882B7B1920FCACBEC8AA8C8 /* AgentBridge.swift in Sources */,
 				B300B2346D1757F9FDC7222D /* AgentEvent.swift in Sources */,
+				C0D3A001C0D3A001C0D3A001 /* AgentProvider.swift in Sources */,
 				E58462A4BD7E2218BAD58BA8 /* AgentEventType.swift in Sources */,
 				1DBD5FF29AE3C7E3E0689D48 /* AppConfiguration.swift in Sources */,
 				AF5822DC9CF8E7F34E82F5E3 /* AppError.swift in Sources */,
@@ -1178,6 +1189,7 @@
 				12450703B37ABA646580999A /* MCPToolRenderer.swift in Sources */,
 				ED1F50729458CC553DAF223B /* MarkdownContentView.swift in Sources */,
 				3514AA05BADBE0E7083C0A3D /* MarkdownRenderer.swift in Sources */,
+				C0D3A002C0D3A002C0D3A002 /* ModelDiscoveryService.swift in Sources */,
 				45E9398D7F61296A7878F51F /* ModelPickerView.swift in Sources */,
 				CBE27DBD9C851AA965E42F4E /* PendingPermissionRequest.swift in Sources */,
 				B1865CDB60F88A49E6193FCF /* PermissionAuditEntry.swift in Sources */,
@@ -1483,7 +1495,7 @@
 			repositoryURL = "https://github.com/terryso/open-agent-sdk-swift";
 			requirement = {
 				kind = exactVersion;
-				version = 0.9.0;
+				version = 0.12.0;
 			};
 		};
 		9B35EF6059C168F9C512144D /* XCRemoteSwiftPackageReference "Sparkle" */ = {
