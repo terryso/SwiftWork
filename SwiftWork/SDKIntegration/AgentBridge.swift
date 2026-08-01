@@ -63,6 +63,11 @@ final class AgentBridge {
     @ObservationIgnored
     private var agent: Agent?
 
+    /// Test seam for verifying MCP hot updates without opening a real network connection.
+    /// Production uses `Agent.setMcpServers(_:)` when this handler is nil.
+    @ObservationIgnored
+    var mcpServerUpdateHandler: (([String: McpServerConfig]) async throws -> McpServerUpdateResult)?
+
     @ObservationIgnored
     private var currentTask: _Concurrency.Task<Void, Never>?
 
@@ -220,23 +225,40 @@ final class AgentBridge {
         try await agent.reconnectMcpServer(name: name)
     }
 
-    /// Hot-update MCP servers on the running Agent after an edit.
-    /// Called by EditMCPServerSheet after saving config changes.
+    /// Hot-update MCP servers after an edit. The Agent object exists while the UI is idle,
+    /// so this must not be gated by `isRunning` (which only tracks an active message run).
     func updateMCPServers() {
-        guard isRunning else { return }
-        let configs = (try? mcpConfigStore?.enabledConfigsForWorkspace(activeWorkspaceRoot)) ?? []
-        let mcpServers = mcpConfigStore?.toSDKConfigs(configs) ?? [:]
         _Concurrency.Task { [weak self] in
-            guard let self, let agent = self.agent else { return }
+            guard let self else { return }
             do {
-                let result = try await agent.setMcpServers(mcpServers)
-                os_log("SwiftWork MCP: hot-update result — added: %{public}@, removed: %{public}@, errors: %{public}@",
-                       log: .default, type: .info,
-                       result.added.description, result.removed.description, result.errors.description)
+                _ = try await self.applyMCPServers()
             } catch {
+                self.errorMessage = "MCP 配置更新失败: \(error.localizedDescription)"
                 os_log("SwiftWork MCP: hot-update failed: %{public}s", log: .default, type: .error, error.localizedDescription)
             }
         }
+    }
+
+    /// Applies the current persisted MCP configuration and returns the SDK result.
+    /// Exposed internally so tests can assert that idle-state updates reach the tool pool.
+    @discardableResult
+    func applyMCPServers() async throws -> McpServerUpdateResult {
+        let configs = (try? mcpConfigStore?.enabledConfigsForWorkspace(activeWorkspaceRoot)) ?? []
+        let mcpServers = mcpConfigStore?.toSDKConfigs(configs) ?? [:]
+        let result: McpServerUpdateResult
+        if let mcpServerUpdateHandler {
+            result = try await mcpServerUpdateHandler(mcpServers)
+        } else if let agent {
+            result = try await agent.setMcpServers(mcpServers)
+        } else {
+            // Configuration is still persisted and will be supplied on the next configure().
+            return McpServerUpdateResult()
+        }
+
+        os_log("SwiftWork MCP: hot-update result — added: %{public}@, removed: %{public}@, errors: %{public}@",
+               log: .default, type: .info,
+               result.added.description, result.removed.description, result.errors.description)
+        return result
     }
 
     init(permissionHandler: PermissionHandler = PermissionHandler()) {
@@ -299,7 +321,7 @@ final class AgentBridge {
 
         let skillCount = registry.allSkills.count
         os_log("SwiftWork SkillRegistry: %d skills registered (%d discovered from filesystem)", log: .default, type: .info, skillCount, discoveredCount)
-        os_log("SwiftWork MCP: %d configs loaded", log: .default, type: .info, mcpConfigs.count)
+        os_log("SwiftWork MCP: %d configs loaded, options.mcpServers=%{public}s", log: .default, type: .info, mcpConfigs.count, options.mcpServers != nil ? "set" : "nil")
 
         self.agent = createAgent(options: options)
         setupPermissionCallback()

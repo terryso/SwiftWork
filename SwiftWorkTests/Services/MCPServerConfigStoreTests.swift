@@ -199,6 +199,32 @@ final class MCPServerConfigStoreTests: XCTestCase {
         XCTAssertEqual(config.transportType, .stdio)
         XCTAssertEqual(config.command, "npx")
         XCTAssertTrue(config.enabled)
+        XCTAssertEqual(config.decodedEnv?["API_KEY"], "test")
+    }
+
+    // [P0] MCP credentials remain unchanged when read from SwiftData
+    func testListPreservesCredentialValues() throws {
+        let (_, context) = try makeContext()
+        let store = makeStore(context: context)
+        let legacy = MCPServerConfig(
+            name: "legacy-secret-server",
+            transportType: .http,
+            url: "https://example.com/mcp",
+            env: encodeEnv(["API_TOKEN": "legacy-env-secret", "REGION": "cn"]),
+            headers: encodeHeaders([
+                "Authorization": "Bearer legacy-header-secret",
+                "X-Custom": "visible",
+            ])
+        )
+        context.insert(legacy)
+        try context.save()
+
+        let persisted = try XCTUnwrap(store.list().first)
+
+        XCTAssertEqual(persisted.decodedEnv?["API_TOKEN"], "legacy-env-secret")
+        XCTAssertEqual(persisted.decodedEnv?["REGION"], "cn")
+        XCTAssertEqual(persisted.decodedHeaders?["Authorization"], "Bearer legacy-header-secret")
+        XCTAssertEqual(persisted.decodedHeaders?["X-Custom"], "visible")
     }
 
     // [P0] List all MCP configs

@@ -47,7 +47,7 @@ final class MCPConfigFileIntegrationTests: XCTestCase {
     // [P0] Full pipeline: file → parse → import → SwiftData → AgentBridge.updateMCPServers
     func testFullImportPipeline() throws {
         let (_, context) = try makeContext()
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
         let manager = MCPConfigFileManager()
         let bridge = AgentBridge()
         bridge.mcpConfigStore = store
@@ -90,7 +90,7 @@ final class MCPConfigFileIntegrationTests: XCTestCase {
     // [P0] Import then re-import with changes updates SwiftData correctly
     func testReimportUpdatesConfigs() throws {
         let (_, context) = try makeContext()
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
         let manager = MCPConfigFileManager()
 
         let configPath = tempDirectory + "/.claude/settings.json"
@@ -137,7 +137,7 @@ final class MCPConfigFileIntegrationTests: XCTestCase {
     // [P0] Import with multiple servers preserves dedup behavior
     func testImportMultipleServersDedup() throws {
         let (_, context) = try makeContext()
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
         let manager = MCPConfigFileManager()
 
         // Pre-add one server to SwiftData
@@ -186,7 +186,7 @@ final class MCPConfigFileIntegrationTests: XCTestCase {
     // [P0] Scope-aware import: project-scoped imports don't collide with global
     func testScopeAwareImport() throws {
         let (_, context) = try makeContext()
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
         let manager = MCPConfigFileManager()
 
         // Import with project scope
@@ -249,7 +249,7 @@ final class MCPConfigFileIntegrationTests: XCTestCase {
     // [P0] Empty config file import doesn't clear existing SwiftData configs
     func testEmptyFileImportPreservesExisting() throws {
         let (_, context) = try makeContext()
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
         let manager = MCPConfigFileManager()
 
         // Pre-add config
@@ -281,7 +281,7 @@ final class MCPConfigFileIntegrationTests: XCTestCase {
     // [P0] AgentBridge.updateMCPServers reads from MCPServerConfigStore after import
     func testAgentBridgeHotUpdateAfterImport() throws {
         let (_, context) = try makeContext()
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
         let bridge = AgentBridge()
         bridge.mcpConfigStore = store
 
@@ -316,7 +316,7 @@ final class MCPConfigFileIntegrationTests: XCTestCase {
     // [P0] Import from file then disable → hot-update reflects disabled state
     func testImportThenDisableReflectsInHotUpdate() throws {
         let (_, context) = try makeContext()
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
         let manager = MCPConfigFileManager()
         let bridge = AgentBridge()
         bridge.mcpConfigStore = store

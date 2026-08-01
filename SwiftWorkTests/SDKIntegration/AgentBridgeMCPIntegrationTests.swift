@@ -28,7 +28,7 @@ final class AgentBridgeMCPIntegrationTests: XCTestCase {
     }
 
     private func makeStore(context: ModelContext) -> MCPServerConfigStore {
-        MCPServerConfigStore(modelContext: context)
+        MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
     }
 
     private func addMCPConfig(
@@ -147,18 +147,25 @@ final class AgentBridgeMCPIntegrationTests: XCTestCase {
 
     // MARK: - AC3: 运行时动态更新 MCP 工具池
 
-    // [P0] updateMCPServers() does not crash when agent is not running
-    func testUpdateMCPServersDoesNotCrashWhenNotRunning() throws {
+    // [P0] idle-state updates reach the SDK update path even when no message is running
+    func testUpdateMCPServersAppliesWhileIdle() async throws {
         let (_, context) = try makeContext()
         let store = makeStore(context: context)
         _ = try addMCPConfig(to: store, name: "mcp-server")
 
         let bridge = AgentBridge()
         bridge.mcpConfigStore = store
-        // isRunning is false by default
+        var receivedServerNames: [String] = []
+        bridge.mcpServerUpdateHandler = { servers in
+            receivedServerNames = servers.keys.sorted()
+            return McpServerUpdateResult(added: receivedServerNames)
+        }
 
-        // Should not crash -- guard let isRunning check
-        bridge.updateMCPServers()
+        let result = try await bridge.applyMCPServers()
+
+        XCTAssertFalse(bridge.isRunning)
+        XCTAssertEqual(receivedServerNames, ["mcp-server"])
+        XCTAssertEqual(result.added, ["mcp-server"])
     }
 
     // [P0] updateMCPServers() reloads configs from store

@@ -50,3 +50,130 @@ final class ModelContainerTests: XCTestCase {
         XCTAssertNotNil(container)
     }
 }
+
+@MainActor
+final class SwiftWorkPersistentStoreTests: XCTestCase {
+    func testLegacyStoreMigratesToIsolatedStoreAndPreservesMCPSecrets() throws {
+        let supportDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SwiftWorkPersistentStoreTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: supportDirectory,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: supportDirectory) }
+
+        let legacyURL = supportDirectory.appendingPathComponent("default.store")
+        do {
+            let legacyConfiguration = ModelConfiguration(
+                "Legacy",
+                schema: SwiftWorkPersistentStore.schema,
+                url: legacyURL
+            )
+            let legacyContainer = try ModelContainer(
+                for: SwiftWorkPersistentStore.schema,
+                configurations: legacyConfiguration
+            )
+            let legacyContext = ModelContext(legacyContainer)
+
+            let session = Session(title: "Legacy Session", workspacePath: "/tmp/project")
+            let event = Event(
+                sessionID: session.id,
+                eventType: "assistant",
+                rawData: Data("{}".utf8),
+                timestamp: .now,
+                order: 0
+            )
+            event.session = session
+            let mcpConfig = MCPServerConfig(
+                name: "legacy-github",
+                transportType: .http,
+                url: "https://api.githubcopilot.com/mcp/",
+                headers: try JSONEncoder().encode([
+                    "Authorization": "Bearer migration-secret",
+                    "X-MCP-Readonly": "true",
+                ])
+            )
+            legacyContext.insert(session)
+            legacyContext.insert(event)
+            legacyContext.insert(mcpConfig)
+            try legacyContext.save()
+        }
+
+        let destinationContainer = try SwiftWorkPersistentStore.makeContainer(
+            applicationSupportDirectory: supportDirectory,
+            storeName: "Test.store"
+        )
+        let destinationContext = ModelContext(destinationContainer)
+        let sessions = try destinationContext.fetch(FetchDescriptor<Session>())
+        let events = try destinationContext.fetch(FetchDescriptor<Event>())
+        let destinationStore = MCPServerConfigStore(modelContext: destinationContext)
+        let configs = try destinationStore.list()
+
+        XCTAssertEqual(sessions.map(\.title), ["Legacy Session"])
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.session?.id, sessions.first?.id)
+        XCTAssertEqual(configs.first?.name, "legacy-github")
+        XCTAssertEqual(
+            configs.first?.decodedHeaders?["Authorization"],
+            "Bearer migration-secret"
+        )
+
+        let destinationURL = SwiftWorkPersistentStore.destinationStoreURL(
+            applicationSupportDirectory: supportDirectory,
+            storeName: "Test.store"
+        )
+        XCTAssertNotEqual(destinationURL, legacyURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: legacyURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: destinationURL.path))
+        XCTAssertEqual(
+            posixPermissions(at: destinationURL.deletingLastPathComponent()),
+            0o700
+        )
+        for suffix in ["", "-wal", "-shm"] {
+            let candidate = URL(fileURLWithPath: destinationURL.path + suffix)
+            guard FileManager.default.fileExists(atPath: candidate.path) else {
+                continue
+            }
+            XCTAssertEqual(posixPermissions(at: candidate), 0o600)
+        }
+
+        let migratedLegacyConfiguration = ModelConfiguration(
+            "LegacyVerification",
+            schema: SwiftWorkPersistentStore.schema,
+            url: legacyURL
+        )
+        let migratedLegacyContainer = try ModelContainer(
+            for: SwiftWorkPersistentStore.schema,
+            configurations: migratedLegacyConfiguration
+        )
+        let migratedLegacyContext = ModelContext(migratedLegacyContainer)
+        let migratedLegacyConfigs = try migratedLegacyContext.fetch(
+            FetchDescriptor<MCPServerConfig>()
+        )
+        XCTAssertEqual(
+            migratedLegacyConfigs.first?.decodedHeaders?["Authorization"],
+            "Bearer migration-secret"
+        )
+    }
+
+    func testDebugAndReleaseStoreNamesResolveToDifferentFiles() {
+        let supportDirectory = URL(fileURLWithPath: "/tmp/Application Support")
+        let debugURL = SwiftWorkPersistentStore.destinationStoreURL(
+            applicationSupportDirectory: supportDirectory,
+            storeName: "SwiftWork-Debug.store"
+        )
+        let releaseURL = SwiftWorkPersistentStore.destinationStoreURL(
+            applicationSupportDirectory: supportDirectory,
+            storeName: "SwiftWork.store"
+        )
+
+        XCTAssertNotEqual(debugURL, releaseURL)
+    }
+
+    private func posixPermissions(at url: URL) -> Int? {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+        return (attributes?[.posixPermissions] as? NSNumber).map {
+            $0.intValue & 0o777
+        }
+    }
+}

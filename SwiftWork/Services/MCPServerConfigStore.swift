@@ -21,6 +21,12 @@ final class MCPServerConfigStore {
         self.modelContext = modelContext
     }
 
+    /// Compatibility initializer for callers that used to inject credential
+    /// storage. MCP headers and environment values now persist in SwiftData.
+    init(modelContext: ModelContext, keychainManager _: KeychainManaging) {
+        self.modelContext = modelContext
+    }
+
     // MARK: - CRUD
 
     @discardableResult
@@ -36,7 +42,6 @@ final class MCPServerConfigStore {
         scope: MCPServerScope,
         workspacePath: String?
     ) throws -> MCPServerConfig {
-        // Check for duplicate name before inserting
         let existing = try list()
         if existing.contains(where: { $0.name == name }) {
             throw MCPServerConfigError.duplicateName(name)
@@ -104,7 +109,6 @@ final class MCPServerConfigStore {
         scope: MCPServerScope,
         workspacePath: String?
     ) throws -> MCPServerConfig {
-        // Check for duplicate name (allow keeping the same name)
         if config.name != name {
             let existing = try list()
             if existing.contains(where: { $0.name == name }) {
@@ -140,15 +144,13 @@ final class MCPServerConfigStore {
     }
 
     func list(scope: MCPServerScope) throws -> [MCPServerConfig] {
-        let all = try list()
-        return all.filter { $0.scope == scope }
+        try list().filter { $0.scope == scope }
     }
 
-    // MARK: - Scope Filtering (AC3)
+    // MARK: - Scope Filtering
 
     func enabledConfigsForWorkspace(_ workspacePath: String?) throws -> [MCPServerConfig] {
-        let all = try list()
-        return all.filter { config in
+        try list().filter { config in
             guard config.enabled else { return false }
             switch config.scope {
             case .global:
@@ -159,7 +161,7 @@ final class MCPServerConfigStore {
         }
     }
 
-    // MARK: - SDK Conversion (AC4)
+    // MARK: - SDK Conversion
 
     func toSDKConfigs(_ configs: [MCPServerConfig]) -> [String: McpServerConfig] {
         Dictionary(uniqueKeysWithValues: configs.compactMap { config -> (String, McpServerConfig)? in
@@ -171,19 +173,22 @@ final class MCPServerConfigStore {
         switch config.transportType {
         case .stdio:
             guard let command = config.command, !command.isEmpty else { return nil }
-            let args = config.decodedArgs
-            let env = config.decodedEnv
-            return (config.name, .stdio(McpStdioConfig(command: command, args: args, env: env)))
+            return (
+                config.name,
+                .stdio(McpStdioConfig(
+                    command: command,
+                    args: config.decodedArgs,
+                    env: config.decodedEnv
+                ))
+            )
 
         case .sse:
             guard let url = config.url, !url.isEmpty else { return nil }
-            let headers = config.decodedHeaders
-            return (config.name, .sse(McpTransportConfig(url: url, headers: headers)))
+            return (config.name, .sse(McpTransportConfig(url: url, headers: config.decodedHeaders)))
 
         case .http:
             guard let url = config.url, !url.isEmpty else { return nil }
-            let headers = config.decodedHeaders
-            return (config.name, .http(McpTransportConfig(url: url, headers: headers)))
+            return (config.name, .http(McpTransportConfig(url: url, headers: config.decodedHeaders)))
         }
     }
 }

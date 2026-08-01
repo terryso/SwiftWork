@@ -28,7 +28,10 @@ final class MCPAdvancedSettingsViewTests: XCTestCase {
     func testMCPAdvancedSettingsViewCanBeCreated() throws {
         let view = MCPAdvancedSettingsView(
             configManager: MCPConfigFileManager(),
-            store: MCPServerConfigStore(modelContext: try makeContext().1),
+            store: MCPServerConfigStore(
+                modelContext: try makeContext().1,
+                keychainManager: MockKeychainManager()
+            ),
             agentBridge: nil
         )
         XCTAssertNotNil(view, "MCPAdvancedSettingsView should be instantiable")
@@ -38,7 +41,10 @@ final class MCPAdvancedSettingsViewTests: XCTestCase {
     func testMCPAdvancedSettingsViewWorksWithNilWorkspace() throws {
         let view = MCPAdvancedSettingsView(
             configManager: MCPConfigFileManager(),
-            store: MCPServerConfigStore(modelContext: try makeContext().1),
+            store: MCPServerConfigStore(
+                modelContext: try makeContext().1,
+                keychainManager: MockKeychainManager()
+            ),
             agentBridge: nil
         )
         XCTAssertNotNil(view, "Should work with nil agentBridge (no project bound)")
@@ -150,7 +156,10 @@ final class MCPAdvancedSettingsViewTests: XCTestCase {
     // [P0] ViewModel refreshConfig reloads from file
     func testViewModelRefreshConfigReloadsFromFile() async throws {
         let (_, context) = try makeContext()
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(
+            modelContext: context,
+            keychainManager: MockKeychainManager()
+        )
         let viewModel = MCPAdvancedSettingsViewModel()
         viewModel.store = store
 

@@ -28,7 +28,7 @@ final class MCPStatusVisualizationIntegrationTests: XCTestCase {
     }
 
     private func makeStore(context: ModelContext) -> MCPServerConfigStore {
-        MCPServerConfigStore(modelContext: context)
+        MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
     }
 
     // MARK: - AC1: 端到端 — 配置服务器 → Agent 连接 → 状态显示

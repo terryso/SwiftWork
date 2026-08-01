@@ -45,9 +45,22 @@ struct MCPFormFields: View {
                     .stroke(viewModel.jsonText.isEmpty ? Color.clear : Color.accentColor.opacity(0.3), lineWidth: 1)
             )
 
-            Text("支持 mcpServers 格式、单服务器格式、或直接粘贴 server 配置")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            HStack {
+                Text("支持 mcpServers、单服务器或裸配置；header/env 将按 JSON 原文保存")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Spacer()
+                if viewModel.detectedFormat != .invalid && !viewModel.jsonText.isEmpty {
+                    Button {
+                        viewModel.normalizeJSON()
+                    } label: {
+                        Label("格式化", systemImage: "wand.and.stars")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("整理为标准 mcpServers 格式（camelCase + 缩进）")
+                }
+            }
         }
     }
 

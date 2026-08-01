@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -1013,7 +1013,6 @@
 				9B35EF6059C168F9C512144D /* XCRemoteSwiftPackageReference "Sparkle" */,
 				C3E52794B416B98DC07FC380 /* XCRemoteSwiftPackageReference "Splash" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -1371,9 +1370,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 7;
+				DEVELOPMENT_TEAM = Y5DR22VZYA;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = SwiftWork;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1407,9 +1408,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 7;
+				DEVELOPMENT_TEAM = Y5DR22VZYA;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = SwiftWork;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1475,8 +1478,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/terryso/open-agent-sdk-swift";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.0;
+				kind = exactVersion;
+				version = 0.9.0;
 			};
 		};
 		9B35EF6059C168F9C512144D /* XCRemoteSwiftPackageReference "Sparkle" */ = {

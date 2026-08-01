@@ -28,7 +28,7 @@ final class MCPStatusViewModelTests: XCTestCase {
     }
 
     private func makeStore(context: ModelContext) -> MCPServerConfigStore {
-        MCPServerConfigStore(modelContext: context)
+        MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
     }
 
     private func makeViewModel(

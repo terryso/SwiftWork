@@ -30,7 +30,7 @@ final class WorkspaceStatusBarTests: XCTestCase {
     }
 
     private func makeStore(context: ModelContext) -> MCPServerConfigStore {
-        MCPServerConfigStore(modelContext: context)
+        MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
     }
 
     // MARK: - AC1: WorkspaceStatusBar 视图创建

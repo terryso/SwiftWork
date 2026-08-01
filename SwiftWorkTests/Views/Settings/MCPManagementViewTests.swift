@@ -27,7 +27,7 @@ final class MCPManagementViewTests: XCTestCase {
     }
 
     private func makeStore(in context: ModelContext) -> MCPServerConfigStore {
-        MCPServerConfigStore(modelContext: context)
+        MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
     }
 
     private func makeHandler(in context: ModelContext) -> PermissionHandler {

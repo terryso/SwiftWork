@@ -124,7 +124,7 @@ final class AddMCPServerViewModelTests: XCTestCase {
     }
 
     private func makeStore(context: ModelContext) -> MCPServerConfigStore {
-        MCPServerConfigStore(modelContext: context)
+        MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
     }
 
     // MARK: - AC1: Initial State
@@ -177,6 +177,84 @@ final class AddMCPServerViewModelTests: XCTestCase {
         {"my-server": {"command": "npx"}}
         """
         XCTAssertTrue(vm.isValid)
+    }
+
+    func testPastedSecretsRemainVisibleAndPersistUnchanged() throws {
+        let (_, context) = try makeContext()
+        let store = MCPServerConfigStore(modelContext: context)
+        let vm = makeViewModel()
+
+        vm.jsonText = """
+        {
+          "mcpServers": {
+            "secure-http": {
+              "type": "http",
+              "url": "https://example.com/mcp",
+              "headers": {
+                "Authorization": "Bearer pasted-secret",
+                "X-MCP-Readonly": "true"
+              }
+            }
+          }
+        }
+        """
+
+        XCTAssertTrue(vm.jsonText.contains("pasted-secret"))
+
+        let saved = try XCTUnwrap(
+            vm.submit(store: store, scope: .global, workspacePath: nil).first
+        )
+        XCTAssertEqual(
+            saved.decodedHeaders?["Authorization"],
+            "Bearer pasted-secret"
+        )
+        XCTAssertEqual(saved.decodedHeaders?["X-MCP-Readonly"], "true")
+    }
+
+    func testEditingConfigShowsAndPersistsUpdatedSecret() throws {
+        let (_, context) = try makeContext()
+        let store = MCPServerConfigStore(modelContext: context)
+        let original = try store.add(
+            name: "secure-http",
+            transportType: .http,
+            command: nil,
+            url: "https://old.example.com/mcp",
+            args: nil,
+            env: nil,
+            headers: try JSONEncoder().encode(["Authorization": "Bearer existing-secret"]),
+            enabled: true,
+            scope: .global,
+            workspacePath: nil
+        )
+        let vm = makeViewModel()
+        vm.populateFromConfig(original)
+        XCTAssertTrue(vm.jsonText.contains("existing-secret"))
+        vm.jsonText = """
+        {
+          "mcpServers": {
+            "secure-http": {
+              "type": "http",
+              "url": "https://new.example.com/mcp",
+              "headers": {
+                "Authorization": "Bearer updated-secret"
+              }
+            }
+          }
+        }
+        """
+
+        let updated = try vm.submitEdit(
+            originalConfig: original,
+            store: store,
+            scope: .global,
+            workspacePath: nil
+        )
+
+        XCTAssertEqual(updated.url, "https://new.example.com/mcp")
+        XCTAssertEqual(
+            updated.decodedHeaders?["Authorization"],
+            "Bearer updated-secret"
+        )
     }
 
     func testValidationFailsForBareConfigWithEmptyName() {

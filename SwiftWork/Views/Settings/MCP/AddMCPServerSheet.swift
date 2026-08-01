@@ -79,6 +79,65 @@ final class AddMCPServerViewModel {
         return true
     }
 
+    // MARK: - Normalize (Auto-format)
+
+    /// Rewrites `jsonText` into the canonical `{"mcpServers": {...}}` form:
+    /// - camelCase `mcpServers` key (regardless of input case)
+    /// - Pretty-printed with 2-space indentation
+    /// - Sorted keys for stable diffs
+    /// Returns true if normalization produced a different string.
+    @discardableResult
+    func normalizeJSON() -> Bool {
+        let trimmed = jsonText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let data = trimmed.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return false
+        }
+
+        var normalizedServers: [String: [String: Any]] = [:]
+
+        switch detectedFormat {
+        case .mcpServers:
+            guard let inner = Self.findMcpServersDict(in: json) else { return false }
+            normalizedServers = inner
+        case .serverMap:
+            for (name, value) in json {
+                if let dict = value as? [String: Any] {
+                    normalizedServers[name] = dict
+                }
+            }
+        case .bareConfig:
+            let name = serverName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return false }
+            normalizedServers[name] = json
+        case .invalid:
+            return false
+        }
+
+        guard !normalizedServers.isEmpty else { return false }
+
+        // Strip null values and normalize each server entry for cleaner output.
+        let cleanedServers = normalizedServers.mapValues { dict -> [String: Any] in
+            dict.filter { _, value in !(value is NSNull) }
+        }
+
+        let canonical: [String: Any] = ["mcpServers": cleanedServers]
+        guard let pretty = try? JSONSerialization.data(
+            withJSONObject: canonical,
+            options: [.prettyPrinted, .sortedKeys]
+        ),
+              let prettyString = String(data: pretty, encoding: .utf8) else {
+            return false
+        }
+
+        if prettyString == jsonText {
+            return false
+        }
+        jsonText = prettyString
+        return true
+    }
+
     // MARK: - Submit (Add)
 
     func submit(
@@ -155,7 +214,8 @@ final class AddMCPServerViewModel {
             dict["headers"] = headers
         }
 
-        let wrapper: [String: Any] = [config.name: dict]
+        // Canonical `{"mcpServers": {name: {...}}}` form, matching the Format button.
+        let wrapper: [String: Any] = ["mcpServers": [config.name: dict]]
         if let data = try? JSONSerialization.data(
             withJSONObject: wrapper,
             options: [.prettyPrinted, .sortedKeys]
@@ -178,6 +238,23 @@ final class AddMCPServerViewModel {
 
     // MARK: - Private — Format Detection
 
+    /// Finds the `mcpServers` (or any-case variant) dictionary in the parsed JSON.
+    /// Accepts `mcpServers`, `mcpservers`, `MCPSERVERS`, etc. for user-friendliness.
+    /// Canonical MCP/Claude format uses camelCase `mcpServers`, but users often paste
+    /// lowercased variants from other tooling.
+    static func findMcpServersDict(in json: [String: Any]) -> [String: [String: Any]]? {
+        if let exact = json["mcpServers"] as? [String: [String: Any]] {
+            return exact
+        }
+        for (key, value) in json {
+            if key.lowercased() == "mcpservers",
+               let mapped = value as? [String: [String: Any]] {
+                return mapped
+            }
+        }
+        return nil
+    }
+
     private func detectFormat(_ text: String) -> MCPJSONInputFormat {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
@@ -186,8 +263,8 @@ final class AddMCPServerViewModel {
             return .invalid
         }
 
-        // Format 1: {"mcpServers": {...}}
-        if let mcpServers = json["mcpServers"] as? [String: [String: Any]] {
+        // Format 1: {"mcpServers": {...}} (accept any case: mcpServers, mcpservers, MCPSERVERS)
+        if Self.findMcpServersDict(in: json) != nil {
             return .mcpServers
         }
 
@@ -232,7 +309,7 @@ final class AddMCPServerViewModel {
 
         switch detectedFormat {
         case .mcpServers:
-            guard let inner = json["mcpServers"] as? [String: [String: Any]] else {
+            guard let inner = Self.findMcpServersDict(in: json) else {
                 throw ParseError.invalidJSON
             }
             serverDicts = inner.map { ($0.key, $0.value) }

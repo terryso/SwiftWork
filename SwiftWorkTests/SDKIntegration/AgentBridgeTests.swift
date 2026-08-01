@@ -610,24 +610,24 @@ final class AgentBridgeTests: XCTestCase {
 // MARK: - Mock EventStore
 
 private final class MockEventStore: EventStoring, @unchecked Sendable {
-    var eventsToReturn: [AgentEvent] = []
+    var eventsToReturn: [SwiftWork.AgentEvent] = []
     var shouldThrow = false
     var shouldThrowOnPaginatedFetch = false
-    var persistedEvents: [AgentEvent] = []
+    var persistedEvents: [SwiftWork.AgentEvent] = []
     var paginatedFetchCallCount = 0
     var onPaginatedFetch: ((Int, Int) -> Void)?
 
-    func persist(_ event: AgentEvent, session: Session, order: Int) throws {
+    func persist(_ event: SwiftWork.AgentEvent, session: Session, order: Int) throws {
         if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
         persistedEvents.append(event)
     }
 
-    func fetchEvents(for sessionID: UUID) throws -> [AgentEvent] {
+    func fetchEvents(for sessionID: UUID) throws -> [SwiftWork.AgentEvent] {
         if shouldThrow { throw AppError(domain: .data, code: "TEST_ERROR", message: "test error") }
         return eventsToReturn
     }
 
-    func fetchEvents(for sessionID: UUID, offset: Int, limit: Int) throws -> [AgentEvent] {
+    func fetchEvents(for sessionID: UUID, offset: Int, limit: Int) throws -> [SwiftWork.AgentEvent] {
         if shouldThrow || shouldThrowOnPaginatedFetch {
             throw AppError(domain: .data, code: "TEST_ERROR", message: "test error")
         }

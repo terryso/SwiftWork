@@ -22,7 +22,7 @@ final class MCPConfigFileManagerTests: XCTestCase {
     }
 
     private func makeStore(context: ModelContext) -> MCPServerConfigStore {
-        MCPServerConfigStore(modelContext: context)
+        MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
     }
 
     private func makeManager() -> MCPConfigFileManager {
@@ -30,7 +30,7 @@ final class MCPConfigFileManagerTests: XCTestCase {
     }
 
     private func makeManagerWithStore(context: ModelContext) -> (MCPConfigFileManager, MCPServerConfigStore) {
-        let store = MCPServerConfigStore(modelContext: context)
+        let store = MCPServerConfigStore(modelContext: context, keychainManager: MockKeychainManager())
         let manager = MCPConfigFileManager()
         return (manager, store)
     }
