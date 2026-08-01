@@ -121,14 +121,17 @@ final class SkillsSettingsViewTests: XCTestCase {
         let bridge = makeBridge()
         let skills = bridge.discoveredSkills
 
-        let view = SkillsListView(skills: skills, workspaceRoot: bridge.activeWorkspaceRoot)
+        let view = SkillsListView(
+            skills: skills,
+            sourceDirectories: bridge.skillSourceDirectories
+        )
         XCTAssertNotNil(view,
             "SkillsListView should accept skills array parameter")
     }
 
     // [P0] SkillsListView renders with empty skills list
     func testSkillsListViewHandlesEmptySkills() {
-        let view = SkillsListView(skills: [], workspaceRoot: nil)
+        let view = SkillsListView(skills: [])
         XCTAssertNotNil(view,
             "SkillsListView should handle empty skills array gracefully")
     }
@@ -143,7 +146,9 @@ final class SkillsSettingsViewTests: XCTestCase {
             "Should have at least 4 BuiltInSkills discovered")
 
         // Group them by source
-        let grouped = Dictionary(grouping: skills, by: { SkillSource.from($0, workspaceRoot: bridge.activeWorkspaceRoot) })
+        let grouped = Dictionary(grouping: skills, by: {
+            SkillSource.from($0, directories: bridge.skillSourceDirectories)
+        })
 
         // All BuiltInSkills should have nil baseDir -> .builtIn group
         let builtInCount = grouped[.builtIn]?.count ?? 0
@@ -166,7 +171,7 @@ final class SkillsSettingsViewTests: XCTestCase {
             baseDir: "/some/path"
         )
 
-        let view = SkillListItemView(skill: skill, isExpanded: false, workspaceRoot: nil)
+        let view = SkillListItemView(skill: skill, isExpanded: false)
         XCTAssertNotNil(view,
             "SkillListItemView should accept a Skill parameter")
     }
@@ -184,7 +189,7 @@ final class SkillsSettingsViewTests: XCTestCase {
             baseDir: "/some/path"
         )
 
-        let view = SkillListItemView(skill: skill, isExpanded: true, workspaceRoot: nil)
+        let view = SkillListItemView(skill: skill, isExpanded: true)
         XCTAssertNotNil(view,
             "SkillListItemView should render in expanded state")
     }
@@ -198,7 +203,7 @@ final class SkillsSettingsViewTests: XCTestCase {
             promptTemplate: "Do it"
         )
 
-        let view = SkillListItemView(skill: skill, isExpanded: true, workspaceRoot: nil)
+        let view = SkillListItemView(skill: skill, isExpanded: true)
         XCTAssertNotNil(view,
             "SkillListItemView should handle skill with no aliases")
     }
@@ -211,7 +216,7 @@ final class SkillsSettingsViewTests: XCTestCase {
             promptTemplate: "Template"
         )
 
-        let view = SkillListItemView(skill: skill, isExpanded: true, workspaceRoot: nil)
+        let view = SkillListItemView(skill: skill, isExpanded: true)
         XCTAssertNotNil(view,
             "SkillListItemView should handle skill with no optional fields")
     }
@@ -245,7 +250,7 @@ final class SkillsSettingsViewTests: XCTestCase {
     // [P1] SkillSource.from returns .builtIn for skill with nil baseDir (no Finder)
     func testBuiltInSkillsDoNotShowOpenInFinder() {
         let builtIn = BuiltInSkills.commit
-        let source = SkillSource.from(builtIn, workspaceRoot: nil)
+        let source = SkillSource.from(builtIn)
         XCTAssertEqual(source, .builtIn)
 
         // Built-in skills have nil baseDir, so Open in Finder should not appear

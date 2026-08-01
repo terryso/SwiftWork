@@ -71,15 +71,6 @@ final class SessionWorkspaceServiceTests: XCTestCase {
         XCTAssertEqual(binding?.path, FileManager.default.currentDirectoryPath)
     }
 
-    func testSkillDirectoriesExcludeProjectFoldersWhenUnbound() {
-        let service = makeService()
-        let directories = service.skillSearchDirectories(for: .unbound)
-        let currentWorkspaceSkills = (FileManager.default.currentDirectoryPath as NSString)
-            .appendingPathComponent(".claude/skills")
-
-        XCTAssertFalse(directories.contains(currentWorkspaceSkills))
-    }
-
     func testAgentWorkingDirectoryUsesSafeFallbackForUnboundState() {
         let service = makeService()
 

@@ -5,7 +5,17 @@ import OpenAgentSDK
 struct SkillListItemView: View {
     let skill: Skill
     let isExpanded: Bool
-    let workspaceRoot: String?
+    let sourceDirectories: SkillSourceDirectories
+
+    init(
+        skill: Skill,
+        isExpanded: Bool,
+        sourceDirectories: SkillSourceDirectories = .userDefaults()
+    ) {
+        self.skill = skill
+        self.isExpanded = isExpanded
+        self.sourceDirectories = sourceDirectories
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -54,8 +64,8 @@ struct SkillListItemView: View {
     // MARK: - Source Badge
 
     private var sourceBadge: some View {
-        let source = SkillSource.from(skill, workspaceRoot: workspaceRoot)
-        return Text(sourceLabel(source))
+        let source = SkillSource.from(skill, directories: sourceDirectories)
+        return Text(source.displayName)
             .font(.caption2)
             .fontWeight(.medium)
             .padding(.horizontal, 6)
@@ -67,19 +77,13 @@ struct SkillListItemView: View {
             .foregroundStyle(sourceColor(source))
     }
 
-    private func sourceLabel(_ source: SkillSource) -> String {
-        switch source {
-        case .builtIn: return "Built-in"
-        case .project: return "Project"
-        case .user: return "User"
-        }
-    }
-
     private func sourceColor(_ source: SkillSource) -> Color {
         switch source {
         case .builtIn: return .blue
-        case .project: return .green
-        case .user: return .orange
+        case .swiftWork: return .purple
+        case .claudeCode: return .orange
+        case .codex: return .green
+        case .sharedAgents: return .teal
         }
     }
 

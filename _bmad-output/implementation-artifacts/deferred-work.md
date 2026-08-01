@@ -63,3 +63,7 @@
 
 - Management panel hardcodes `scope: .global` for add/edit sheets — cannot add or edit workspace-scoped MCP configs from the management panel. Acceptable for MVP, but should be extended when project-scoped MCP becomes a priority. [MCPManagementView.swift:37,48]
 - No expandable "查看详情" section for error display — AC7 spec mentions a "查看详情" expandable area, but the current implementation shows error inline. Minor deviation, acceptable for MVP. [MCPServerDetailView.swift:100-114]
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-swiftwork-global-skill-discovery.md`
+  summary: 为全局 Skill 的 supporting files 设计受限的 workspace 外读取与执行边界。
+  evidence: 现有 workspace 系统提示禁止普通文件操作越界，而 SDK SkillTool 会返回全局 Skill 的 baseDir 与 supportingFiles；依赖 references 或 scripts 的既有全局 Skill 无法同时遵守两者。

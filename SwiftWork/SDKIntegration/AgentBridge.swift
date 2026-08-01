@@ -49,6 +49,37 @@ private enum PreparedMessageRequest {
     case workspaceRequired(ExplicitSlashSkillInvocation)
 }
 
+/// Keeps the Skill tool's model-facing catalog live while delegating execution to
+/// OpenAgentSDK's implementation. The SDK tool snapshots its description at creation
+/// time, so exposing that tool directly would advertise stale or unavailable skills
+/// after SwiftWork refreshes the shared registry between turns.
+private struct LiveSkillTool: ToolProtocol {
+    let registry: SkillRegistry
+
+    private let executionTool: any ToolProtocol
+
+    init(registry: SkillRegistry) {
+        self.registry = registry
+        self.executionTool = createSkillTool(registry: registry)
+    }
+
+    var name: String { executionTool.name }
+
+    var description: String {
+        let availableRegistry = SkillRegistry()
+        registry.userInvocableSkills.forEach(availableRegistry.register)
+        return createSkillTool(registry: availableRegistry).description
+    }
+
+    var inputSchema: ToolInputSchema { executionTool.inputSchema }
+    var isReadOnly: Bool { executionTool.isReadOnly }
+    var annotations: ToolAnnotations? { executionTool.annotations }
+
+    func call(input: Any, context: ToolContext) async -> ToolResult {
+        await executionTool.call(input: input, context: context)
+    }
+}
+
 @MainActor
 @Observable
 final class AgentBridge {
@@ -91,7 +122,9 @@ final class AgentBridge {
     @ObservationIgnored
     private var configuredWorkspaceState: SessionWorkspaceState = .unbound
     @ObservationIgnored
-    private let workspaceService = SessionWorkspaceService()
+    private let workspaceService: SessionWorkspaceService
+    @ObservationIgnored
+    private let skillDirectoryService: SkillDirectoryService
     private static var builtInSkillCatalog: [Skill] {
         [
             BuiltInSkills.commit,
@@ -102,8 +135,7 @@ final class AgentBridge {
         ]
     }
 
-    @ObservationIgnored
-    private var slashSkillCatalog: [Skill] = AgentBridge.builtInSkillCatalog
+    var allRegisteredSkills: [Skill] = AgentBridge.builtInSkillCatalog
 
     // MARK: - Pagination State (Story 2-5)
 
@@ -175,13 +207,32 @@ final class AgentBridge {
     @ObservationIgnored
     private var skillRegistry: SkillRegistry?
 
+    @ObservationIgnored
+    private var liveSkillTool: (any ToolProtocol)?
+
+    @ObservationIgnored
+    private var programmaticSkills: [Skill] = []
+
     var discoveredSkills: [Skill] = []
     var discoveredSkillsRevision: Int = 0
 
-    /// All registered skills, including non-user-invocable ones.
-    /// Used by the Settings Skills panel to display every registered skill.
-    var allRegisteredSkills: [Skill] {
-        slashSkillCatalog
+    @ObservationIgnored
+    private(set) var lastConfiguredSystemPrompt: String?
+
+    var skillSourceDirectories: SkillSourceDirectories {
+        skillDirectoryService.sourceDirectories
+    }
+
+    var skillInstallationDirectory: String {
+        skillDirectoryService.installationDirectory
+    }
+
+    var skillRegistryIdentity: ObjectIdentifier? {
+        skillRegistry.map(ObjectIdentifier.init)
+    }
+
+    var currentSkillToolDescription: String? {
+        liveSkillTool?.description
     }
 
     // MARK: - MCP Config System (Story 6-1)
@@ -261,8 +312,14 @@ final class AgentBridge {
         return result
     }
 
-    init(permissionHandler: PermissionHandler = PermissionHandler()) {
+    init(
+        permissionHandler: PermissionHandler = PermissionHandler(),
+        workspaceService: SessionWorkspaceService = SessionWorkspaceService(),
+        skillDirectoryService: SkillDirectoryService = SkillDirectoryService()
+    ) {
         self.permissionHandler = permissionHandler
+        self.workspaceService = workspaceService
+        self.skillDirectoryService = skillDirectoryService
     }
 
     func configure(
@@ -277,25 +334,21 @@ final class AgentBridge {
         configuredWorkspaceState = resolvedWorkspaceState
         configuredWorkspacePath = resolvedWorkspaceState.workspacePath
 
-        let fullRegistry = SkillRegistry()
-        runtimeAwareBuiltInSkills(for: activeWorkspaceRoot).forEach(fullRegistry.register)
-
-        let skillDirectories = workspaceService.skillSearchDirectories(for: resolvedWorkspaceState)
-        let discoveredCount = fullRegistry.registerDiscoveredSkills(from: skillDirectories)
-        slashSkillCatalog = fullRegistry.allSkills
-
-        let registry = SkillRegistry()
-        for skill in slashSkillCatalog where skillAvailableInCurrentWorkspace(skill) {
-            registry.register(skill)
-        }
-
-        self.skillRegistry = registry
-        refreshDiscoveredSkills()
+        let registry = skillRegistry ?? SkillRegistry()
+        skillRegistry = registry
+        let discoveredCount = reloadSkillRegistryFromDisk()
 
         var tools = configuredTools(for: resolvedWorkspaceState)
         if !registry.allSkills.isEmpty {
-            tools.append(createSkillTool(registry: registry))
+            let skillTool = LiveSkillTool(registry: registry)
+            liveSkillTool = skillTool
+            tools.append(skillTool)
+        } else {
+            liveSkillTool = nil
         }
+
+        let systemPrompt = workspaceSystemPrompt(for: resolvedWorkspaceState)
+        lastConfiguredSystemPrompt = systemPrompt
 
         // MCP config (Story 6-1)
         let mcpConfigs = (try? mcpConfigStore?.enabledConfigsForWorkspace(activeWorkspaceRoot)) ?? []
@@ -305,7 +358,7 @@ final class AgentBridge {
             apiKey: apiKey,
             model: model,
             baseURL: baseURL,
-            systemPrompt: workspaceSystemPrompt(for: resolvedWorkspaceState),
+            systemPrompt: systemPrompt,
             maxTurns: 10,
             permissionMode: .default,
             cwd: workspaceService.agentWorkingDirectory(for: resolvedWorkspaceState),
@@ -314,7 +367,7 @@ final class AgentBridge {
             sessionStore: sdkSessionStore,
             sessionId: sessionId,
             skillRegistry: registry,
-            skillDirectories: skillDirectories,
+            skillDirectories: nil,
             projectRoot: activeWorkspaceRoot,
             persistSession: true
         )
@@ -496,18 +549,13 @@ final class AgentBridge {
     }
 
     func registerSkill(_ skill: Skill) {
-        if skillRegistry == nil {
-            skillRegistry = SkillRegistry()
-        }
-        slashSkillCatalog.append(skill)
-        if skillAvailableInCurrentWorkspace(skill) {
-            skillRegistry?.register(skill)
-        }
-        refreshDiscoveredSkills()
+        programmaticSkills.removeAll { $0.name == skill.name }
+        programmaticSkills.append(skill)
+        _ = reloadSkillRegistryFromDisk()
     }
 
     func refreshDiscoveredSkillsSnapshot() {
-        refreshDiscoveredSkills()
+        _ = reloadSkillRegistryFromDisk()
     }
 
     private func enqueue(_ request: QueuedMessageRequest, using agent: Agent) {
@@ -557,6 +605,10 @@ final class AgentBridge {
             for await message in sdkStream {
                 guard !_Concurrency.Task.isCancelled else { break }
                 receivedResult = self.handleStreamMessage(message) || receivedResult
+            }
+
+            if !receivedResult {
+                _ = self.reloadSkillRegistryFromDisk()
             }
 
             if !_Concurrency.Task.isCancelled && !receivedResult {
@@ -654,7 +706,7 @@ final class AgentBridge {
     }
 
     private func resolveCatalogSkill(named invokedName: String) -> Skill? {
-        resolveSkill(named: invokedName, in: slashSkillCatalog)
+        resolveSkill(named: invokedName, in: allRegisteredSkills)
     }
 
     private func resolveSkill(named invokedName: String, in skills: [Skill]) -> Skill? {
@@ -767,11 +819,63 @@ final class AgentBridge {
         let refreshed = (skillRegistry?.allSkills ?? []).filter { skill in
             skill.userInvocable && isSkillAvailableInCurrentWorkspace(skill)
         }
-        let currentNames = discoveredSkills.map(\.name)
-        let refreshedNames = refreshed.map(\.name)
+        let currentSnapshot = discoveredSkills.map(SkillSnapshot.init)
+        let refreshedSnapshot = refreshed.map(SkillSnapshot.init)
         discoveredSkills = refreshed
-        if currentNames != refreshedNames {
+        if currentSnapshot != refreshedSnapshot {
             discoveredSkillsRevision += 1
+        }
+    }
+
+    @discardableResult
+    private func reloadSkillRegistryFromDisk() -> Int {
+        let registry = skillRegistry ?? SkillRegistry()
+        skillRegistry = registry
+
+        let discoveredRegistry = SkillRegistry()
+        let directories = skillDirectoryService.discoveryDirectories()
+        let discoveredCount = discoveredRegistry.registerDiscoveredSkills(from: directories)
+        let filesystemSkills = discoveredRegistry.allSkills.sorted { lhs, rhs in
+            lhs.name < rhs.name
+        }
+
+        registry.clear()
+        runtimeAwareBuiltInSkills(for: activeWorkspaceRoot)
+            .map(runtimeAwareSkill)
+            .forEach(registry.register)
+        filesystemSkills
+            .map(runtimeAwareSkill)
+            .forEach(registry.register)
+        programmaticSkills
+            .map(runtimeAwareSkill)
+            .forEach(registry.register)
+
+        allRegisteredSkills = registry.allSkills
+        refreshDiscoveredSkills()
+
+        os_log(
+            "SwiftWork SkillRegistry: refreshed %d filesystem skills from %d global directories",
+            log: .default,
+            type: .info,
+            discoveredCount,
+            directories.count
+        )
+        return discoveredCount
+    }
+
+    private struct SkillSnapshot: Equatable {
+        let name: String
+        let description: String
+        let aliases: [String]
+        let baseDir: String?
+        let isAvailable: Bool
+
+        init(_ skill: Skill) {
+            name = skill.name
+            description = skill.description
+            aliases = skill.aliases
+            baseDir = skill.baseDir
+            isAvailable = skill.isAvailable()
         }
     }
 
@@ -800,6 +904,32 @@ final class AgentBridge {
         return skill.isAvailable()
     }
 
+    private func runtimeAwareSkill(_ skill: Skill) -> Skill {
+        let originalAvailability = skill.isAvailable
+        let workspaceIsReady = !configuredWorkspaceState.requiresBinding
+        let requiresWorkspace = skillRequiresWorkspace(skill)
+
+        return Skill(
+            name: skill.name,
+            description: skill.description,
+            aliases: skill.aliases,
+            userInvocable: skill.userInvocable,
+            toolRestrictions: skill.toolRestrictions,
+            toolDeclarations: skill.toolDeclarations,
+            toolDeclarationDiagnostics: skill.toolDeclarationDiagnostics,
+            modelOverride: skill.modelOverride,
+            isAvailable: {
+                originalAvailability() && (workspaceIsReady || !requiresWorkspace)
+            },
+            promptTemplate: skill.promptTemplate,
+            whenToUse: skill.whenToUse,
+            argumentHint: skill.argumentHint,
+            baseDir: skill.baseDir,
+            supportingFiles: skill.supportingFiles,
+            lifecycleState: skill.lifecycleState
+        )
+    }
+
     private func runtimeAwareBuiltInSkills(for workspaceRoot: String?) -> [Skill] {
         Self.builtInSkillCatalog.map { skill in
             guard skill.name == "test" else { return skill }
@@ -809,7 +939,7 @@ final class AgentBridge {
             // The CWD-based fallback is reserved for unbound sessions where the
             // xcodebuild test runner sets CWD to "/" and discovery relies on
             // DerivedData heuristics instead.
-            let hasExplicitWorkspace = (workspaceRoot != nil && !workspaceRoot!.isEmpty)
+            let hasExplicitWorkspace = workspaceRoot?.isEmpty == false
             let originalCheck = skill.isAvailable
             return Skill(
                 name: skill.name,
@@ -909,11 +1039,11 @@ final class AgentBridge {
             return !names.isDisjoint(with: workspaceToolNames)
         }
 
-        return SkillSource.from(skill, workspaceRoot: activeWorkspaceRoot) == .project
+        return false
     }
 
     private func workspaceSystemPrompt(for state: SessionWorkspaceState) -> String? {
-        switch state {
+        let workspaceInstruction = switch state {
         case .ready(let binding):
             "Session workspace root: \(binding.path). All filesystem and project operations must stay within this directory."
         case .unbound:
@@ -921,6 +1051,12 @@ final class AgentBridge {
         case .needsRepair(let path):
             "The previous workspace at \(path) is unavailable. Do not attempt filesystem, terminal, or project-scope skill work until the user repairs the workspace binding."
         }
+
+        return """
+        \(workspaceInstruction)
+
+        Skill installation is the only exception to the workspace filesystem boundary: install Skills only with `skillhub install ... --dir "\(skillDirectoryService.installationDirectory)"`. Never install to `./skills` or derive the Skill installation directory from cwd. Do not use the Skill installation directory for ordinary filesystem or project operations.
+        """
     }
 
     func cancelExecution() {
@@ -1009,6 +1145,9 @@ final class AgentBridge {
         }
 
         appendAndPersist(event)
+        if event.type == .result {
+            _ = reloadSkillRegistryFromDisk()
+        }
         return event.type == .result
     }
 

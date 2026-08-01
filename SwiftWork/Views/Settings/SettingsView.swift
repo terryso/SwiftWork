@@ -143,7 +143,7 @@ struct SettingsView: View {
             if let bridge = agentBridge {
                 SkillsListView(
                     skills: bridge.allRegisteredSkills,
-                    workspaceRoot: bridge.activeWorkspaceRoot
+                    sourceDirectories: bridge.skillSourceDirectories
                 )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {

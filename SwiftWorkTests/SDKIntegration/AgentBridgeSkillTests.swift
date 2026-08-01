@@ -1,5 +1,6 @@
 import XCTest
 import OpenAgentSDK
+import Observation
 @testable import SwiftWork
 
 // ATDD Red Phase -- Story 5.1: SDK Skill Pipeline
@@ -25,6 +26,40 @@ final class AgentBridgeSkillTests: XCTestCase {
         AgentBridge()
     }
 
+    private func makeBridge(sourceDirectories: SkillSourceDirectories) -> AgentBridge {
+        AgentBridge(
+            skillDirectoryService: SkillDirectoryService(sourceDirectories: sourceDirectories)
+        )
+    }
+
+    private func makeSourceDirectories(under root: URL) -> SkillSourceDirectories {
+        SkillSourceDirectories(
+            sharedAgentsConfiguration: root.appendingPathComponent("config-agents").path,
+            sharedAgents: root.appendingPathComponent("agents").path,
+            claudeCode: root.appendingPathComponent("claude").path,
+            codex: root.appendingPathComponent("codex").path,
+            swiftWork: root.appendingPathComponent("swiftwork").path
+        )
+    }
+
+    private func createFilesystemSkill(
+        name: String,
+        description: String,
+        under root: String
+    ) throws {
+        let skillDirectory = URL(fileURLWithPath: root, isDirectory: true)
+            .appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: skillDirectory, withIntermediateDirectories: true)
+        let manifest = """
+        ---
+        name: \(name)
+        description: \(description)
+        ---
+        Execute \(name).
+        """
+        try Data(manifest.utf8).write(to: skillDirectory.appendingPathComponent("SKILL.md"))
+    }
+
     private var workspacePath: String {
         FileManager.default.currentDirectoryPath
     }
@@ -45,6 +80,7 @@ final class AgentBridgeSkillTests: XCTestCase {
         name: String,
         aliases: [String] = [],
         userInvocable: Bool = true,
+        toolRestrictions: [ToolRestriction]? = nil,
         available: @escaping @Sendable () -> Bool = { true }
     ) -> Skill {
         Skill(
@@ -52,6 +88,7 @@ final class AgentBridgeSkillTests: XCTestCase {
             description: "Test skill \(name)",
             aliases: aliases,
             userInvocable: userInvocable,
+            toolRestrictions: toolRestrictions,
             isAvailable: available,
             promptTemplate: "Template for \(name)"
         )
@@ -715,5 +752,269 @@ final class AgentBridgeSkillTests: XCTestCase {
         bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
 
         XCTAssertNil(bridge.resolveExplicitSlashSkillInvocation(in: "please run /polyv"))
+    }
+
+    // MARK: - Global Skill discovery
+
+    func testGlobalCatalogDoesNotChangeAcrossWorkspaceStates() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeGlobalStates-\(UUID().uuidString)", isDirectory: true)
+        let workspace = root.appendingPathComponent("workspace", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
+        try createFilesystemSkill(name: "global-only", description: "Global", under: directories.codex)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let states: [SessionWorkspaceState] = [
+            .ready(SessionWorkspaceBinding(path: workspace.path, bookmarkData: nil)),
+            .unbound,
+            .needsRepair(lastKnownPath: root.appendingPathComponent("missing").path),
+        ]
+        var catalogs: [Set<String>] = []
+
+        for state in states {
+            let bridge = makeBridge(sourceDirectories: directories)
+            bridge.configure(
+                apiKey: "test-key",
+                baseURL: nil,
+                model: "test-model",
+                workspacePath: state.workspacePath,
+                sessionId: UUID().uuidString,
+                workspaceState: state
+            )
+            catalogs.append(Set(bridge.allRegisteredSkills.map(\.name)))
+        }
+
+        XCTAssertEqual(catalogs[0], catalogs[1])
+        XCTAssertEqual(catalogs[1], catalogs[2])
+        XCTAssertTrue(catalogs[0].contains("global-only"))
+    }
+
+    func testReadyWorkspaceSkillDirectoriesAreNotScanned() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeNoWorkspaceScan-\(UUID().uuidString)", isDirectory: true)
+        let workspace = root.appendingPathComponent("workspace", isDirectory: true)
+        let directories = makeSourceDirectories(under: root.appendingPathComponent("global"))
+        try createFilesystemSkill(
+            name: "workspace-only",
+            description: "Workspace",
+            under: workspace.appendingPathComponent(".agents/skills").path
+        )
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: workspace.path,
+            sessionId: UUID().uuidString
+        )
+
+        XCTAssertFalse(bridge.allRegisteredSkills.contains(where: { $0.name == "workspace-only" }))
+    }
+
+    func testPublisherSkillIsAvailableToSettingsAndSlashResolution() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgePublisher-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        try createFilesystemSkill(
+            name: "published",
+            description: "Published",
+            under: directories.swiftWork + "/@publisher"
+        )
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        XCTAssertTrue(bridge.allRegisteredSkills.contains(where: { $0.name == "published" }))
+        XCTAssertTrue(bridge.discoveredSkills.contains(where: { $0.name == "published" }))
+        XCTAssertEqual(
+            bridge.resolveExplicitSlashSkillInvocation(in: "/published")?.canonicalName,
+            "published"
+        )
+    }
+
+    func testRefreshReusesRegistryAndRemovesStaleSkills() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeRefresh-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        try createFilesystemSkill(name: "old-skill", description: "Old", under: directories.swiftWork)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        let registryIdentity = bridge.skillRegistryIdentity
+
+        try FileManager.default.removeItem(
+            at: URL(fileURLWithPath: directories.swiftWork).appendingPathComponent("old-skill")
+        )
+        try createFilesystemSkill(name: "new-skill", description: "New", under: directories.swiftWork)
+        bridge.refreshDiscoveredSkillsSnapshot()
+
+        XCTAssertEqual(bridge.skillRegistryIdentity, registryIdentity)
+        XCTAssertFalse(bridge.allRegisteredSkills.contains(where: { $0.name == "old-skill" }))
+        XCTAssertTrue(bridge.allRegisteredSkills.contains(where: { $0.name == "new-skill" }))
+        XCTAssertNil(bridge.resolveExplicitSlashSkillInvocation(in: "/old-skill"))
+        XCTAssertEqual(
+            bridge.resolveExplicitSlashSkillInvocation(in: "/new-skill")?.canonicalName,
+            "new-skill"
+        )
+    }
+
+    func testSkillToolDescriptionRefreshesAfterFilesystemChanges() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeLiveSkillTool-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        try createFilesystemSkill(name: "old-skill", description: "Old", under: directories.swiftWork)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: workspacePath,
+            sessionId: UUID().uuidString
+        )
+        XCTAssertTrue(bridge.currentSkillToolDescription?.contains("old-skill") == true)
+
+        try FileManager.default.removeItem(
+            at: URL(fileURLWithPath: directories.swiftWork).appendingPathComponent("old-skill")
+        )
+        try createFilesystemSkill(name: "new-skill", description: "New", under: directories.swiftWork)
+        bridge.refreshDiscoveredSkillsSnapshot()
+
+        XCTAssertFalse(bridge.currentSkillToolDescription?.contains("old-skill") == true)
+        XCTAssertTrue(bridge.currentSkillToolDescription?.contains("new-skill") == true)
+    }
+
+    func testSkillToolDescriptionOmitsUnavailableWorkspaceSkills() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeAvailableSkillTool-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(
+            name: "workspace-only",
+            toolRestrictions: [.bash]
+        ))
+
+        XCTAssertTrue(bridge.allRegisteredSkills.contains(where: { $0.name == "workspace-only" }))
+        XCTAssertFalse(bridge.currentSkillToolDescription?.contains("workspace-only") == true)
+    }
+
+    func testRegisterBeforeConfigurePreservesBuiltInCatalog() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgePreconfigureRegistration-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.registerSkill(makeSkill(name: "programmatic"))
+
+        let names = Set(bridge.allRegisteredSkills.map(\.name))
+        XCTAssertTrue(names.contains("programmatic"))
+        XCTAssertTrue(names.contains("commit"))
+        XCTAssertTrue(names.contains("review"))
+        XCTAssertTrue(names.contains("simplify"))
+        XCTAssertTrue(names.contains("debug"))
+        XCTAssertTrue(names.contains("test"))
+    }
+
+    func testRefreshNotifiesSettingsCatalogObservers() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeSettingsObservation-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        let catalogChanged = expectation(description: "Settings catalog observation fires")
+        withObservationTracking {
+            _ = bridge.allRegisteredSkills
+        } onChange: {
+            catalogChanged.fulfill()
+        }
+
+        try createFilesystemSkill(name: "new-skill", description: "New", under: directories.swiftWork)
+        bridge.refreshDiscoveredSkillsSnapshot()
+
+        wait(for: [catalogChanged], timeout: 1)
+        XCTAssertTrue(bridge.allRegisteredSkills.contains(where: { $0.name == "new-skill" }))
+    }
+
+    func testResultEventTriggersFilesystemRescan() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeTurnRefresh-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+        try createFilesystemSkill(name: "after-turn", description: "After", under: directories.swiftWork)
+
+        _ = bridge.handleStreamMessage(.result(SDKMessage.ResultData(
+            subtype: .success,
+            text: "done",
+            usage: nil,
+            numTurns: 1,
+            durationMs: 1
+        )))
+
+        XCTAssertTrue(bridge.allRegisteredSkills.contains(where: { $0.name == "after-turn" }))
+    }
+
+    func testSystemPromptUsesExplicitSwiftWorkInstallDirectory() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBridgeInstallPrompt-\(UUID().uuidString)", isDirectory: true)
+        let directories = makeSourceDirectories(under: root)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bridge = makeBridge(sourceDirectories: directories)
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: nil,
+            sessionId: UUID().uuidString
+        )
+
+        let prompt = bridge.lastConfiguredSystemPrompt ?? ""
+        XCTAssertTrue(prompt.contains("skillhub install ... --dir \"\(directories.swiftWork)\""))
+        XCTAssertTrue(prompt.contains("Never install to `./skills`"))
     }
 }

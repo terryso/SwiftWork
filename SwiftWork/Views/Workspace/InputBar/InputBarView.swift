@@ -98,11 +98,9 @@ struct InputBarView: View {
             if agentBridge.errorMessage != nil {
                 agentBridge.errorMessage = nil
             }
-            agentBridge.refreshDiscoveredSkillsSnapshot()
             autocompleteVM.updateQuery(newValue)
         }
         .onAppear {
-            agentBridge.refreshDiscoveredSkillsSnapshot()
             autocompleteVM.updateSkillsSource(agentBridge.discoveredSkills, currentText: inputText)
         }
         .onChange(of: agentBridge.discoveredSkillsRevision) { _, _ in

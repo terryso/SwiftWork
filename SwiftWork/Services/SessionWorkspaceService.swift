@@ -130,15 +130,6 @@ final class SessionWorkspaceService {
         }
     }
 
-    func skillSearchDirectories(for state: SessionWorkspaceState) -> [String] {
-        var directories = userSkillDirectories()
-        if case .ready(let binding) = state {
-            directories.append((binding.path as NSString).appendingPathComponent(".agents/skills"))
-            directories.append((binding.path as NSString).appendingPathComponent(".claude/skills"))
-        }
-        return directories
-    }
-
     func normalize(path: String) -> String {
         (path as NSString).standardizingPath
     }
@@ -154,15 +145,6 @@ final class SessionWorkspaceService {
             try? fileManager.createDirectory(atPath: path, withIntermediateDirectories: true)
         }
         return path
-    }
-
-    private func userSkillDirectories() -> [String] {
-        let home = fileManager.homeDirectoryForCurrentUser.path
-        return [
-            (home as NSString).appendingPathComponent(".config/agents/skills"),
-            (home as NSString).appendingPathComponent(".agents/skills"),
-            (home as NSString).appendingPathComponent(".claude/skills"),
-        ]
     }
 
     private func makeBinding(for url: URL) throws -> SessionWorkspaceBinding {

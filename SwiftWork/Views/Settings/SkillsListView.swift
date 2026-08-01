@@ -1,15 +1,25 @@
 import SwiftUI
 import OpenAgentSDK
 
-/// Displays all registered skills grouped by source (Built-in / Project / User).
+/// Displays all registered skills grouped by fixed global source.
 struct SkillsListView: View {
     let skills: [Skill]
-    let workspaceRoot: String?
+    let sourceDirectories: SkillSourceDirectories
+
+    init(
+        skills: [Skill],
+        sourceDirectories: SkillSourceDirectories = .userDefaults()
+    ) {
+        self.skills = skills
+        self.sourceDirectories = sourceDirectories
+    }
 
     @State private var expandedSkillIDs: Set<String> = []
 
     private var groupedSkills: [(source: SkillSource, skills: [Skill])] {
-        let grouped = Dictionary(grouping: skills, by: { SkillSource.from($0, workspaceRoot: workspaceRoot) })
+        let grouped = Dictionary(grouping: skills, by: {
+            SkillSource.from($0, directories: sourceDirectories)
+        })
         return SkillSource.allCases.compactMap { source in
             guard let list = grouped[source], !list.isEmpty else { return nil }
             return (source: source, skills: list)
@@ -28,7 +38,7 @@ struct SkillsListView: View {
                                 SkillListItemView(
                                     skill: skill,
                                     isExpanded: expandedSkillIDs.contains(skill.name),
-                                    workspaceRoot: workspaceRoot
+                                    sourceDirectories: sourceDirectories
                                 )
                                 .onTapGesture {
                                     toggleExpansion(of: skill.name)
@@ -68,7 +78,7 @@ struct SkillsListView: View {
         HStack {
             Image(systemName: sourceIcon(source))
                 .foregroundStyle(.secondary)
-            Text(sectionTitle(source))
+            Text(source.displayName)
                 .font(.headline)
             Text("(\(count))")
                 .foregroundStyle(.secondary)
@@ -78,19 +88,13 @@ struct SkillsListView: View {
         .padding(.bottom, 4)
     }
 
-    private func sectionTitle(_ source: SkillSource) -> String {
-        switch source {
-        case .builtIn: return "Built-in"
-        case .project: return "Project"
-        case .user: return "User"
-        }
-    }
-
     private func sourceIcon(_ source: SkillSource) -> String {
         switch source {
         case .builtIn: return "star.fill"
-        case .project: return "folder.fill"
-        case .user: return "person.fill"
+        case .swiftWork: return "swift"
+        case .claudeCode: return "terminal.fill"
+        case .codex: return "chevron.left.forwardslash.chevron.right"
+        case .sharedAgents: return "person.2.fill"
         }
     }
 
