@@ -135,6 +135,7 @@
 		AF5822DC9CF8E7F34E82F5E3 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4889B0AAB114C1E82D4C0D3 /* AppError.swift */; };
 		AFAFE60BA3486B5D5D52C1CB /* MCPServerConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5722374029FC8906450402 /* MCPServerConfigStore.swift */; };
 		B06266D36E6002EDC50284B5 /* AssistantMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 527DC64EBEEFC895BDC41EFF /* AssistantMessageView.swift */; };
+		B11CE001B11CE001B11CE001 /* SkillDirectoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE001A11CE001A11CE001 /* SkillDirectoryService.swift */; };
 		B147D6BF4EC2C5DEE93727A3 /* CodeHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE62CE33DD769911F23A485D /* CodeHighlighter.swift */; };
 		B1865CDB60F88A49E6193FCF /* PermissionAuditEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B6A5192A1D55B1FB22A2D33 /* PermissionAuditEntry.swift */; };
 		B2767EC58286915B084A19F9 /* MCPManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F1AFE3AE4FBA98F75725755 /* MCPManagementView.swift */; };
@@ -331,6 +332,7 @@
 		9F978D38B9A923838708C435 /* ToolContentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolContentTests.swift; sourceTree = "<group>"; };
 		9FE74ACA0F4B86D5077E12EF /* PendingPermissionRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPermissionRequest.swift; sourceTree = "<group>"; };
 		A17B209F1525921E472703EB /* WindowAccessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowAccessor.swift; sourceTree = "<group>"; };
+		A11CE001A11CE001A11CE001 /* SkillDirectoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillDirectoryService.swift; sourceTree = "<group>"; };
 		A18E6F0A27BF01C636533789 /* ModelPickerViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPickerViewTests.swift; sourceTree = "<group>"; };
 		A465B973B716D32AE301FED1 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		A57DCD28D7EA3B87FA236515 /* AppStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateManager.swift; sourceTree = "<group>"; };
@@ -864,6 +866,7 @@
 				60F04953FDA82602C4A48574 /* MCPConfigFileManager.swift */,
 				3D5722374029FC8906450402 /* MCPServerConfigStore.swift */,
 				64FE51A0FE3676E211989EE9 /* SessionWorkspaceService.swift */,
+				A11CE001A11CE001A11CE001 /* SkillDirectoryService.swift */,
 				867E45236FE183BA2BE38187 /* TitleGenerator.swift */,
 			);
 			path = Services;
@@ -1201,6 +1204,7 @@
 				B2CC5A932A21EBC860188F27 /* SkillAutocompleteMenuView.swift in Sources */,
 				7B82D28FE2DEA024C0896FE5 /* SkillAutocompleteViewModel.swift in Sources */,
 				6815FE387B76C44F8193F831 /* SkillListItemView.swift in Sources */,
+				B11CE001B11CE001B11CE001 /* SkillDirectoryService.swift in Sources */,
 				D86A4F64C06DD0CA5D9E6BA4 /* SkillSource.swift in Sources */,
 				67A837496296D1E5D5E8F248 /* SkillToolRenderer.swift in Sources */,
 				7661863FECA82C4949AAB0B2 /* SkillsListView.swift in Sources */,

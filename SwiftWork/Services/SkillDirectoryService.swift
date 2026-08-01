@@ -4,17 +4,31 @@ struct SkillDirectoryService {
     let sourceDirectories: SkillSourceDirectories
 
     private let fileManager: FileManager
+    private let skillHubExecutableCandidates: [String]
 
     init(
         sourceDirectories: SkillSourceDirectories = .userDefaults(),
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        skillHubExecutableCandidates: [String]? = nil
     ) {
         self.sourceDirectories = sourceDirectories
         self.fileManager = fileManager
+        self.skillHubExecutableCandidates = skillHubExecutableCandidates
+            ?? Self.defaultSkillHubExecutableCandidates()
     }
 
     var installationDirectory: String {
         sourceDirectories.swiftWork
+    }
+
+    var skillHubCommand: String {
+        guard let executable = skillHubExecutableCandidates.first(where: {
+            fileManager.isExecutableFile(atPath: normalize($0))
+        }) else {
+            return "skillhub"
+        }
+
+        return shellQuoted(normalize(executable))
     }
 
     func discoveryDirectories() -> [String] {
@@ -92,6 +106,19 @@ struct SkillDirectoryService {
 
     private func normalize(_ path: String) -> String {
         (path as NSString).standardizingPath
+    }
+
+    private func shellQuoted(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
+    }
+
+    private static func defaultSkillHubExecutableCandidates() -> [String] {
+        let homeDirectory = FileManager.default.homeDirectoryForCurrentUser.path
+        return [
+            (homeDirectory as NSString).appendingPathComponent(".local/bin/skillhub"),
+            "/opt/homebrew/bin/skillhub",
+            "/usr/local/bin/skillhub",
+        ]
     }
 
     private func append(

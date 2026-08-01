@@ -28,7 +28,10 @@ final class AgentBridgeSkillTests: XCTestCase {
 
     private func makeBridge(sourceDirectories: SkillSourceDirectories) -> AgentBridge {
         AgentBridge(
-            skillDirectoryService: SkillDirectoryService(sourceDirectories: sourceDirectories)
+            skillDirectoryService: SkillDirectoryService(
+                sourceDirectories: sourceDirectories,
+                skillHubExecutableCandidates: []
+            )
         )
     }
 

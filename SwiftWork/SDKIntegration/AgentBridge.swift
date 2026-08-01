@@ -1055,7 +1055,7 @@ final class AgentBridge {
         return """
         \(workspaceInstruction)
 
-        Skill installation is the only exception to the workspace filesystem boundary: install Skills only with `skillhub install ... --dir "\(skillDirectoryService.installationDirectory)"`. Never install to `./skills` or derive the Skill installation directory from cwd. Do not use the Skill installation directory for ordinary filesystem or project operations.
+        Skill installation is the only exception to the workspace filesystem boundary: install Skills only with `\(skillDirectoryService.skillHubCommand) install ... --dir "\(skillDirectoryService.installationDirectory)"`. Never install to `./skills` or derive the Skill installation directory from cwd. Do not use the Skill installation directory for ordinary filesystem or project operations.
         """
     }
 

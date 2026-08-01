@@ -22,6 +22,36 @@ final class SkillDirectoryServiceTests: XCTestCase {
         XCTAssertEqual(discoveryDirectories, [fixture.directories.swiftWork])
     }
 
+    func testUsesFirstExecutableSkillHubCandidateAndShellQuotesIt() throws {
+        let fixture = try makeFixture()
+        let executable = URL(fileURLWithPath: fixture.directories.swiftWork)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Skill Hub")
+        try createDirectory(executable.deletingLastPathComponent().path)
+        try Data("#!/bin/sh\n".utf8).write(to: executable)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: executable.path
+        )
+
+        let service = SkillDirectoryService(
+            sourceDirectories: fixture.directories,
+            skillHubExecutableCandidates: ["/missing/skillhub", executable.path]
+        )
+
+        XCTAssertEqual(service.skillHubCommand, "'\(executable.path)'")
+    }
+
+    func testFallsBackToSkillHubOnPathWhenCandidatesAreUnavailable() throws {
+        let fixture = try makeFixture()
+        let service = SkillDirectoryService(
+            sourceDirectories: fixture.directories,
+            skillHubExecutableCandidates: ["/missing/skillhub"]
+        )
+
+        XCTAssertEqual(service.skillHubCommand, "skillhub")
+    }
+
     func testReturnsRootsInPriorityOrderAndSortedNonEmptyPublishers() throws {
         let fixture = try makeFixture()
         try createDirectory(fixture.directories.sharedAgentsConfiguration)
