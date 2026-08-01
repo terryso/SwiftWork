@@ -97,6 +97,45 @@ final class AgentBridgeSkillTests: XCTestCase {
         )
     }
 
+    private func completedStream() -> AsyncStream<SDKMessage> {
+        AsyncStream { continuation in
+            continuation.yield(.result(SDKMessage.ResultData(
+                subtype: .success,
+                text: "done",
+                usage: nil,
+                numTurns: 0,
+                durationMs: 0
+            )))
+            continuation.finish()
+        }
+    }
+
+    private func failedStream() -> AsyncStream<SDKMessage> {
+        AsyncStream { continuation in
+            continuation.yield(.result(SDKMessage.ResultData(
+                subtype: .errorDuringExecution,
+                text: "",
+                usage: nil,
+                numTurns: 0,
+                durationMs: 0,
+                errors: ["Expected test failure"]
+            )))
+            continuation.finish()
+        }
+    }
+
+    private func waitForExecutionToFinish(
+        _ bridge: AgentBridge,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(1))
+        while bridge.isRunning && ContinuousClock.now < deadline {
+            try? await _Concurrency.Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertFalse(bridge.isRunning, "Execution should finish within the timeout", file: file, line: line)
+    }
+
     // MARK: - AC#1: AgentOptions enables Skill discovery
 
     // [P0] configure() creates a SkillRegistry and assigns it to AgentOptions
@@ -620,7 +659,7 @@ final class AgentBridgeSkillTests: XCTestCase {
         XCTAssertEqual(bridge.errorMessage, "Skill /commit 需要先绑定工作目录。")
     }
 
-    func testExplicitSlashSkillSendUsesSlashRoute() async {
+    func testExplicitBashOnlySlashSkillUsesDirectStreamWithCanonicalNameAndExactArgs() async {
         let bridge = makeBridge()
         bridge.configure(
             apiKey: "test-key",
@@ -629,17 +668,31 @@ final class AgentBridgeSkillTests: XCTestCase {
             workspacePath: workspacePath,
             sessionId: UUID().uuidString
         )
-        bridge.registerSkill(makeSkill(name: "polyv-live-cli", aliases: ["polyv"]))
+        bridge.registerSkill(makeSkill(
+            name: "analytics",
+            toolRestrictions: [.bash]
+        ))
+        let directStreamCalled = expectation(description: "Direct skill stream called")
+        var directSkillCalls: [(String, String?)] = []
+        bridge.executeSkillStreamHandler = { name, args in
+            directSkillCalls.append((name, args))
+            directStreamCalled.fulfill()
+            return self.completedStream()
+        }
 
-        let outcome = bridge.sendMessage("/polyv-live-cli 获取最新5个频道")
+        let outcome = bridge.sendMessage("/analytics recent")
 
         guard case .sentSlashSkill(let invocation) = outcome else {
             return XCTFail("Expected explicit slash invocation to route through slash skill handling")
         }
-        XCTAssertEqual(invocation.canonicalName, "polyv-live-cli")
-        XCTAssertEqual(invocation.args, "获取最新5个频道")
+        XCTAssertEqual(invocation.canonicalName, "analytics")
+        XCTAssertEqual(invocation.args, "recent")
 
-        try? await _Concurrency.Task.sleep(nanoseconds: 50_000_000)
+        await fulfillment(of: [directStreamCalled], timeout: 1)
+        await waitForExecutionToFinish(bridge)
+
+        XCTAssertEqual(directSkillCalls.map(\.0), ["analytics"])
+        XCTAssertEqual(directSkillCalls.first?.1, "recent")
 
         let toolUseEvent = bridge.events.first(where: {
             $0.type == .toolUse && ($0.metadata["toolName"] as? String) == "Skill"
@@ -648,7 +701,69 @@ final class AgentBridgeSkillTests: XCTestCase {
 
         let toolResultEvent = bridge.events.first(where: { $0.type == .toolResult })
         XCTAssertNotNil(toolResultEvent, "Explicit slash send should emit a Skill toolResult event")
-        XCTAssertTrue(toolResultEvent?.content.contains("\"commandName\":\"polyv-live-cli\"") == true)
+        XCTAssertTrue(toolResultEvent?.content.contains("\"commandName\":\"analytics\"") == true)
+    }
+
+    func testExplicitBashOnlySkillAliasUsesDirectStreamWithCanonicalNameAndExactArgs() async {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: workspacePath,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(
+            name: "analytics",
+            aliases: ["sls"],
+            toolRestrictions: [.bash]
+        ))
+        let directStreamCalled = expectation(description: "Direct skill stream called through alias")
+        var directSkillCalls: [(String, String?)] = []
+        bridge.executeSkillStreamHandler = { name, args in
+            directSkillCalls.append((name, args))
+            directStreamCalled.fulfill()
+            return self.completedStream()
+        }
+
+        let outcome = bridge.sendMessage("/sls recent 7d")
+
+        guard case .sentSlashSkill(let invocation) = outcome else {
+            return XCTFail("Expected alias invocation to route through slash skill handling")
+        }
+        XCTAssertEqual(invocation.canonicalName, "analytics")
+        XCTAssertEqual(invocation.invokedName, "sls")
+        XCTAssertEqual(invocation.args, "recent 7d")
+
+        await fulfillment(of: [directStreamCalled], timeout: 1)
+        await waitForExecutionToFinish(bridge)
+
+        XCTAssertEqual(directSkillCalls.map(\.0), ["analytics"])
+        XCTAssertEqual(directSkillCalls.first?.1, "recent 7d")
+    }
+
+    func testExplicitSkillErrorStreamReleasesQueue() async {
+        let bridge = makeBridge()
+        bridge.configure(
+            apiKey: "test-key",
+            baseURL: nil,
+            model: "test-model",
+            workspacePath: workspacePath,
+            sessionId: UUID().uuidString
+        )
+        bridge.registerSkill(makeSkill(name: "analytics", toolRestrictions: [.bash]))
+        let directStreamCalled = expectation(description: "Direct error skill stream called")
+        bridge.executeSkillStreamHandler = { _, _ in
+            directStreamCalled.fulfill()
+            return self.failedStream()
+        }
+
+        _ = bridge.sendMessage("/analytics")
+
+        await fulfillment(of: [directStreamCalled], timeout: 1)
+        await waitForExecutionToFinish(bridge)
+        XCTAssertTrue(bridge.events.contains(where: { $0.type == .result }),
+                      "The direct error result should remain visible in the timeline")
     }
 
     func testUnknownSlashFallsBackToPlainTextSend() {

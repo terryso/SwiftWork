@@ -101,6 +101,11 @@ final class AgentBridge {
     @ObservationIgnored
     var mcpServerUpdateHandler: (([String: McpServerConfig]) async throws -> McpServerUpdateResult)?
 
+    /// Test seam for explicit skill execution without invoking a configured provider.
+    /// Production uses `Agent.executeSkillStream(_:args:)` when this handler is nil.
+    @ObservationIgnored
+    var executeSkillStreamHandler: ((String, String?) -> AsyncStream<SDKMessage>)?
+
     @ObservationIgnored
     private var currentTask: _Concurrency.Task<Void, Never>?
 
@@ -598,12 +603,12 @@ final class AgentBridge {
         currentTask = _Concurrency.Task { [weak self] in
             guard let self else { return }
             var receivedResult = false
-            let outboundText: String
+            let sdkStream: AsyncStream<SDKMessage>
             switch request.payload {
             case .plainText(let text):
-                outboundText = text
+                sdkStream = agent.stream(text)
             case .explicitSlashSkill(let invocation):
-                guard let resolved = await self.resolveExplicitSlashSkillRequest(invocation) else {
+                guard await self.recordExplicitSlashSkillInvocation(invocation) else {
                     self.currentTask = nil
                     if self.queuedMessages.isEmpty {
                         self.isRunning = false
@@ -612,9 +617,9 @@ final class AgentBridge {
                     }
                     return
                 }
-                outboundText = resolved
+                sdkStream = self.executeSkillStreamHandler?(invocation.canonicalName, invocation.args)
+                    ?? agent.executeSkillStream(invocation.canonicalName, args: invocation.args)
             }
-            let sdkStream = agent.stream(outboundText)
             for await message in sdkStream {
                 guard !_Concurrency.Task.isCancelled else { break }
                 receivedResult = self.handleStreamMessage(message) || receivedResult
@@ -733,8 +738,8 @@ final class AgentBridge {
         })
     }
 
-    private func resolveExplicitSlashSkillRequest(_ invocation: ExplicitSlashSkillInvocation) async -> String? {
-        guard let registry = skillRegistry else { return nil }
+    private func recordExplicitSlashSkillInvocation(_ invocation: ExplicitSlashSkillInvocation) async -> Bool {
+        guard let registry = skillRegistry else { return false }
 
         let inputPayload: [String: String] = [
             "skill": invocation.canonicalName,
@@ -773,50 +778,13 @@ final class AgentBridge {
             timestamp: .now
         ))
 
-        guard !result.isError,
-              let resolved = parseResolvedSkillResult(result.content, invocation: invocation) else {
+        guard !result.isError else {
             errorMessage = "Skill /\(invocation.canonicalName) 执行准备失败，未发送消息。"
-            return nil
+            return false
         }
 
         errorMessage = nil
-        return resolved
-    }
-
-    private func parseResolvedSkillResult(
-        _ content: String,
-        invocation: ExplicitSlashSkillInvocation
-    ) -> String? {
-        guard let data = content.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let prompt = json["prompt"] as? String else {
-            return nil
-        }
-
-        let metadata: [String: Any] = [
-            "canonicalName": invocation.canonicalName,
-            "invokedName": invocation.invokedName,
-            "args": invocation.args ?? "",
-            "allowedTools": json["allowedTools"] as? [String] ?? [],
-            "model": json["model"] as? String ?? "",
-            "baseDir": json["baseDir"] as? String ?? "",
-            "supportingFiles": json["supportingFiles"] as? [String] ?? []
-        ]
-        let payload: [String: Any] = [
-            "slashSkill": metadata,
-            "skillPrompt": prompt
-        ]
-
-        return """
-        The user explicitly selected a slash skill. The skill resolution step has already completed, so do not decide whether to use a skill for this request.
-
-        Resolved slash skill payload:
-        ```json
-        \(serializeJSON(payload))
-        ```
-
-        Follow the `skillPrompt` field as the authoritative instructions for this turn, using the resolved `slashSkill.args` exactly as provided.
-        """
+        return true
     }
 
     private func serializeJSON(_ object: Any) -> String {
