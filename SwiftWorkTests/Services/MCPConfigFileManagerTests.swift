@@ -35,7 +35,7 @@ final class MCPConfigFileManagerTests: XCTestCase {
         return (manager, store)
     }
 
-    private var tempDirectory: String!
+    nonisolated(unsafe) private var tempDirectory: String!
 
     override func setUp() {
         super.setUp()

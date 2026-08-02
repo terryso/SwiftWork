@@ -21,7 +21,7 @@ final class MCPConfigFileIntegrationTests: XCTestCase {
         return (container, context)
     }
 
-    private var tempDirectory: String!
+    nonisolated(unsafe) private var tempDirectory: String!
 
     override func setUp() {
         super.setUp()
